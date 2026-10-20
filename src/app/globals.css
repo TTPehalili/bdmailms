@@ -1,21 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #F2F0EF;
+  --foreground: #222021;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --primary: #F9ED32;
-  --primary-foreground: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --sidebar: #0B0F17;
-  --sidebar-foreground: #f8fafc;
+  --card-foreground: #222021;
+  --primary: #ED1C24;
+  --primary-foreground: #ffffff;
+  --charcoal: #222021;
+  --offwhite: #F2F0EF;
+  --muted: #6b6968;
+  --border: #e3e0de;
+  --sidebar: #222021;
+  --sidebar-foreground: #F2F0EF;
 }
 
 html, body {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+  background-color: #F2F0EF !important;
+  color: #222021 !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -32,12 +34,12 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d8d5d3;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #b5b1ae;
 }
 
 /* Print utilities for official certificates */

@@ -12,8 +12,7 @@ import {
   BookOpen, 
   Users, 
   Radio, 
-  ShieldCheck,
-  Zap
+  ShieldCheck
 } from 'lucide-react';
 
 export default function AppSidebar() {
@@ -25,12 +24,12 @@ export default function AppSidebar() {
   const isAdmin = pathname.startsWith('/admin');
 
   return (
-    <aside className="w-16 bg-[#0B0F17] flex flex-col items-center justify-between py-4 border-r border-white/10 shrink-0 select-none z-40">
+    <aside className="w-16 bg-[#222021] flex flex-col items-center justify-between py-4 border-r border-white/10 shrink-0 select-none z-40">
       
       {/* Top: Stylized Appointmentlyy Brand Glyph */}
       <div className="flex flex-col items-center gap-6 w-full">
         <Link href="/" className="group relative flex items-center justify-center">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-yellow-400 to-[#F9ED32] flex items-center justify-center text-slate-900 font-black text-base shadow-md group-hover:scale-105 transition-transform">
+          <div className="h-9 w-9 rounded-xl bg-[#ED1C24] flex items-center justify-center text-white font-black text-base shadow-md group-hover:scale-105 transition-transform">
             <span>⚡</span>
           </div>
         </Link>
@@ -42,7 +41,7 @@ export default function AppSidebar() {
           <Link
             href="/"
             title="Dashboard & Mission"
-            className="h-10 w-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="h-10 w-10 rounded-xl flex items-center justify-center text-[#F2F0EF]/60 hover:text-white hover:bg-white/10 transition-colors"
           >
             <Target className="h-5 w-5" />
           </Link>
@@ -53,8 +52,8 @@ export default function AppSidebar() {
             title="AI Boris: Every script and rebuttal"
             className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all ${
               isDojo
-                ? 'bg-[#F9ED32] text-slate-900 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
+                ? 'bg-[#ED1C24] text-white shadow-sm'
+                : 'text-[#F2F0EF]/60 hover:text-white hover:bg-white/10'
             }`}
           >
             <Swords className="h-5 w-5" />
@@ -66,8 +65,8 @@ export default function AppSidebar() {
             title="AI Sparring Arena"
             className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all ${
               isSparring
-                ? 'bg-[#F9ED32] text-slate-900 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
+                ? 'bg-[#ED1C24] text-white shadow-sm'
+                : 'text-[#F2F0EF]/60 hover:text-white hover:bg-white/10'
             }`}
           >
             <Headphones className="h-5 w-5" />
@@ -77,7 +76,7 @@ export default function AppSidebar() {
           <Link
             href="/cockpit"
             title="Dialer & Calling"
-            className="h-10 w-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="h-10 w-10 rounded-xl flex items-center justify-center text-[#F2F0EF]/60 hover:text-white hover:bg-white/10 transition-colors"
           >
             <PhoneCall className="h-5 w-5" />
           </Link>
@@ -88,8 +87,8 @@ export default function AppSidebar() {
             title="Certification Gate"
             className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all ${
               isCert
-                ? 'bg-[#F9ED32] text-slate-900 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
+                ? 'bg-[#ED1C24] text-white shadow-sm'
+                : 'text-[#F2F0EF]/60 hover:text-white hover:bg-white/10'
             }`}
           >
             <CalendarDays className="h-5 w-5" />
@@ -99,7 +98,7 @@ export default function AppSidebar() {
           <Link
             href="/admin/frameworks"
             title="Knowledge & Playbooks"
-            className="h-10 w-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="h-10 w-10 rounded-xl flex items-center justify-center text-[#F2F0EF]/60 hover:text-white hover:bg-white/10 transition-colors"
           >
             <BookOpen className="h-5 w-5" />
           </Link>
@@ -108,7 +107,7 @@ export default function AppSidebar() {
           <Link
             href="/admin/campaigns/enterprise-outbound/leads"
             title="Leads & Cadence"
-            className="h-10 w-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="h-10 w-10 rounded-xl flex items-center justify-center text-[#F2F0EF]/60 hover:text-white hover:bg-white/10 transition-colors"
           >
             <Users className="h-5 w-5" />
           </Link>
@@ -117,7 +116,7 @@ export default function AppSidebar() {
           <Link
             href="/cockpit"
             title="Live Monitoring"
-            className="h-10 w-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="h-10 w-10 rounded-xl flex items-center justify-center text-[#F2F0EF]/60 hover:text-white hover:bg-white/10 transition-colors"
           >
             <Radio className="h-5 w-5" />
           </Link>
@@ -128,8 +127,8 @@ export default function AppSidebar() {
             title="Super Admin Control Centre"
             className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all ${
               isAdmin
-                ? 'bg-[#F9ED32] text-slate-900 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
+                ? 'bg-[#ED1C24] text-white shadow-sm'
+                : 'text-[#F2F0EF]/60 hover:text-white hover:bg-white/10'
             }`}
           >
             <ShieldCheck className="h-5 w-5" />
@@ -141,7 +140,7 @@ export default function AppSidebar() {
       <div className="flex flex-col items-center">
         <div 
           title="Overall Rep Quality Score: 92.5%"
-          className="h-8 w-8 rounded-full border-2 border-[#F9ED32] bg-[#F9ED32]/10 flex items-center justify-center text-[#F9ED32] font-black text-[10px] font-mono shadow-xs cursor-pointer hover:scale-105 transition-transform"
+          className="h-8 w-8 rounded-full border-2 border-[#ED1C24] bg-[#ED1C24]/10 flex items-center justify-center text-[#ED1C24] font-black text-[10px] font-mono shadow-xs cursor-pointer hover:scale-105 transition-transform"
         >
           92.5
         </div>

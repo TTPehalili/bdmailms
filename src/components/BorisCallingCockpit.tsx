@@ -10,7 +10,6 @@ import {
   Volume2, 
   Copy, 
   Check, 
-  Headset, 
   Sparkles, 
   RotateCcw, 
   Wand2, 
@@ -21,10 +20,23 @@ import {
   PhoneOff,
   PhoneCall,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  HelpCircle
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
+
+interface ARMRebuttal {
+  id: string;
+  category: 'Timing' | 'Incumbent' | 'Budget' | 'Privacy' | 'Authenticity' | 'Burned';
+  categoryColor: string;
+  trigger: string;
+  listenFor: string;
+  acknowledge: string;
+  respond: string;
+  move: string;
+  fullSpoken: string;
+}
 
 export default function BorisCallingCockpit() {
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'huge'>('normal');
@@ -33,6 +45,7 @@ export default function BorisCallingCockpit() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [callingAs, setCallingAs] = useState('Setter — New Bookings');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Customer / Lead state for B2B Outbound SDR
   const [customerName, setCustomerName] = useState('Jonathan Duarte');
@@ -65,6 +78,7 @@ export default function BorisCallingCockpit() {
     }
   };
 
+  // 100% Pure B2B Cold Outbound Sales Script (Zero solar / zero roof)
   const steps = [
     { 
       num: 1, 
@@ -122,12 +136,121 @@ export default function BorisCallingCockpit() {
     },
   ];
 
+  // 100% Pure B2B ARM Rebuttals (Acknowledge, Respond, Move)
+  const rebuttals: ARMRebuttal[] = [
+    {
+      id: 'reb_email',
+      category: 'Timing',
+      categoryColor: 'bg-blue-50 text-blue-800 border-blue-200',
+      trigger: 'Just send me an email / send some information',
+      listenFor: 'Polite brush-off to get off the phone without reading.',
+      acknowledge: 'Totally understand, happy to send a 1-page breakdown over so you have it in writing.',
+      respond: 'The reason I reached out directly is that most VPs tell us marketing decks get lost in 400 unread emails without context on rep objection hold rates.',
+      move: 'Before I shoot that over, what dialer or softphone stack is your SDR team running right now so I include the exact integration specs?',
+      fullSpoken: 'Totally understand, happy to send a 1-page breakdown so you have it in writing. The reason I reached out directly is that most VPs tell us marketing decks get lost in unread emails without context on rep objection hold rates. Before I shoot that over, what dialer or CRM is your SDR team running right now so I include the exact integration specs?'
+    },
+    {
+      id: 'reb_agency',
+      category: 'Incumbent',
+      categoryColor: 'bg-purple-50 text-purple-800 border-purple-200',
+      trigger: 'We already use an agency / outsource partner',
+      listenFor: 'They have a contracted agency managing outbound.',
+      acknowledge: 'That makes complete sense—most high-growth teams we work with partner with an agency for top-of-funnel discovery.',
+      respond: 'We actually don\'t replace your agency. We provide the real-time AI audio assist layer that plugs into their reps\' headsets to cut objection drop-off by 40%.',
+      move: 'Are you satisfied with the volume of qualified meetings they\'re putting on your calendar this month, or would a 10-minute diagnostic run be worth a quick look?',
+      fullSpoken: 'That makes complete sense—most teams partner with an agency for top-of-funnel discovery. We actually don\'t replace your agency. We provide the real-time AI audio assist layer that plugs into their reps\' headsets to cut objection drop-off by 40%. Are you satisfied with the volume of qualified meetings they\'re putting on your calendar this month?'
+    },
+    {
+      id: 'reb_inhouse',
+      category: 'Incumbent',
+      categoryColor: 'bg-purple-50 text-purple-800 border-purple-200',
+      trigger: 'We handle all outbound in-house with internal SDRs',
+      listenFor: 'Pride in internal sales team culture.',
+      acknowledge: 'Makes complete sense—having internal reps who deeply understand your core product domain is a huge advantage.',
+      respond: 'Appointmentlyy is built specifically to superpower in-house teams. Boris intercepts prospect friction in 140ms and surfaces battle-tested ARM talk tracks right before reps drop the ball.',
+      move: 'How many full-time SDRs do you currently have making dials on your floor?',
+      fullSpoken: 'Makes complete sense—having internal reps who deeply understand your core product domain is a huge advantage. Appointmentlyy is built specifically to superpower in-house teams. Boris intercepts prospect friction in 140ms and surfaces battle-tested ARM talk tracks right before reps drop the ball. How many full-time SDRs do you currently have making dials today?'
+    },
+    {
+      id: 'reb_budget',
+      category: 'Budget',
+      categoryColor: 'bg-amber-50 text-amber-800 border-amber-200',
+      trigger: 'Not interested / We don\'t have budget for this',
+      listenFor: 'Premature budget defense before understanding the ROI.',
+      acknowledge: 'Completely fair—I wouldn\'t expect you to have budget allocated for something you haven\'t seen in action yet.',
+      respond: 'This isn\'t an enterprise budget commitment. We run a low-friction diagnostic test on live dials so you can measure the booked meeting lift before spending a dollar.',
+      move: 'Would you be totally opposed to taking a 7-minute peek next Tuesday morning?',
+      fullSpoken: 'Completely fair—I wouldn\'t expect you to have budget allocated for something you haven\'t seen in action yet. This isn\'t an enterprise budget commitment. We run a low-friction diagnostic test on live dials so you can measure the booked meeting lift before spending a dollar. Would you be totally opposed to taking a 7-minute peek next Tuesday morning?'
+    },
+    {
+      id: 'reb_swamped',
+      category: 'Timing',
+      categoryColor: 'bg-blue-50 text-blue-800 border-blue-200',
+      trigger: 'I\'m swamped right now / bad timing / call back next month',
+      listenFor: 'Operational overload, fires, calendar fatigue.',
+      acknowledge: 'Completely understand, I hear the background noise and know you\'re jumping between meetings.',
+      respond: 'I definitely don\'t want to disrupt your day. The reason for the call is that teams use this to eliminate rep ramp management overhead completely.',
+      move: 'What does your calendar look like for a brief 5-minute catch-up next Thursday at 10:30 AM EDT?',
+      fullSpoken: 'Completely understand, I hear the background noise and know you\'re jumping between meetings. I definitely don\'t want to disrupt your day. The reason for the call is that teams use this to eliminate rep ramp management overhead completely. What does your calendar look like for a brief 5-minute catch-up next Thursday at 10:30 AM EDT?'
+    },
+    {
+      id: 'reb_privacy',
+      category: 'Privacy',
+      categoryColor: 'bg-rose-50 text-rose-800 border-rose-200',
+      trigger: 'How did you get my direct phone number?',
+      listenFor: 'Privacy resistance or suspicion of unsolicited contact.',
+      acknowledge: 'Fair question! I always want to be 100% transparent.',
+      respond: 'We use compliant B2B intelligence platforms like Apollo and ZoomInfo to identify demand generation leaders whose teams are actively scaling outbound pipeline.',
+      move: 'Since I have you for just 20 seconds, is outbound conversion rate something your sales floor is actively looking to improve this quarter?',
+      fullSpoken: 'Fair question! I always want to be 100% transparent. We use compliant B2B intelligence platforms like Apollo and ZoomInfo to identify demand generation leaders whose teams are actively scaling outbound pipeline. Since I have you for just 20 seconds, is outbound conversion rate something your sales floor is actively looking to improve this quarter?'
+    },
+    {
+      id: 'reb_authenticity',
+      category: 'Authenticity',
+      categoryColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      trigger: 'Is this an AI robot or automated dialer voice?',
+      listenFor: 'Prospect checking for robotic or synthetic presence.',
+      acknowledge: 'Haha, nope! I\'m an actual live human being dialing you from our team right now.',
+      respond: 'We do develop real-time AI copilot technology that assists live reps during calls, but every conversation is 100% authentic human-to-human.',
+      move: 'Curious—have you explored deploying live AI audio assist tools on your SDR calling floor yet?',
+      fullSpoken: 'Haha, nope! I\'m an actual live human being dialing you from our team right now. We do develop real-time AI copilot technology that assists live reps during calls, but every conversation is 100% authentic human-to-human. Curious—have you explored deploying live AI audio assist tools on your SDR calling floor yet?'
+    },
+    {
+      id: 'reb_burned',
+      category: 'Burned',
+      categoryColor: 'bg-red-50 text-red-800 border-red-200',
+      trigger: 'We tried an outbound service before and it burned our domain',
+      listenFor: 'Trauma from low-quality spam or poor agency execution.',
+      acknowledge: 'I hear that all the time, and frankly a lot of fly-by-night agencies blast spam emails and ruin company reputation.',
+      respond: 'We don\'t do spam outreach. We run live acoustic hold verification, sub-second objection assistance, and targeted account qualification so your brand equity is protected.',
+      move: 'Would you be open to reviewing our live audio QA scorecard to see how we guarantee conversational compliance?',
+      fullSpoken: 'I hear that all the time, and frankly a lot of fly-by-night agencies blast spam emails and ruin company reputation. We don\'t do spam outreach. We run live acoustic hold verification, sub-second objection assistance, and targeted account qualification so your brand equity is protected. Would you be open to reviewing our live audio QA scorecard to see how we guarantee conversational compliance?'
+    }
+  ];
+
   const currentStepData = steps[currentStep - 1] || steps[0];
 
+  // Filtered rebuttals based on search query and category
+  const filteredRebuttals = rebuttals.filter(r => {
+    const matchesSearch = searchQuery === '' || 
+      r.trigger.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.listenFor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.acknowledge.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.respond.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.move.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory = selectedCategory === 'all' || r.category.toLowerCase() === selectedCategory.toLowerCase();
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const isRebuttalsMode = activeTab === 'rebuttals' || searchQuery.trim().length > 0;
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F8FAFC] font-sans antialiased text-slate-800">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#F2F0EF] font-sans antialiased text-[#222021]">
       
-      {/* 1. LEFT DARK SIDEBAR DOCK (Exact AI LMS AppSidebar) */}
+      {/* 1. LEFT CHARCOAL SIDEBAR DOCK */}
       <AppSidebar />
 
       {/* 2. MAIN APP SHELL (Top Header + Scrollable Content) */}
@@ -144,32 +267,32 @@ export default function BorisCallingCockpit() {
               =================================================================== */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-[#F9ED32] flex items-center justify-center text-slate-900 shadow-xs">
+              <div className="h-9 w-9 rounded-xl bg-[#ED1C24] flex items-center justify-center text-white shadow-xs">
                 <Swords className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                <h1 className="text-2xl font-black tracking-tight text-[#222021]">
                   AI Boris
                 </h1>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#6b6968]">
                   Every script and rebuttal, ready to read out loud.
                 </p>
               </div>
             </div>
 
             {/* Font Size Toggle [- A   + A] */}
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 text-xs font-semibold shadow-2xs">
+            <div className="flex items-center gap-1 bg-white border border-[#222021]/15 rounded-lg p-1 text-xs font-semibold shadow-2xs">
               <button
                 onClick={() => setTextSize(prev => prev === 'huge' ? 'large' : 'normal')}
-                className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600 transition-colors flex items-center gap-0.5"
+                className="px-2 py-1 rounded hover:bg-[#F2F0EF] text-[#6b6968] transition-colors flex items-center gap-0.5"
               >
                 <Minus className="h-3 w-3" />
                 <span>A</span>
               </button>
-              <div className="h-3.5 w-[1px] bg-slate-200 mx-0.5" />
+              <div className="h-3.5 w-[1px] bg-[#222021]/15 mx-0.5" />
               <button
                 onClick={() => setTextSize(prev => prev === 'normal' ? 'large' : 'huge')}
-                className="px-2 py-1 rounded hover:bg-slate-100 text-slate-900 font-bold transition-colors flex items-center gap-0.5"
+                className="px-2 py-1 rounded hover:bg-[#F2F0EF] text-[#222021] font-bold transition-colors flex items-center gap-0.5"
               >
                 <Plus className="h-3 w-3" />
                 <span>A</span>
@@ -181,18 +304,18 @@ export default function BorisCallingCockpit() {
               PROMINENT REBUTTAL SEARCH (What did the prospect say?)
               =================================================================== */}
           <div className="relative">
-            <Search className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#6b6968]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="What did the prospect say?"
-              className="w-full h-14 pl-12 pr-10 rounded-xl bg-white border border-slate-200 text-base font-medium placeholder-slate-400 text-slate-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#F9ED32] focus:border-slate-300 transition-all"
+              placeholder="What did the prospect say? (e.g. email, agency, budget, swamped...)"
+              className="w-full h-14 pl-12 pr-10 rounded-xl bg-white border border-[#222021]/15 text-base font-medium placeholder-[#6b6968] text-[#222021] shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#ED1C24] focus:border-[#ED1C24] transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6b6968] hover:text-[#222021] p-1"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -202,13 +325,16 @@ export default function BorisCallingCockpit() {
           {/* ===================================================================
               DUAL TAB SWITCHER: [ Step-by-step call ] | [ Rebuttals ]
               =================================================================== */}
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-200/60 max-w-full font-bold text-sm">
+          <div className="grid grid-cols-2 p-1 rounded-xl bg-[#222021]/10 max-w-full font-bold text-sm">
             <button
-              onClick={() => setActiveTab('steps')}
+              onClick={() => {
+                setActiveTab('steps');
+                setSearchQuery('');
+              }}
               className={`py-2.5 rounded-lg transition-all ${
-                activeTab === 'steps'
-                  ? 'bg-[#F9ED32] text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                !isRebuttalsMode
+                  ? 'bg-[#ED1C24] text-white shadow-sm'
+                  : 'text-[#222021]/70 hover:text-[#222021]'
               }`}
             >
               Step-by-step call
@@ -216,9 +342,9 @@ export default function BorisCallingCockpit() {
             <button
               onClick={() => setActiveTab('rebuttals')}
               className={`py-2.5 rounded-lg transition-all ${
-                activeTab === 'rebuttals'
-                  ? 'bg-[#F9ED32] text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                isRebuttalsMode
+                  ? 'bg-[#ED1C24] text-white shadow-sm'
+                  : 'text-[#222021]/70 hover:text-[#222021]'
               }`}
             >
               Rebuttals
@@ -226,385 +352,525 @@ export default function BorisCallingCockpit() {
           </div>
 
           {/* ===================================================================
-              3-COLUMN WORK AREA
+              MAIN CONTENT CONTAINER: STEP-BY-STEP OR REBUTTALS MATRIX
               =================================================================== */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            
-            {/* ---------------------------------------------------------------
-                COLUMN 1: Customer Name & Lead Context (3 cols)
-                --------------------------------------------------------------- */}
-            <div className="lg:col-span-3 flex flex-col gap-4">
+          {!isRebuttalsMode ? (
+            /* =================================================================
+               3-COLUMN STEP-BY-STEP WORK AREA
+               ================================================================= */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               
-              {/* Customer Name Card */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-3">
-                <div>
-                  <h2 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
-                    Customer name
-                  </h2>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                    Paste it from Zoho or CRM, or it comes in with your next lead. It goes into every line of your script and into your notes.
+              {/* ---------------------------------------------------------------
+                  COLUMN 1: Customer Name & Lead Context (3 cols)
+                  --------------------------------------------------------------- */}
+              <div className="lg:col-span-3 flex flex-col gap-4">
+                
+                {/* Customer Name Card */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+                  <div>
+                    <h2 className="text-sm font-extrabold text-[#222021] tracking-tight flex items-center gap-1.5">
+                      Customer name
+                    </h2>
+                    <p className="text-[11px] text-[#6b6968] mt-0.5 leading-snug">
+                      Paste it from CRM, or it comes in with your next lead. It goes into every line of your script and notes.
+                    </p>
+                  </div>
+
+                  {/* Calling As Dropdown */}
+                  <div className="bg-[#F2F0EF] border border-[#222021]/10 rounded-xl p-2">
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#6b6968] block mb-1">
+                      CALLING AS
+                    </span>
+                    <select
+                      value={callingAs}
+                      onChange={(e) => setCallingAs(e.target.value)}
+                      className="w-full bg-white border border-[#222021]/15 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#222021] focus:outline-none focus:ring-1 focus:ring-[#ED1C24]"
+                    >
+                      <option>Setter — New Bookings</option>
+                      <option>Closer — Executive Diagnostic</option>
+                      <option>QA Evaluator — Live Assist</option>
+                    </select>
+                  </div>
+
+                  {/* Customer Inputs */}
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Customer name"
+                      className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-2 text-xs text-[#222021] font-medium placeholder-[#6b6968] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                    />
+                    <input
+                      type="text"
+                      value={partnerName}
+                      onChange={(e) => setPartnerName(e.target.value)}
+                      placeholder="Company name"
+                      className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-2 text-xs text-[#222021] font-medium placeholder-[#6b6968] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Phone, e.g. +1 (415) 890-1284"
+                        className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-2 text-xs text-[#222021] font-medium placeholder-[#6b6968] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] px-1 py-0.5 rounded bg-white border border-[#222021]/10 text-[#222021] font-bold font-mono">
+                        US/AU
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={territory}
+                      onChange={(e) => setTerritory(e.target.value)}
+                      placeholder="Territory, e.g. US Enterprise"
+                      className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-2 text-xs text-[#222021] font-medium placeholder-[#6b6968] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                    />
+                  </div>
+
+                  <p className="text-[10px] text-[#6b6968] leading-snug">
+                    Type the customer's name and phone and this lead saves to <span className="font-semibold text-[#222021]">My leads</span> automatically.
                   </p>
                 </div>
 
-                {/* Calling As Dropdown */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2">
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    <span className="flex items-center gap-1 text-slate-700">
-                      <Headset className="h-3 w-3 text-amber-700" />
-                      CALLING AS
+                {/* Your Lead Card */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#222021] flex items-center gap-1.5">
+                      <span className="text-[#ED1C24]">⚡</span>
+                      <span>Your lead</span>
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ED1C24]/10 text-[#ED1C24] border border-[#ED1C24]/20">
+                      B2B PIPELINE
                     </span>
                   </div>
-                  <select
-                    value={callingAs}
-                    onChange={(e) => setCallingAs(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 focus:outline-none"
-                  >
-                    <option value="Setter — New Bookings">Setter — New Bookings</option>
-                    <option value="SDR — Enterprise Outbound">SDR — Enterprise Outbound</option>
-                    <option value="Closer — Discovery Calls">Closer — Discovery Calls</option>
-                  </select>
-                </div>
-
-                {/* Inputs */}
-                <div className="space-y-2 text-xs">
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="e.g. Jonathan Duarte"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium placeholder-slate-400 focus:outline-none focus:bg-white focus:border-slate-300"
-                  />
-                  <input
-                    type="text"
-                    value={partnerName}
-                    onChange={(e) => setPartnerName(e.target.value)}
-                    placeholder="Partner's / Company name (optional)"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium placeholder-slate-400 focus:outline-none focus:bg-white focus:border-slate-300"
-                  />
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Phone, e.g. +1 (415) 890-1284"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium placeholder-slate-400 focus:outline-none focus:bg-white focus:border-slate-300"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] px-1 py-0.5 rounded bg-slate-200 text-slate-700 font-bold font-mono">
-                      US/AU
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    value={territory}
-                    onChange={(e) => setTerritory(e.target.value)}
-                    placeholder="Territory, e.g. US Enterprise"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium placeholder-slate-400 focus:outline-none focus:bg-white focus:border-slate-300"
+                  <p className="text-[11px] text-[#6b6968] leading-snug">
+                    Paste the lead info from CRM in any format. The script on the right is tailored to this.
+                  </p>
+                  <textarea
+                    rows={3}
+                    value={leadNotes}
+                    onChange={(e) => setLeadNotes(e.target.value)}
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl p-2.5 text-[11px] text-[#222021] font-mono focus:outline-none focus:bg-white"
                   />
                 </div>
-
-                <p className="text-[10px] text-slate-400 leading-snug">
-                  Type the customer's name and phone and this lead saves to <span className="font-semibold text-slate-600">My leads</span> automatically.
-                </p>
               </div>
 
-              {/* Your Lead Card */}
-              <div className="bg-amber-50/50 border border-amber-200/80 rounded-2xl p-4 shadow-2xs space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                    <span>📋</span>
-                    <span>Your lead</span>
-                  </span>
-                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
-                    B2B PIPELINE
-                  </span>
+              {/* ---------------------------------------------------------------
+                  COLUMN 2: Step-by-Step Call Flow Script (6 cols)
+                  --------------------------------------------------------------- */}
+              <div className="lg:col-span-6 flex flex-col gap-4">
+                
+                {/* Horizontal Step Pills Navigator */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {steps.map((st) => (
+                    <button
+                      key={st.num}
+                      onClick={() => setCurrentStep(st.num)}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-2xs ${
+                        currentStep === st.num
+                          ? 'bg-[#ED1C24] text-white shadow-xs'
+                          : 'bg-white border border-[#222021]/10 text-[#6b6968] hover:text-[#222021]'
+                      }`}
+                    >
+                      <span>{st.num} {st.title}</span>
+                    </button>
+                  ))}
                 </div>
-                <p className="text-[11px] text-amber-900/80 leading-snug">
-                  Paste the lead info from the vendor or CRM in any format. The script on the right is tailored to this.
-                </p>
-                <textarea
-                  rows={3}
-                  value={leadNotes}
-                  onChange={(e) => setLeadNotes(e.target.value)}
-                  className="w-full bg-white border border-amber-200 rounded-xl p-2.5 text-[11px] text-slate-800 font-mono focus:outline-none"
-                />
+
+                {/* Active Step Script Card */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 shadow-2xs space-y-5">
+                  
+                  {/* Step Metadata Header */}
+                  <div>
+                    <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-[#ED1C24]">
+                      STEP {currentStep} OF {steps.length} • {currentStepData.time}
+                    </span>
+                    <h2 className="text-2xl font-black text-[#222021] tracking-tight mt-0.5">
+                      {currentStepData.title}
+                    </h2>
+                    <p className="text-xs text-[#6b6968] mt-1 leading-snug">
+                      {currentStepData.purpose}
+                    </p>
+                  </div>
+
+                  {/* Spoken Script Quotation 1 */}
+                  <div className="space-y-2 pt-2 border-t border-[#222021]/10">
+                    <p className={`font-semibold text-[#222021] leading-relaxed ${
+                      textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-lg'
+                    }`}>
+                      {currentStepData.line1}
+                    </p>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => playSpeech(currentStepData.line1, `q1_${currentStep}`)}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                          isPlayingAudio === `q1_${currentStep}` ? 'bg-[#ED1C24] border-[#ED1C24] text-white' : 'bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] border-[#222021]/10'
+                        }`}
+                      >
+                        <Volume2 className="h-3.5 w-3.5" />
+                        <span>{isPlayingAudio === `q1_${currentStep}` ? 'Playing...' : 'Hear it'}</span>
+                      </button>
+                      <button
+                        onClick={() => copyText(currentStepData.line1, `q1_copy_${currentStep}`)}
+                        className="px-2.5 py-1 rounded-lg bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] border border-[#222021]/10 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        {copiedKey === `q1_copy_${currentStep}` ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-[#6b6968]" />}
+                        <span>{copiedKey === `q1_copy_${currentStep}` ? 'Copied' : 'Copy'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Spoken Script Quotation 2 */}
+                  <div className="space-y-2 pt-2 border-t border-[#222021]/10">
+                    <p className={`font-semibold text-[#222021] leading-relaxed ${
+                      textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-lg'
+                    }`}>
+                      {currentStepData.line2}
+                    </p>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => playSpeech(currentStepData.line2, `q2_${currentStep}`)}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                          isPlayingAudio === `q2_${currentStep}` ? 'bg-[#ED1C24] border-[#ED1C24] text-white' : 'bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] border-[#222021]/10'
+                        }`}
+                      >
+                        <Volume2 className="h-3.5 w-3.5" />
+                        <span>{isPlayingAudio === `q2_${currentStep}` ? 'Playing...' : 'Hear it'}</span>
+                      </button>
+                      <button
+                        onClick={() => copyText(currentStepData.line2, `q2_copy_${currentStep}`)}
+                        className="px-2.5 py-1 rounded-lg bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] border border-[#222021]/10 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        {copiedKey === `q2_copy_${currentStep}` ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-[#6b6968]" />}
+                        <span>{copiedKey === `q2_copy_${currentStep}` ? 'Copied' : 'Copy'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Footnote Context */}
+                  <p className="text-xs text-[#6b6968] italic pt-2 border-t border-[#222021]/10">
+                    {currentStepData.footnote}
+                  </p>
+                </div>
+              </div>
+
+              {/* ---------------------------------------------------------------
+                  COLUMN 3: Call Notes & Call Disposition (3 cols)
+                  --------------------------------------------------------------- */}
+              <div className="lg:col-span-3 flex flex-col gap-4">
+                
+                {/* Call Notes Card */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#222021] tracking-tight flex items-center gap-1.5">
+                      <span>📝</span>
+                      <span>Call notes</span>
+                    </h3>
+                    <p className="text-[11px] text-[#6b6968] mt-0.5 leading-snug">
+                      Setter notes, drafted live from your answers in the script.
+                    </p>
+                  </div>
+
+                  {/* Notes Actions: [Tidy wording] | [Copy AI Notes] */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setNotesDraft(prev => prev.trim() + ' (Reviewed & verified for BDR qualification)');
+                      }}
+                      className="flex-1 py-1.5 rounded-lg bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-semibold text-xs transition-colors flex items-center justify-center gap-1 border border-[#222021]/10"
+                    >
+                      <Wand2 className="h-3 w-3 text-[#6b6968]" />
+                      <span>Tidy wording</span>
+                    </button>
+                    <button
+                      onClick={() => copyText(notesDraft, 'notes_copy')}
+                      className="flex-1 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                    >
+                      {copiedKey === 'notes_copy' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      <span>{copiedKey === 'notes_copy' ? 'Copied' : 'Copy AI Notes'}</span>
+                    </button>
+                  </div>
+
+                  <textarea
+                    rows={4}
+                    value={notesDraft}
+                    onChange={(e) => setNotesDraft(e.target.value)}
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl p-2.5 text-xs text-[#222021] font-mono focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  />
+
+                  <button
+                    onClick={() => {
+                      setNotesDraft('');
+                      setDisposition(null);
+                    }}
+                    className="w-full text-center text-xs text-[#6b6968] hover:text-[#222021] flex items-center justify-center gap-1 py-1 transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Next call: clear everything</span>
+                  </button>
+                </div>
+
+                {/* Call Disposition 2x3 Grid */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-2.5">
+                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#6b6968] block">
+                    CALL DISPOSITION
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    
+                    {/* 1. Do not call */}
+                    <button
+                      onClick={() => setDisposition('Do not call')}
+                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        disposition === 'Do not call' ? 'bg-red-50 border-red-300 ring-2 ring-red-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
+                        <Ban className="h-3.5 w-3.5 text-red-500" />
+                        <span>Do not call</span>
+                      </div>
+                      <span className="text-[10px] text-[#6b6968] mt-1">Never call again</span>
+                    </button>
+
+                    {/* 2. Future contact */}
+                    <button
+                      onClick={() => setDisposition('Future contact')}
+                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        disposition === 'Future contact' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
+                        <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
+                        <span>Future contact</span>
+                      </div>
+                      <span className="text-[10px] text-[#6b6968] mt-1">Open to call later</span>
+                    </button>
+
+                    {/* 3. Disqualified */}
+                    <button
+                      onClick={() => setDisposition('Disqualified')}
+                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        disposition === 'Disqualified' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
+                        <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                        <span>Disqualified</span>
+                      </div>
+                      <span className="text-[10px] text-[#6b6968] mt-1">Fails qualifiers</span>
+                    </button>
+
+                    {/* 4. Not interested */}
+                    <button
+                      onClick={() => setDisposition('Not interested')}
+                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        disposition === 'Not interested' ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
+                        <ThumbsDown className="h-3.5 w-3.5 text-[#6b6968]" />
+                        <span>Not interested</span>
+                      </div>
+                      <span className="text-[10px] text-[#6b6968] mt-1">Said no</span>
+                    </button>
+
+                    {/* 5. No answer / voicemail */}
+                    <button
+                      onClick={() => setDisposition('No answer')}
+                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        disposition === 'No answer' ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
+                        <PhoneOff className="h-3.5 w-3.5 text-[#6b6968]" />
+                        <span>No answer</span>
+                      </div>
+                      <span className="text-[10px] text-[#6b6968] mt-1">Didn't pick up</span>
+                    </button>
+
+                    {/* 6. Call back */}
+                    <button
+                      onClick={() => setDisposition('Call back')}
+                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        disposition === 'Call back' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
+                        <PhoneCall className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>Call back</span>
+                      </div>
+                      <span className="text-[10px] text-[#6b6968] mt-1">Busy, call back</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Still Qualifying Checklist Box */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-[#222021]">
+                    <CheckCircle2 className="h-4 w-4 text-[#ED1C24]" />
+                    <span>Still qualifying</span>
+                  </div>
+                  <p className="text-[11px] text-[#6b6968] leading-snug">
+                    Still to confirm: Q1 Current Stack (Apollo/Outreach), Q2 Decision-maker authority, Q3 Quota pain point, Q4 10-min diagnostic Zoom slot.
+                  </p>
+                </div>
               </div>
             </div>
-
-            {/* ---------------------------------------------------------------
-                COLUMN 2: Step-by-Step Call Flow Script (6 cols)
-                --------------------------------------------------------------- */}
-            <div className="lg:col-span-6 flex flex-col gap-4">
+          ) : (
+            /* =================================================================
+               FULL B2B REBUTTALS MATRIX (ARM FRAMEWORK)
+               ================================================================= */
+            <div className="space-y-4">
               
-              {/* Horizontal Step Pills Navigator */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                {steps.map((st) => (
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {[
+                  { id: 'all', label: 'All Objections' },
+                  { id: 'timing', label: 'Timing & Email' },
+                  { id: 'incumbent', label: 'Agency & In-House' },
+                  { id: 'budget', label: 'Budget & ROI' },
+                  { id: 'privacy', label: 'Data & Privacy' },
+                  { id: 'authenticity', label: 'AI Authenticity' },
+                  { id: 'burned', label: 'Burned Domain' },
+                ].map(cat => (
                   <button
-                    key={st.num}
-                    onClick={() => setCurrentStep(st.num)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-2xs ${
-                      currentStep === st.num
-                        ? 'bg-[#F9ED32] text-slate-900 shadow-xs'
-                        : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900'
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs ${
+                      selectedCategory === cat.id
+                        ? 'bg-[#ED1C24] text-white shadow-xs'
+                        : 'bg-white border border-[#222021]/10 text-[#6b6968] hover:text-[#222021]'
                     }`}
                   >
-                    <span>{st.num} {st.title}</span>
+                    {cat.label}
                   </button>
                 ))}
               </div>
 
-              {/* Active Step Script Card */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-5">
-                
-                {/* Step Metadata Header */}
-                <div>
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-slate-400">
-                    STEP {currentStep} OF {steps.length} • {currentStepData.time}
-                  </span>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">
-                    {currentStepData.title}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1 leading-snug">
-                    {currentStepData.purpose}
-                  </p>
-                </div>
+              {/* Rebuttals List */}
+              <div className="grid grid-cols-1 gap-4">
+                {filteredRebuttals.map((reb) => (
+                  <div 
+                    key={reb.id}
+                    className="bg-white border border-[#222021]/10 rounded-2xl p-6 shadow-2xs space-y-4 hover:border-[#222021]/20 transition-all"
+                  >
+                    {/* Header: Category Badge & Objection Statement */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border ${reb.categoryColor}`}>
+                            {reb.category}
+                          </span>
+                          <span className="text-xs text-[#6b6968] italic">
+                            Listen for: {reb.listenFor}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-black text-[#222021] tracking-tight mt-1.5">
+                          "{reb.trigger}"
+                        </h3>
+                      </div>
 
-                {/* Spoken Script Quotation 1 */}
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <p className={`font-semibold text-slate-900 leading-relaxed ${
-                    textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-lg'
-                  }`}>
-                    {currentStepData.line1}
-                  </p>
+                      {/* Action Buttons: Hear it & Copy */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => playSpeech(reb.fullSpoken, reb.id)}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                            isPlayingAudio === reb.id ? 'bg-[#ED1C24] border-[#ED1C24] text-white' : 'bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] border-[#222021]/10'
+                          }`}
+                        >
+                          <Volume2 className="h-3.5 w-3.5" />
+                          <span>{isPlayingAudio === reb.id ? 'Playing...' : 'Hear it'}</span>
+                        </button>
+                        <button
+                          onClick={() => copyText(reb.fullSpoken, `copy_${reb.id}`)}
+                          className="px-3 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+                        >
+                          {copiedKey === `copy_${reb.id}` ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                          <span>{copiedKey === `copy_${reb.id}` ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+                    </div>
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => playSpeech(currentStepData.line1, `q1_${currentStep}`)}
-                      className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                        isPlayingAudio === `q1_${currentStep}` ? 'bg-[#F9ED32] border-yellow-400 text-black' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      <Volume2 className="h-3.5 w-3.5" />
-                      <span>{isPlayingAudio === `q1_${currentStep}` ? 'Playing...' : 'Hear it'}</span>
-                    </button>
-                    <button
-                      onClick={() => copyText(currentStepData.line1, `q1_copy_${currentStep}`)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                    >
-                      {copiedKey === `q1_copy_${currentStep}` ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
-                      <span>{copiedKey === `q1_copy_${currentStep}` ? 'Copied' : 'Copy'}</span>
-                    </button>
+                    {/* ARM Framework Breakdown (Acknowledge, Respond, Move) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-[#222021]/10">
+                      
+                      {/* [A] Acknowledge */}
+                      <div className="p-3.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-1">
+                        <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span>[A] Acknowledge</span>
+                        </span>
+                        <p className={`font-semibold text-[#222021] leading-snug ${
+                          textSize === 'huge' ? 'text-base' : 'text-xs'
+                        }`}>
+                          "{reb.acknowledge}"
+                        </p>
+                      </div>
+
+                      {/* [R] Respond */}
+                      <div className="p-3.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-1">
+                        <span className="text-[10px] font-mono font-bold uppercase text-[#ED1C24] flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-[#ED1C24]" />
+                          <span>[R] Respond</span>
+                        </span>
+                        <p className={`font-semibold text-[#222021] leading-snug ${
+                          textSize === 'huge' ? 'text-base' : 'text-xs'
+                        }`}>
+                          "{reb.respond}"
+                        </p>
+                      </div>
+
+                      {/* [M] Move */}
+                      <div className="p-3.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-1">
+                        <span className="text-[10px] font-mono font-bold uppercase text-emerald-700 flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          <span>[M] Move (CTA)</span>
+                        </span>
+                        <p className={`font-semibold text-[#222021] leading-snug ${
+                          textSize === 'huge' ? 'text-base' : 'text-xs'
+                        }`}>
+                          "{reb.move}"
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
 
-                {/* Spoken Script Quotation 2 */}
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <p className={`font-semibold text-slate-900 leading-relaxed ${
-                    textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-lg'
-                  }`}>
-                    {currentStepData.line2}
-                  </p>
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => playSpeech(currentStepData.line2, `q2_${currentStep}`)}
-                      className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                        isPlayingAudio === `q2_${currentStep}` ? 'bg-[#F9ED32] border-yellow-400 text-black' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      <Volume2 className="h-3.5 w-3.5" />
-                      <span>{isPlayingAudio === `q2_${currentStep}` ? 'Playing...' : 'Hear it'}</span>
-                    </button>
-                    <button
-                      onClick={() => copyText(currentStepData.line2, `q2_copy_${currentStep}`)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                    >
-                      {copiedKey === `q2_copy_${currentStep}` ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
-                      <span>{copiedKey === `q2_copy_${currentStep}` ? 'Copied' : 'Copy'}</span>
-                    </button>
+                {filteredRebuttals.length === 0 && (
+                  <div className="text-center py-12 bg-white rounded-2xl border border-[#222021]/10">
+                    <HelpCircle className="h-10 w-10 text-[#6b6968] mx-auto mb-2" />
+                    <h4 className="text-base font-bold text-[#222021]">No matching rebuttals found</h4>
+                    <p className="text-xs text-[#6b6968] mt-1">
+                      Try searching with different keywords like "email", "agency", "budget", or "swamped".
+                    </p>
                   </div>
-                </div>
-
-                {/* Footnote Context */}
-                <p className="text-xs text-slate-500 italic pt-2 border-t border-slate-100">
-                  {currentStepData.footnote}
-                </p>
+                )}
               </div>
             </div>
-
-            {/* ---------------------------------------------------------------
-                COLUMN 3: Call Notes & Call Disposition (3 cols)
-                --------------------------------------------------------------- */}
-            <div className="lg:col-span-3 flex flex-col gap-4">
-              
-              {/* Call Notes Card */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-3">
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
-                    <span>📝</span>
-                    <span>Call notes</span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                    Setter notes, drafted live from your answers in the script.
-                  </p>
-                </div>
-
-                {/* Notes Actions: [Tidy wording] | [Copy AI Notes] */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setNotesDraft(prev => prev.trim() + ' (Reviewed & verified for BDR qualification)');
-                    }}
-                    className="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Wand2 className="h-3 w-3 text-slate-500" />
-                    <span>Tidy wording</span>
-                  </button>
-                  <button
-                    onClick={() => copyText(notesDraft, 'notes_copy')}
-                    className="flex-1 py-1.5 rounded-lg bg-[#F9ED32] hover:bg-yellow-400 text-slate-900 font-bold text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs"
-                  >
-                    {copiedKey === 'notes_copy' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                    <span>{copiedKey === 'notes_copy' ? 'Copied' : 'Copy AI Notes'}</span>
-                  </button>
-                </div>
-
-                <textarea
-                  rows={4}
-                  value={notesDraft}
-                  onChange={(e) => setNotesDraft(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 font-mono focus:outline-none focus:bg-white"
-                />
-
-                <button
-                  onClick={() => {
-                    setNotesDraft('');
-                    setDisposition(null);
-                  }}
-                  className="w-full text-center text-xs text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 py-1 transition-colors"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  <span>Next call: clear everything</span>
-                </button>
-              </div>
-
-              {/* Call Disposition 2x3 Grid */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-2.5">
-                <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-400 block">
-                  CALL DISPOSITION
-                </span>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  
-                  {/* 1. Do not call */}
-                  <button
-                    onClick={() => setDisposition('Do not call')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                      disposition === 'Do not call' ? 'bg-red-50 border-red-300 ring-2 ring-red-400' : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold text-slate-900 text-[11px]">
-                      <Ban className="h-3.5 w-3.5 text-red-500" />
-                      <span>Do not call</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1">They asked us never to call again</span>
-                  </button>
-
-                  {/* 2. Future contact */}
-                  <button
-                    onClick={() => setDisposition('Future contact')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                      disposition === 'Future contact' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-400' : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold text-slate-900 text-[11px]">
-                      <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
-                      <span>Future contact</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1">Not now, but open to a call later</span>
-                  </button>
-
-                  {/* 3. Disqualified */}
-                  <button
-                    onClick={() => setDisposition('Disqualified')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                      disposition === 'Disqualified' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-400' : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold text-slate-900 text-[11px]">
-                      <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-                      <span>Disqualified</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1">Fails a qualifier</span>
-                  </button>
-
-                  {/* 4. Not interested */}
-                  <button
-                    onClick={() => setDisposition('Not interested')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                      disposition === 'Not interested' ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400' : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold text-slate-900 text-[11px]">
-                      <ThumbsDown className="h-3.5 w-3.5 text-slate-500" />
-                      <span>Not interested</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1">Said no before qualifying</span>
-                  </button>
-
-                  {/* 5. No answer / voicemail */}
-                  <button
-                    onClick={() => setDisposition('No answer')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                      disposition === 'No answer' ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400' : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold text-slate-900 text-[11px]">
-                      <PhoneOff className="h-3.5 w-3.5 text-slate-500" />
-                      <span>No answer</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1">Didn't pick up, or voicemail</span>
-                  </button>
-
-                  {/* 6. Call back */}
-                  <button
-                    onClick={() => setDisposition('Call back')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                      disposition === 'Call back' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400' : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold text-slate-900 text-[11px]">
-                      <PhoneCall className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>Call back</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1">Busy now, call back soon</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Still Qualifying Checklist Box */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-1.5">
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800">
-                  <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                  <span>Still qualifying</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Still to confirm: Q1 Current Stack (Apollo/Outreach), Q2 Decision-maker authority, Q3 Quota pain point, Q4 10-min diagnostic Zoom slot.
-                </p>
-              </div>
-            </div>
-          </div>
+          )}
         </main>
       </div>
 
       {/* Floating Bottom Right Rebuttals Action Button */}
       <div className="fixed bottom-6 right-6 flex items-center gap-2 z-50">
         <button
-          onClick={() => setActiveTab('rebuttals')}
-          className="px-4 py-2.5 rounded-full bg-[#F9ED32] hover:bg-yellow-400 text-slate-900 font-extrabold text-xs flex items-center gap-1.5 shadow-lg transition-transform hover:scale-105"
+          onClick={() => {
+            if (isRebuttalsMode) {
+              setActiveTab('steps');
+              setSearchQuery('');
+            } else {
+              setActiveTab('rebuttals');
+            }
+          }}
+          className="px-4 py-2.5 rounded-full bg-[#ED1C24] hover:bg-[#d0181f] text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg transition-transform hover:scale-105"
         >
           <FileText className="h-4 w-4" />
-          <span>Rebuttals</span>
-          <kbd className="text-[10px] bg-slate-900/10 px-1 py-0.2 rounded font-mono">R</kbd>
+          <span>{isRebuttalsMode ? 'Back to Steps' : 'Rebuttals'}</span>
+          <kbd className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-mono">R</kbd>
         </button>
       </div>
     </div>
