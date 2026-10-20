@@ -614,98 +614,62 @@ export default function BorisCallingCockpit() {
                   </button>
                 </div>
 
-                {/* Call Disposition 2x3 Grid */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-2.5">
-                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#6b6968] block">
-                    CALL DISPOSITION
-                  </span>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    
-                    {/* 1. Do not call */}
-                    <button
-                      onClick={() => setDisposition('Do not call')}
-                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                        disposition === 'Do not call' ? 'bg-red-50 border-red-300 ring-2 ring-red-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
-                        <Ban className="h-3.5 w-3.5 text-red-500" />
-                        <span>Do not call</span>
-                      </div>
-                      <span className="text-[10px] text-[#6b6968] mt-1">Never call again</span>
-                    </button>
-
-                    {/* 2. Future contact */}
-                    <button
-                      onClick={() => setDisposition('Future contact')}
-                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                        disposition === 'Future contact' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
-                        <CalendarClock className="h-3.5 w-3.5 text-blue-500" />
-                        <span>Future contact</span>
-                      </div>
-                      <span className="text-[10px] text-[#6b6968] mt-1">Open to call later</span>
-                    </button>
-
-                    {/* 3. Disqualified */}
-                    <button
-                      onClick={() => setDisposition('Disqualified')}
-                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                        disposition === 'Disqualified' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
-                        <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-                        <span>Disqualified</span>
-                      </div>
-                      <span className="text-[10px] text-[#6b6968] mt-1">Fails qualifiers</span>
-                    </button>
-
-                    {/* 4. Not interested */}
-                    <button
-                      onClick={() => setDisposition('Not interested')}
-                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                        disposition === 'Not interested' ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
-                        <ThumbsDown className="h-3.5 w-3.5 text-[#6b6968]" />
-                        <span>Not interested</span>
-                      </div>
-                      <span className="text-[10px] text-[#6b6968] mt-1">Said no</span>
-                    </button>
-
-                    {/* 5. No answer / voicemail */}
-                    <button
-                      onClick={() => setDisposition('No answer')}
-                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                        disposition === 'No answer' ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
-                        <PhoneOff className="h-3.5 w-3.5 text-[#6b6968]" />
-                        <span>No answer</span>
-                      </div>
-                      <span className="text-[10px] text-[#6b6968] mt-1">Didn't pick up</span>
-                    </button>
-
-                    {/* 6. Call back */}
-                    <button
-                      onClick={() => setDisposition('Call back')}
-                      className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                        disposition === 'Call back' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400' : 'bg-[#F2F0EF] border-[#222021]/10 hover:bg-[#e7e4e2]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 font-bold text-[#222021] text-[11px]">
-                        <PhoneCall className="h-3.5 w-3.5 text-emerald-600" />
-                        <span>Call back</span>
-                      </div>
-                      <span className="text-[10px] text-[#6b6968] mt-1">Busy, call back</span>
-                    </button>
+                {/* Call Disposition Dropdown List */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#6b6968] block">
+                      CALL DISPOSITION
+                    </span>
+                    {disposition && (
+                      <button
+                        onClick={() => setDisposition(null)}
+                        className="text-[10px] font-bold text-[#ED1C24] hover:underline"
+                      >
+                        Reset
+                      </button>
+                    )}
                   </div>
+
+                  {/* Dropdown Select Menu */}
+                  <div className="relative">
+                    <select
+                      value={disposition || ''}
+                      onChange={(e) => setDisposition(e.target.value || null)}
+                      className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#222021] focus:outline-none focus:ring-2 focus:ring-[#ED1C24] focus:border-[#ED1C24] transition-all cursor-pointer"
+                    >
+                      <option value="">-- Select Call Disposition --</option>
+                      <option value="Meeting Booked">? Meeting Booked (Diagnostic Scheduled)</option>
+                      <option value="Call back">?? Call back (Busy now, call back soon)</option>
+                      <option value="Future contact">?? Future contact (Not now, open to call later)</option>
+                      <option value="No answer">?? No answer (Didn't pick up / Voicemail)</option>
+                      <option value="Not interested">?? Not interested (Said no before qualifying)</option>
+                      <option value="Disqualified">?? Disqualified (Fails qualification criteria)</option>
+                      <option value="Do not call">?? Do not call (Asked never to call again)</option>
+                    </select>
+                  </div>
+
+                  {/* Selected Disposition Context Pill */}
+                  {disposition ? (
+                    <div className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
+                      disposition === 'Meeting Booked' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                      disposition === 'Call back' ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800' :
+                      disposition === 'Future contact' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                      disposition === 'Disqualified' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                      disposition === 'Do not call' ? 'bg-red-50 border-red-200 text-[#ED1C24]' :
+                      'bg-[#F2F0EF] border-[#222021]/10 text-[#222021]'
+                    }`}>
+                      <span className="font-bold text-[11px] truncate">
+                        Selected: {disposition}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white border border-[#222021]/10 text-[#222021]">
+                        QUEUED
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-[#6b6968] italic leading-tight">
+                      Select the call outcome from the list to log into CRM cadence automatically.
+                    </p>
+                  )}
                 </div>
 
                 {/* Still Qualifying Checklist Box */}
