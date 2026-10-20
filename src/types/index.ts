@@ -60,7 +60,39 @@ export interface RepCertification {
   certified: boolean;
   score: number;
   badge_level?: string;
+  certificate_id?: string;
+  supervisor_name?: string;
+  verification_hash?: string;
+  endorsement_notes?: string;
   granted_at: string;
+}
+
+export interface CertificationAttempt {
+  id: string;
+  rep_id: string;
+  campaign_id: string;
+  attempt_number: number;
+  score: number;
+  passed: boolean;
+  breakdown?: Record<string, unknown>;
+  notes?: string;
+  created_at: string;
+}
+
+export interface Lead {
+  id: string;
+  campaign_id?: string;
+  assigned_rep_id?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  company: string;
+  title: string;
+  status: 'new' | 'contacted' | 'replied' | 'booked' | 'unqualified';
+  custom_variables?: Record<string, any>;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface ArmRebuttalResponse {
@@ -79,4 +111,16 @@ export interface TranscriptEntry {
   text: string;
   timestamp: string;
   isInterim?: boolean;
+}
+
+export interface CadencePackage {
+  leadId: string;
+  leadName: string;
+  company: string;
+  coldCallOpener: string;
+  diagnosticQuestion: string;
+  emailSubject: string;
+  emailBody: string;
+  linkedInConnection: string;
+  linkedInInMail: string;
 }
