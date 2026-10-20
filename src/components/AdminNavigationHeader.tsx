@@ -39,79 +39,69 @@ export default function AdminNavigationHeader({ activeSection }: { activeSection
   ];
 
   return (
-    <header className="border-b border-slate-200 bg-white sticky top-0 z-40 shadow-xs">
+    <header className="border-b border-[#222021]/10 bg-white sticky top-0 z-40 shadow-2xs">
       {/* Top Utility Bar */}
-      <div className="h-13 px-6 flex items-center justify-between border-b border-slate-100">
+      <div className="h-13 px-6 flex items-center justify-between border-b border-[#222021]/10">
         
         {/* Brand & Admin Identity */}
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-xs">
-            <ShieldCheck className="h-4.5 w-4.5 text-indigo-400" />
+          <div className="h-8 w-8 rounded-lg bg-[#222021] text-white flex items-center justify-center shadow-2xs">
+            <ShieldCheck className="h-4.5 w-4.5 text-[#ED1C24]" />
           </div>
+
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm tracking-tight text-slate-900">
-                BORIS OPS
+              <span className="font-extrabold text-sm tracking-tight text-[#222021]">
+                APPOINTMENTLYY // CONTROL CENTRE
               </span>
-              <span className="text-slate-300">/</span>
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Supervisor & Enablement Console
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-mono font-bold uppercase">
-                Admin Mode
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#ED1C24]/10 text-[#ED1C24] font-mono font-bold border border-[#ED1C24]/20">
+                SUPERVISOR
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">Global Playbooks, Vector Storage, Lead Ingestion & Rep Certification</p>
           </div>
         </div>
 
-        {/* Right Action: Exit to Rep Cockpit */}
+        {/* Back to Live Outbound Cockpit */}
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-slate-500">Signed in as:</span>
-            <span className="font-bold text-slate-800">Emil H. (VP Enablement)</span>
-          </div>
-
           <Link
             href="/cockpit"
-            className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold tracking-wide transition-colors flex items-center gap-1.5 shadow-xs"
+            className="px-3.5 py-1.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Exit to Rep Cockpit</span>
+            <span>Return to AI Boris Cockpit</span>
           </Link>
         </div>
       </div>
 
-      {/* Admin Module Navigation Tabs */}
-      <div className="px-6 flex items-center gap-1 overflow-x-auto">
+      {/* Sub Navigation Strip */}
+      <div className="h-10 px-6 flex items-center gap-6 text-xs font-semibold overflow-x-auto bg-[#F2F0EF]/40">
         <Link
           href="/admin"
-          className={`py-3 px-3 text-xs font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
+          className={`py-2 border-b-2 transition-colors flex items-center gap-1.5 ${
             pathname === '/admin'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              ? 'border-[#ED1C24] text-[#ED1C24] font-bold'
+              : 'border-transparent text-[#6b6968] hover:text-[#222021]'
           }`}
         >
           <Database className="h-3.5 w-3.5" />
-          <span>Console Overview</span>
+          <span>Tenant Overview</span>
         </Link>
 
-        {adminNav.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname.startsWith(item.match);
+        {adminNav.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = pathname.startsWith(tab.match);
           return (
             <Link
-              key={item.label}
-              href={item.href}
-              className={`py-3 px-3 text-xs font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
+              key={tab.label}
+              href={tab.href}
+              className={`py-2 border-b-2 transition-colors flex items-center gap-1.5 ${
                 isActive
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-900'
+                  ? 'border-[#ED1C24] text-[#ED1C24] font-bold'
+                  : 'border-transparent text-[#6b6968] hover:text-[#222021]'
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              <span>{item.label}</span>
+              <span>{tab.label}</span>
             </Link>
           );
         })}

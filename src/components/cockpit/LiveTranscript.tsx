@@ -56,7 +56,7 @@ export default function LiveTranscript({
                   className={`text-[9px] px-1 py-0.2 rounded font-bold uppercase shrink-0 font-mono ${
                     isRep
                       ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                      : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      : 'bg-[#ED1C24]/10 text-[#ED1C24] border border-[#ED1C24]/20'
                   }`}
                 >
                   {isRep ? '[You]' : '[Prospect]'}

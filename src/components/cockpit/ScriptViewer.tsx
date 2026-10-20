@@ -75,7 +75,7 @@ export default function ScriptViewer({
           
           {/* Contact Identity */}
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+            <div className="h-10 w-10 rounded-xl bg-[#ED1C24] text-white font-black text-sm flex items-center justify-center shadow-xs">
               {lead.name.split(' ').map(n => n[0]).join('')}
             </div>
             <div>
@@ -86,7 +86,7 @@ export default function ScriptViewer({
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700 font-bold uppercase">
                   {lead.headcount}
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#ED1C24]/10 text-[#ED1C24] border border-[#ED1C24]/20 font-semibold">
                   {lead.localTime}
                 </span>
               </div>
@@ -146,18 +146,18 @@ export default function ScriptViewer({
             onClick={() => setActiveChannel('call')}
             className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 ${
               activeChannel === 'call'
-                ? 'bg-white text-indigo-700 font-bold shadow-xs'
+                ? 'bg-white text-[#ED1C24] font-bold shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>📞 Cold Call</span>
-            <span className="text-[10px] px-1 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono">LIVE</span>
+            <span className="text-[10px] px-1 py-0.2 rounded bg-[#ED1C24]/10 text-[#ED1C24] border border-[#ED1C24]/20 font-mono">LIVE</span>
           </button>
           <button
             onClick={() => setActiveChannel('email')}
             className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 ${
               activeChannel === 'email'
-                ? 'bg-white text-indigo-700 font-bold shadow-xs'
+                ? 'bg-white text-[#ED1C24] font-bold shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -167,7 +167,7 @@ export default function ScriptViewer({
             onClick={() => setActiveChannel('linkedin')}
             className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 ${
               activeChannel === 'linkedin'
-                ? 'bg-white text-indigo-700 font-bold shadow-xs'
+                ? 'bg-white text-[#ED1C24] font-bold shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -191,7 +191,7 @@ export default function ScriptViewer({
             {/* Step 1: Opener */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 relative">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-indigo-100/70 text-indigo-800 font-mono">
+                <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-[#ED1C24]/15 text-[#222021] font-mono">
                   1. Pattern Interrupt & Opener
                 </span>
                 <button
@@ -202,7 +202,7 @@ export default function ScriptViewer({
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "Hey <span className="bg-indigo-100 text-indigo-900 px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.name.split(' ')[0]}</span>, Alex from Boris Outbound. I know I caught you in the middle of your day, but I noticed you're leading outbound at <span className="bg-indigo-100 text-indigo-900 px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.company}</span>—do you have 20 seconds for me to tell you why I'm calling?"
+                "Hey <span className="bg-[#ED1C24]/15 text-[#222021] px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.name.split(' ')[0]}</span>, Alex from Boris Outbound. I know I caught you in the middle of your day, but I noticed you're leading outbound at <span className="bg-[#ED1C24]/15 text-[#222021] px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.company}</span>—do you have 20 seconds for me to tell you why I'm calling?"
               </p>
             </div>
 

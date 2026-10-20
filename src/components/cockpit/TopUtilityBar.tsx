@@ -36,7 +36,7 @@ export default function TopUtilityBar({
           LEFT: TOOL BRANDING (BORIS // BPO OUTBOUND ENGINE) + MVP v1.0 BADGE
           ======================================================================= */}
       <div className="flex items-center gap-3">
-        <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-xs">
+        <div className="h-7 w-7 rounded-lg bg-[#ED1C24] flex items-center justify-center text-white font-black text-xs shadow-xs">
           B
         </div>
         <div className="flex items-center gap-2">
@@ -52,8 +52,8 @@ export default function TopUtilityBar({
 
         {/* Clean Rep Navigation Switchers */}
         <nav className="flex items-center gap-1 text-xs font-semibold">
-          <span className="px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-2xs flex items-center gap-1.5">
-            <Radio className="h-3 w-3 text-indigo-600" />
+          <span className="px-2.5 py-1 rounded-md bg-[#ED1C24]/10 text-[#ED1C24] font-bold border border-[#ED1C24]/20/80 shadow-2xs flex items-center gap-1.5">
+            <Radio className="h-3 w-3 text-[#ED1C24]" />
             <span>Cockpit</span>
           </span>
           <Link
@@ -143,7 +143,7 @@ export default function TopUtilityBar({
 
         {/* Rep Profile & Discreet Admin Portal Switcher */}
         <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200">
-          <div className="h-6 w-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center border border-indigo-200">
+          <div className="h-6 w-6 rounded-full bg-[#ED1C24]/15 text-[#ED1C24] font-bold text-[10px] flex items-center justify-center border border-[#ED1C24]/20">
             AM
           </div>
           <Link
@@ -151,7 +151,7 @@ export default function TopUtilityBar({
             title="Switch to Supervisor / Enablement Console"
             className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[11px] font-semibold transition-colors flex items-center gap-1"
           >
-            <ShieldCheck className="h-3 w-3 text-indigo-600" />
+            <ShieldCheck className="h-3 w-3 text-[#ED1C24]" />
             <span className="hidden xl:inline">Admin</span>
             <ExternalLink className="h-2.5 w-2.5 text-slate-400" />
           </Link>

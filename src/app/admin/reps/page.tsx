@@ -96,7 +96,7 @@ export default function AdminRepsPage() {
         {/* Roster Controls */}
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+            <div className="h-10 w-10 rounded-xl bg-[#ED1C24]/10 border border-[#ED1C24]/20 flex items-center justify-center text-[#ED1C24]">
               <Users className="h-5 w-5" />
             </div>
             <div>
@@ -116,7 +116,7 @@ export default function AdminRepsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search reps by name or campaign..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#ED1C24]"
             />
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function AdminRepsPage() {
                         href="/certification"
                         className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors inline-flex items-center gap-1.5"
                       >
-                        <Radio className="h-3.5 w-3.5 text-indigo-600" />
+                        <Radio className="h-3.5 w-3.5 text-[#ED1C24]" />
                         <span>START TRIAL</span>
                       </Link>
                     )}

@@ -22,26 +22,26 @@ export default function NavigationHeader({ currentCampaign = 'Enterprise Outboun
   ];
 
   return (
-    <header className="h-13 border-b border-slate-200 bg-white px-5 flex items-center justify-between shrink-0 z-30 shadow-xs">
+    <header className="h-13 border-b border-[#222021]/10 bg-white px-5 flex items-center justify-between shrink-0 z-30 shadow-2xs">
       {/* Brand & Main Switcher */}
       <div className="flex items-center gap-4">
         <Link href="/cockpit" className="flex items-center gap-2.5 group">
-          <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-xs group-hover:bg-indigo-700 transition-colors">
-            B
+          <div className="h-7 w-7 rounded-lg bg-[#ED1C24] flex items-center justify-center text-white font-black text-xs shadow-2xs group-hover:scale-105 transition-transform">
+            ⚡
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="font-extrabold text-[13px] tracking-tight text-slate-900 group-hover:text-indigo-600 transition-colors">
-              BORIS // SDR INTELLIGENCE
+            <span className="font-extrabold text-[13px] tracking-tight text-[#222021] group-hover:text-[#ED1C24] transition-colors">
+              APPOINTMENTLYY // BORIS SDR
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 font-mono font-semibold">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#F2F0EF] text-[#6b6968] border border-[#222021]/10 font-mono font-semibold">
               v1.0
             </span>
           </div>
         </Link>
 
-        <div className="h-4 w-[1px] bg-slate-200" />
+        <div className="h-4 w-[1px] bg-[#222021]/10" />
 
-        {/* Sales Rep Navigation Tabs - ONLY SDR TOOLS */}
+        {/* Sales Rep Navigation Tabs */}
         <nav className="flex items-center gap-1.5 text-xs font-semibold">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -52,11 +52,11 @@ export default function NavigationHeader({ currentCampaign = 'Enterprise Outboun
                 href={item.href}
                 className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
                   isActive
-                    ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+                    ? 'bg-[#ED1C24] text-white font-bold shadow-2xs'
+                    : 'text-[#6b6968] hover:text-[#222021] hover:bg-[#F2F0EF] border border-transparent'
                 }`}
               >
-                <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-[#6b6968]'}`} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -67,38 +67,38 @@ export default function NavigationHeader({ currentCampaign = 'Enterprise Outboun
       {/* Right Controls: Campaign, Live Audio Status & Supervisor Switcher */}
       <div className="flex items-center gap-3">
         {/* Campaign Indicator */}
-        <div className="hidden lg:flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px]">
-          <span className="text-slate-400 font-semibold uppercase text-[10px]">Campaign:</span>
-          <span className="font-bold text-slate-800">{currentCampaign}</span>
+        <div className="hidden lg:flex items-center gap-1.5 bg-[#F2F0EF] border border-[#222021]/10 rounded-lg px-2.5 py-1 text-[11px]">
+          <span className="text-[#6b6968] uppercase font-bold text-[10px]">CAMPAIGN:</span>
+          <span className="font-bold text-[#222021]">{currentCampaign}</span>
         </div>
 
-        {/* 16kHz Audio Stream Status */}
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px]">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-semibold text-slate-700">16kHz Scribe v2</span>
-          <span className="text-slate-400 font-mono text-[10px]">~142ms</span>
+        {/* Scribe Web Audio Status */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F2F0EF] border border-[#222021]/10 text-[11px] font-mono text-[#222021]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#ED1C24] animate-pulse" />
+          <span className="font-semibold">16kHz Scribe v2</span>
+          <span className="text-[#6b6968]">~142ms</span>
         </div>
 
-        {/* Rep Profile Pill */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-          <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center border border-indigo-200">
+        {/* Rep Profile */}
+        <div className="flex items-center gap-2 pl-2 border-l border-[#222021]/10">
+          <div className="h-7 w-7 rounded-full bg-[#222021] text-white font-bold text-xs flex items-center justify-center">
             AM
           </div>
-          <div className="hidden sm:block text-left text-[11px] leading-tight">
-            <p className="font-bold text-slate-800">Alex Mercer</p>
-            <p className="text-[10px] text-slate-500">Sales Development Rep</p>
+          <div className="hidden sm:flex flex-col text-left">
+            <span className="text-xs font-bold text-[#222021] leading-tight">Alex Mercer</span>
+            <span className="text-[10px] text-[#6b6968] leading-tight">Sales Development Rep</span>
           </div>
         </div>
 
-        {/* Discreet Supervisor / Admin Console Switcher */}
+        {/* Admin Console Switcher Link */}
         <Link
           href="/admin"
-          title="Switch to Supervisor / Enablement Console"
-          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
+          className="ml-1 p-1.5 rounded-lg border border-[#222021]/10 hover:bg-[#F2F0EF] text-[#6b6968] hover:text-[#222021] transition-colors flex items-center gap-1 text-xs font-semibold"
+          title="Open Control Centre"
         >
-          <ShieldCheck className="h-3.5 w-3.5 text-indigo-600" />
+          <ShieldCheck className="h-3.5 w-3.5 text-[#ED1C24]" />
           <span className="hidden md:inline">Admin Console</span>
-          <ExternalLink className="h-3 w-3 text-slate-400" />
+          <ExternalLink className="h-3 w-3 text-[#6b6968]" />
         </Link>
       </div>
     </header>

@@ -383,7 +383,7 @@ export default function EnterpriseOutboundCockpit() {
           <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <Keyboard className="h-5 w-5 text-indigo-600" />
+                <Keyboard className="h-5 w-5 text-[#ED1C24]" />
                 <h3 className="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
                   Outbound Cockpit Hotkeys
                 </h3>

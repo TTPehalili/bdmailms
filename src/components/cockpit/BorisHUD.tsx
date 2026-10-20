@@ -49,7 +49,7 @@ export default function BorisHUD({
           ======================================================================= */}
       <div className="h-10 px-1 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-md bg-indigo-600 flex items-center justify-center text-white">
+          <div className="h-6 w-6 rounded-md bg-[#ED1C24] flex items-center justify-center text-white">
             <Sparkles className="h-3.5 w-3.5" />
           </div>
           <div>
@@ -72,7 +72,7 @@ export default function BorisHUD({
                 <div
                   key={bar}
                   className={`w-1 rounded-full transition-all duration-75 ${
-                    active ? 'bg-indigo-600' : 'bg-slate-300'
+                    active ? 'bg-[#ED1C24]' : 'bg-slate-300'
                   }`}
                   style={{ height: `${active ? Math.max(4, (volume / 100) * 16) : 4}px` }}
                 />
@@ -104,7 +104,7 @@ export default function BorisHUD({
             <span className="text-[10px] font-mono text-slate-400">
               {rebuttal.latency_ms ? `${rebuttal.latency_ms}ms` : '138ms'}
             </span>
-            <span className="text-[9px] font-mono font-semibold px-1 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span className="text-[9px] font-mono font-semibold px-1 py-0.2 rounded bg-[#ED1C24]/10 text-[#ED1C24] border border-[#ED1C24]/20">
               VECTOR MATCH
             </span>
           </div>
@@ -129,16 +129,16 @@ export default function BorisHUD({
         {/* [R] Respond Badge & Line */}
         <div 
           onClick={() => copyText(rebuttal.respond || '', 'r')}
-          className="p-2.5 rounded-md bg-indigo-50 border border-indigo-200/80 text-[12px] text-indigo-950 leading-relaxed cursor-pointer hover:bg-indigo-100/60 transition-colors group relative"
+          className="p-2.5 rounded-md bg-[#ED1C24]/10 border border-[#ED1C24]/20/80 text-[12px] text-[#222021] leading-relaxed cursor-pointer hover:bg-[#ED1C24]/15/60 transition-colors group relative"
         >
-          <span className="inline-block mr-1.5 px-1 py-0.2 bg-indigo-200 text-indigo-900 font-bold rounded text-[10px]">
+          <span className="inline-block mr-1.5 px-1 py-0.2 bg-[#ED1C24]/20 text-[#222021] font-bold rounded text-[10px]">
             [R]
           </span>
           <span className="font-medium">
             "{rebuttal.respond || 'We don’t ask you to fire them. We act as an overflow layer that handles objection friction before it burns qualified pipeline.'}"
           </span>
           <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            {copiedSection === 'r' ? <Check className="h-3 w-3 text-emerald-700" /> : <Copy className="h-3 w-3 text-indigo-700" />}
+            {copiedSection === 'r' ? <Check className="h-3 w-3 text-emerald-700" /> : <Copy className="h-3 w-3 text-[#ED1C24]" />}
           </div>
         </div>
 

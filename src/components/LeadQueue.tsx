@@ -49,7 +49,7 @@ export default function LeadQueue({
             value={searchFilter}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search leads, title, co..."
-            className="w-full pl-8 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white"
+            className="w-full pl-8 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#ED1C24] focus:bg-white"
           />
         </div>
         <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
@@ -78,13 +78,13 @@ export default function LeadQueue({
               onClick={() => onSelectLead(lead.id)}
               className={`h-16 px-3 py-2 flex flex-col justify-between cursor-pointer transition-colors relative ${
                 isSelected
-                  ? 'border-l-4 border-indigo-600 bg-white shadow-xs'
+                  ? 'border-l-4 border-[#ED1C24] bg-white shadow-xs'
                   : 'border-l-4 border-transparent hover:bg-slate-100/70'
               }`}
             >
               {/* Top Row: Name + Timezone Clock */}
               <div className="flex items-center justify-between gap-2">
-                <span className={`text-xs font-bold truncate ${isSelected ? 'text-indigo-950 font-extrabold' : 'text-slate-800'}`}>
+                <span className={`text-xs font-bold truncate ${isSelected ? 'text-[#222021] font-extrabold' : 'text-slate-800'}`}>
                   {lead.name}
                 </span>
                 <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1 shrink-0">

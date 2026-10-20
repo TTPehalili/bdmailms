@@ -12,13 +12,16 @@ import {
   Clock, 
   Sparkles, 
   Send, 
-  ArrowLeft,
-  ShieldAlert,
-  Radio
+  ArrowLeft, 
+  Radio,
+  CheckCircle2,
+  Circle,
+  AlertCircle
 } from 'lucide-react';
-import { SPARRING_PERSONAS, SparringPersona } from '@/lib/personas';
+import { SPARRING_PERSONAS } from '@/lib/personas';
 import { DialogueTurn } from '@/lib/qaEvaluator';
-import NavigationHeader from '@/components/NavigationHeader';
+import AppSidebar from '@/components/AppSidebar';
+import GlobalTopHeader from '@/components/GlobalTopHeader';
 
 function SparringRoomContent() {
   const params = useParams();
@@ -95,13 +98,13 @@ function SparringRoomContent() {
 
     const lower = message.toLowerCase();
     setObjectives(prev => prev.map((obj, i) => {
-      if (i === 0 && (lower.includes('understand') || lower.includes('hear you') || lower.includes('fair'))) {
+      if (i === 0 && (lower.includes('understand') || lower.includes('hear you') || lower.includes('fair') || lower.includes('appreciate'))) {
         return { ...obj, completed: true };
       }
-      if (i === 1 && (lower.includes('benchmark') || lower.includes('sla') || lower.includes('%') || lower.includes('model'))) {
+      if (i === 1 && (lower.includes('benchmark') || lower.includes('diagnostic') || lower.includes('sla') || lower.includes('rate') || lower.includes('stack'))) {
         return { ...obj, completed: true };
       }
-      if (i === 2 && (lower.includes('?') && (lower.includes('diagnostic') || lower.includes('calendar') || lower.includes('thursday') || lower.includes('10 minutes')))) {
+      if (i === 2 && (lower.includes('?') && (lower.includes('tuesday') || lower.includes('thursday') || lower.includes('calendar') || lower.includes('minutes')))) {
         return { ...obj, completed: true };
       }
       return obj;
@@ -164,241 +167,235 @@ function SparringRoomContent() {
     }
   };
 
+  const completedObjectivesCount = objectives.filter(o => o.completed).length;
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
-      {/* Top Shared Navbar */}
-      <NavigationHeader />
+    <div className="flex h-screen w-screen overflow-hidden bg-[#F2F0EF] font-sans antialiased text-[#222021]">
+      <AppSidebar />
 
-      {/* Subheader Breadcrumb */}
-      <div className="border-b border-slate-200 bg-white px-8 py-2.5 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/sparring"
-            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900">{persona.name}</span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-500 font-medium">{persona.title} ({persona.companyType})</span>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <GlobalTopHeader />
+
+        {/* Subheader Breadcrumb */}
+        <div className="border-b border-[#222021]/10 bg-white px-8 py-2.5 flex items-center justify-between text-xs shrink-0">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/sparring"
+              className="p-1.5 rounded-lg bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-[#222021]">{persona.name}</span>
+              <span className="text-[#6b6968]">•</span>
+              <span className="text-[#6b6968] font-medium">{persona.title} ({persona.companyType})</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F2F0EF] border border-[#222021]/10 font-mono text-[11px] text-[#222021] font-semibold">
+              <Clock className="h-3.5 w-3.5 text-[#ED1C24]" />
+              <span>{formatTime(callDuration)}</span>
+            </div>
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+              callActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-[#F2F0EF] text-[#6b6968] border-[#222021]/10'
+            }`}>
+              {callActive ? 'Call Connected' : 'Awaiting Dial-in'}
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 font-mono text-[11px] text-slate-700 font-semibold">
-            <Clock className="h-3.5 w-3.5 text-indigo-600" />
-            <span>{formatTime(callDuration)}</span>
-          </div>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-            callActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
-          }`}>
-            {callActive ? 'Call Connected' : 'Awaiting Dial-in'}
-          </span>
-        </div>
-      </div>
-
-      {/* Main Room Body */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column: Live Call Wave & Conversation (8 Cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-5">
+        {/* Main Room Body */}
+        <main className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Waveform / Call Centerpiece Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-xs">
-            <div className="h-16 w-16 rounded-2xl bg-slate-900 text-white font-bold text-xl flex items-center justify-center shadow-sm mb-3">
-              {persona.name.split(' ').map(n => n[0]).join('')}
-            </div>
-
-            <h2 className="text-base font-bold text-slate-900">{persona.name}</h2>
-            <p className="text-xs text-slate-500 mt-0.5 max-w-md">{persona.scenario}</p>
-
-            {/* Voice Waveform Indicator */}
-            <div className="flex items-center gap-1 h-10 my-4">
-              {[12, 24, 38, 20, 32, 42, 22, 36, 16, 28, 40, 18].map((h, i) => (
-                <div
-                  key={i}
-                  className={`w-1 rounded-full transition-all duration-300 ${
-                    callActive
-                      ? isAiResponding ? 'bg-indigo-600 animate-pulse' : 'bg-emerald-500'
-                      : 'bg-slate-200'
-                  }`}
-                  style={{
-                    height: callActive ? `${isAiResponding ? (i % 2 === 0 ? h : h * 0.6) : 10}px` : '6px'
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Call Control Actions */}
-            {!callActive ? (
-              <button
-                onClick={startCall}
-                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center gap-2"
-              >
-                <Radio className="h-4 w-4" />
-                <span>DIAL IN & START CONVERSATION</span>
-              </button>
-            ) : (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setIsMuted(!isMuted)}
-                  className={`p-2.5 rounded-xl border transition-colors ${
-                    isMuted
-                      ? 'bg-rose-50 border-rose-200 text-rose-700'
-                      : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </button>
-
-                <button
-                  onClick={endCallAndGrade}
-                  disabled={isFinishingCall}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center gap-2"
-                >
-                  <PhoneOff className="h-4 w-4" />
-                  <span>{isFinishingCall ? 'GENERATING SCORECARD...' : 'END CALL & GRADE'}</span>
-                </button>
+          {/* Left Column: Live Call Wave & Conversation (8 Cols) */}
+          <div className="lg:col-span-8 flex flex-col gap-5">
+            
+            {/* Waveform / Call Centerpiece Card */}
+            <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-2xs">
+              <div className="h-16 w-16 rounded-2xl bg-[#222021] text-white font-black text-xl flex items-center justify-center shadow-sm mb-3">
+                {persona.name.split(' ').map(n => n[0]).join('')}
               </div>
-            )}
-          </div>
 
-          {/* Dialogue Feed */}
-          <div className="bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden shadow-xs min-h-[300px]">
-            <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                Call Dialogue Feed ({transcript.length} turns)
-              </span>
-              <span className="text-[11px] font-mono text-slate-400">
-                Turn-by-Turn Audio Log
-              </span>
-            </div>
+              <h2 className="text-base font-bold text-[#222021]">{persona.name}</h2>
+              <p className="text-xs text-[#6b6968] mt-0.5 max-w-md">{persona.scenario}</p>
 
-            <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-3 max-h-[320px]">
-              {transcript.map((t, i) => (
-                <div
-                  key={i}
-                  className={`flex flex-col gap-1 max-w-[85%] ${
-                    t.role === 'rep' ? 'ml-auto items-end' : ''
-                  }`}
+              {/* Voice Waveform Indicator */}
+              <div className="flex items-center gap-1.5 h-10 my-4">
+                {[12, 24, 38, 20, 32, 42, 22, 36, 16, 28, 40, 18].map((h, i) => (
+                  <div
+                    key={i}
+                    className={`w-1 rounded-full transition-all duration-300 ${
+                      callActive
+                        ? isAiResponding ? 'bg-[#ED1C24] animate-pulse' : 'bg-[#222021]'
+                        : 'bg-[#d8d5d3]'
+                    }`}
+                    style={{
+                      height: callActive ? `${isAiResponding ? (i % 2 === 0 ? h : h * 0.6) : 12}px` : '6px'
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Call Control Actions */}
+              {!callActive ? (
+                <button
+                  onClick={startCall}
+                  className="px-6 py-2.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-2xs flex items-center gap-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold uppercase tracking-wide ${
-                      t.role === 'rep' ? 'text-indigo-700' : 'text-slate-600'
-                    }`}>
-                      {t.role === 'rep' ? 'Sales Rep (You)' : persona.name}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">{t.timestamp}</span>
-                  </div>
-                  <div className={`p-3 rounded-2xl text-xs leading-relaxed ${
-                    t.role === 'rep'
-                      ? 'bg-indigo-50 border border-indigo-200 text-indigo-950 rounded-tr-none'
-                      : 'bg-slate-100 border border-slate-200 text-slate-800 rounded-tl-none'
-                  }`}>
-                    {t.content}
-                  </div>
-                </div>
-              ))}
+                  <Radio className="h-4 w-4" />
+                  <span>DIAL IN & START CONVERSATION</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsMuted(!isMuted)}
+                    className={`p-2.5 rounded-xl border transition-colors ${
+                      isMuted
+                        ? 'bg-rose-50 border-rose-200 text-rose-700'
+                        : 'bg-[#F2F0EF] border-[#222021]/10 text-[#222021] hover:bg-[#e7e4e2]'
+                    }`}
+                  >
+                    {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </button>
 
-              {isAiResponding && (
-                <div className="flex flex-col gap-1 max-w-[80%]">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                    {persona.name} (Forming response...)
-                  </span>
-                  <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200 text-xs text-slate-500 italic">
-                    Analyzing rep objection handling and delivering counter...
-                  </div>
+                  <button
+                    onClick={endCallAndGrade}
+                    disabled={isFinishingCall}
+                    className="px-5 py-2.5 rounded-xl bg-[#222021] hover:bg-black text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-2xs flex items-center gap-2"
+                  >
+                    <PhoneOff className="h-4 w-4 text-[#ED1C24]" />
+                    <span>{isFinishingCall ? 'GENERATING SCORECARD...' : 'END CALL & GRADE'}</span>
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Rep Speech / Text Response Form */}
-            <form onSubmit={handleSendMessage} className="p-3 bg-slate-50 border-t border-slate-200 flex gap-2">
-              <input
-                type="text"
-                value={repInput}
-                onChange={(e) => setRepInput(e.target.value)}
-                disabled={!callActive || isAiResponding}
-                placeholder={callActive ? "Respond with ARM (Acknowledge, Respond, Move)..." : "Dial in above to begin call..."}
-                className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={!callActive || !repInput.trim() || isAiResponding}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-xs font-bold text-white transition-colors flex items-center gap-1.5"
-              >
-                <span>Speak</span>
-                <Send className="h-3 w-3" />
-              </button>
-            </form>
-          </div>
-        </div>
+            {/* Dialogue Feed */}
+            <div className="bg-white border border-[#222021]/10 rounded-2xl flex flex-col overflow-hidden shadow-2xs min-h-[300px]">
+              <div className="px-4 py-2.5 border-b border-[#222021]/10 flex items-center justify-between bg-[#F2F0EF]/40">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#222021]">
+                  Call Dialogue Feed ({transcript.length} turns)
+                </span>
+                <span className="text-[11px] font-mono text-[#6b6968]">
+                  Turn-by-Turn Audio Log
+                </span>
+              </div>
 
-        {/* Right Column: Live Objectives & Scenario Brief (4 Cols) */}
-        <div className="lg:col-span-4 flex flex-col gap-5">
-          
-          {/* Objectives Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <CheckCircle className="h-4 w-4 text-emerald-600" />
-                Live Objectives
-              </h3>
-              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">
-                {objectives.filter(o => o.completed).length} / {objectives.length}
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              {objectives.map((obj) => (
-                <div
-                  key={obj.id}
-                  onClick={() => {
-                    setObjectives(prev => prev.map(o => o.id === obj.id ? { ...o, completed: !o.completed } : o));
-                  }}
-                  className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 cursor-pointer transition-colors ${
-                    obj.completed
-                      ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950 font-medium'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <div className={`h-4 w-4 rounded-full mt-0.5 shrink-0 flex items-center justify-center border ${
-                    obj.completed
-                      ? 'bg-emerald-600 border-emerald-500 text-white'
-                      : 'border-slate-300 bg-white'
-                  }`}>
-                    {obj.completed && <CheckCircle className="h-3 w-3" />}
+              <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-3 max-h-[320px]">
+                {transcript.map((t, i) => (
+                  <div
+                    key={i}
+                    className={`flex flex-col gap-1 max-w-[85%] ${
+                      t.role === 'rep' ? 'ml-auto items-end' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold uppercase tracking-wide ${
+                        t.role === 'rep' ? 'text-[#ED1C24]' : 'text-[#6b6968]'
+                      }`}>
+                        {t.role === 'rep' ? 'Sales Rep (You)' : persona.name}
+                      </span>
+                      <span className="text-[10px] text-[#6b6968] font-mono">{t.timestamp}</span>
+                    </div>
+                    <div className={`p-3 rounded-2xl text-xs leading-relaxed ${
+                      t.role === 'rep'
+                        ? 'bg-[#ED1C24]/10 border border-[#ED1C24]/20 text-[#222021] rounded-tr-none'
+                        : 'bg-[#F2F0EF] border border-[#222021]/10 text-[#222021] rounded-tl-none'
+                    }`}>
+                      {t.content}
+                    </div>
                   </div>
-                  <span className={obj.completed ? 'line-through text-slate-400' : ''}>
-                    {obj.description}
-                  </span>
-                </div>
-              ))}
+                ))}
+
+                {isAiResponding && (
+                  <div className="flex items-center gap-2 text-xs text-[#6b6968] italic p-2">
+                    <Sparkles className="h-3.5 w-3.5 text-[#ED1C24] animate-spin" />
+                    <span>{persona.name} is speaking...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Rep Spoken Input Bar */}
+              <form onSubmit={handleSendMessage} className="p-3 border-t border-[#222021]/10 bg-white flex items-center gap-2">
+                <input
+                  type="text"
+                  disabled={!callActive || isAiResponding}
+                  value={repInput}
+                  onChange={(e) => setRepInput(e.target.value)}
+                  placeholder={callActive ? "Type your spoken response or use headset..." : "Dial in above to begin call..."}
+                  className="flex-1 bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-4 py-2 text-xs text-[#222021] placeholder-[#6b6968] focus:outline-none focus:bg-white focus:border-[#ED1C24] disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!callActive || !repInput.trim() || isAiResponding}
+                  className="px-4 py-2 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs shrink-0"
+                >
+                  <span>Speak</span>
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </form>
             </div>
           </div>
 
-          {/* Persona Behavioral Rules */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 text-xs text-slate-600 space-y-2 shadow-xs">
-            <span className="font-bold text-slate-900 uppercase tracking-wider text-[11px] block">
-              Buyer Behavioral Rules:
-            </span>
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-800 italic">
-              "{persona.coreObjection}"
+          {/* Right Column: Live Objectives & Scoring Criteria (4 Cols) */}
+          <div className="lg:col-span-4 flex flex-col gap-5">
+            
+            {/* Live Objectives Checklist */}
+            <div className="bg-white border border-[#222021]/10 rounded-2xl p-5 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#222021] flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-[#ED1C24]" />
+                  <span>LIVE OBJECTIVES</span>
+                </span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#ED1C24]/10 text-[#ED1C24] border border-[#ED1C24]/20">
+                  {completedObjectivesCount} / {objectives.length}
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                {objectives.map((obj, i) => (
+                  <div
+                    key={obj.id}
+                    className={`p-3 rounded-xl border transition-colors flex items-center gap-2.5 ${
+                      obj.completed
+                        ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900 font-semibold'
+                        : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
+                    }`}
+                  >
+                    {obj.completed ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-[#6b6968] shrink-0" />
+                    )}
+                    <span className="leading-snug">{obj.description}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="leading-relaxed text-[11px] text-slate-500">
-              Validating their friction with tactical empathy before introducing the reframe prevents psychological defensiveness. Conclude with a 10-minute benchmark question.
-            </p>
+
+            {/* Behavioral Rules / Persona Context */}
+            <div className="bg-white border border-[#222021]/10 rounded-2xl p-5 shadow-2xs space-y-2.5 text-xs">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#222021] block">
+                BUYER BEHAVIORAL RULES:
+              </span>
+              <div className="p-3 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 text-[11px] text-[#222021] font-mono leading-relaxed">
+                "{persona.coreObjection}"
+              </div>
+              <p className="text-[11px] text-[#6b6968] leading-relaxed">
+                Validate their friction with tactical empathy before introducing the reframe. Conclude with a 10-minute diagnostic benchmark question.
+              </p>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
 
 export default function SparringRoomPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center text-xs font-mono text-slate-500">LOADING SPARRING ROOM...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[#6b6968]">Loading Sparring Arena...</div>}>
       <SparringRoomContent />
     </Suspense>
   );
