@@ -5,10 +5,12 @@
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
+  --primary: #F9ED32;
+  --primary-foreground: #0f172a;
   --muted: #64748b;
   --border: #e2e8f0;
+  --sidebar: #0B0F17;
+  --sidebar-foreground: #f8fafc;
 }
 
 html, body {

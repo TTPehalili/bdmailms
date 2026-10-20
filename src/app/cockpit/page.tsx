@@ -1,7 +1,7 @@
 'use client';
 
-import EnterpriseOutboundCockpit from '@/components/EnterpriseOutboundCockpit';
+import BorisCallingCockpit from '@/components/BorisCallingCockpit';
 
 export default function CockpitPage() {
-  return <EnterpriseOutboundCockpit />;
+  return <BorisCallingCockpit />;
 }
