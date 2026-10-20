@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Lead, CadencePackage } from '@/types';
 import { CadenceGenerator } from '@/lib/cadenceGenerator';
+import AdminNavigationHeader from '@/components/AdminNavigationHeader';
 
 function CampaignLeadsContent() {
   const params = useParams();
@@ -138,44 +139,8 @@ function CampaignLeadsContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-40 px-8 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-lg tracking-tight text-slate-900">
-                CAMPAIGN LEAD QUEUE & CADENCE
-              </span>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono font-semibold">
-                {campaignId}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">CSV Auto-Mapping & Context-Injected Multi-Channel Cadence</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin/reps"
-            className="text-xs px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold transition-colors"
-          >
-            Rep Roster
-          </Link>
-          <Link
-            href="/admin/frameworks"
-            className="text-xs px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-sm"
-          >
-            Playbook Upload
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+      <AdminNavigationHeader activeSection="leads" />
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-8 flex flex-col gap-6">

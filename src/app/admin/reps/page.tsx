@@ -15,6 +15,7 @@ import {
   Radio,
   FileCheck
 } from 'lucide-react';
+import AdminNavigationHeader from '@/components/AdminNavigationHeader';
 
 interface RepRecord {
   id: string;
@@ -86,44 +87,8 @@ export default function AdminRepsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-      {/* Top Header */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-50 px-8 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-lg tracking-tight text-slate-900">
-                SALES REP ROSTER & CERTIFICATIONS
-              </span>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold uppercase">
-                Supervisor Oversight
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">Rep Readiness, Certification Badges & Campaign Assignment</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin/campaigns/enterprise-outbound/leads"
-            className="text-xs px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold transition-colors"
-          >
-            Lead Queue & CSV
-          </Link>
-          <Link
-            href="/certification"
-            className="text-xs px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-sm"
-          >
-            Certification Gate
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+      <AdminNavigationHeader activeSection="reps" />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-8 flex flex-col gap-6">

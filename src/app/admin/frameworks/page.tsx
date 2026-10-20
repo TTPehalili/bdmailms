@@ -16,7 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { ExtractedArmEntry } from '@/lib/parsers/armExtractor';
-import NavigationHeader from '@/components/NavigationHeader';
+import AdminNavigationHeader from '@/components/AdminNavigationHeader';
 
 export default function AdminFrameworksPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -85,37 +85,7 @@ export default function AdminFrameworksPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      <NavigationHeader />
-
-      {/* Page Title Sub-bar */}
-      <div className="bg-white border-b border-slate-200 px-8 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm tracking-tight text-slate-900 uppercase">
-                Framework Ingestion Pipeline
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold uppercase">
-                Admin Console
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">Multi-format Document Ingestion & 1536-dim Vector Embeddings</p>
-          </div>
-        </div>
-
-        <Link
-          href="/cockpit"
-          className="text-xs px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold transition-colors"
-        >
-          View Live Cockpit &rarr;
-        </Link>
-      </div>
+      <AdminNavigationHeader activeSection="playbooks" />
 
       {/* Main Form Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">

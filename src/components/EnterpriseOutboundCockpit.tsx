@@ -35,7 +35,10 @@ import {
   Database,
   FileSpreadsheet,
   Keyboard,
-  X
+  X,
+  Swords,
+  ShieldCheck,
+  ExternalLink
 } from 'lucide-react';
 import { MicStreamer } from '@/lib/audio/micStream';
 import { ScribeSocketClient } from '@/lib/audio/scribeSocket';
@@ -360,25 +363,19 @@ export default function EnterpriseOutboundCockpit() {
 
           <div className="h-4 w-[1px] bg-slate-200 mx-2" />
 
-          {/* Module Navigation Tabs */}
-          <nav className="flex items-center gap-1 text-[12px] font-semibold text-slate-600">
-            <span className="px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 font-bold">
-              Cockpit
+          {/* Sales Rep Navigation Tabs - ONLY SDR TOOLS */}
+          <nav className="flex items-center gap-1.5 text-xs font-semibold">
+            <span className="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-xs flex items-center gap-1.5">
+              <Radio className="h-3.5 w-3.5 text-indigo-600" />
+              <span>Live Cockpit</span>
             </span>
-            <Link href="/sparring" className="px-2.5 py-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors">
-              Sparring Arena
+            <Link href="/sparring" className="px-3 py-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5">
+              <Swords className="h-3.5 w-3.5 text-slate-400" />
+              <span>Sparring Arena</span>
             </Link>
-            <Link href="/certification" className="px-2.5 py-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors">
-              Certification
-            </Link>
-            <Link href="/admin/campaigns/enterprise-outbound/leads" className="px-2.5 py-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors">
-              Leads
-            </Link>
-            <Link href="/admin/frameworks" className="px-2.5 py-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors">
-              Playbooks
-            </Link>
-            <Link href="/admin/reps" className="px-2.5 py-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors">
-              Roster
+            <Link href="/certification" className="px-3 py-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5">
+              <Award className="h-3.5 w-3.5 text-slate-400" />
+              <span>Certification</span>
             </Link>
           </nav>
         </div>
@@ -441,6 +438,27 @@ export default function EnterpriseOutboundCockpit() {
           >
             <Keyboard className="h-4 w-4" />
           </button>
+
+          {/* Rep Profile & Supervisor Link */}
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center border border-indigo-200">
+              AM
+            </div>
+            <div className="hidden xl:block text-left text-[11px] leading-tight">
+              <p className="font-bold text-slate-800">Alex Mercer</p>
+              <p className="text-[10px] text-slate-500">Sales Development Rep</p>
+            </div>
+          </div>
+
+          <Link
+            href="/admin"
+            title="Switch to Supervisor / Enablement Console"
+            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-indigo-600" />
+            <span className="hidden xl:inline">Admin Console</span>
+            <ExternalLink className="h-3 w-3 text-slate-400" />
+          </Link>
         </div>
       </header>
 
