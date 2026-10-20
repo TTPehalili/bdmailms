@@ -10,14 +10,11 @@ import {
   PhoneCall, 
   CalendarDays, 
   BookOpen, 
-  Users, 
   Radio, 
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles
+  ChevronRight
 } from 'lucide-react';
 
 export default function AppSidebar() {
@@ -43,6 +40,7 @@ export default function AppSidebar() {
   const isCert = pathname.startsWith('/certification');
   const isAdmin = pathname.startsWith('/admin');
 
+  // Pure Front-Line SDR Navigation Stack (Leads & Cadence CRM moved exclusively to Super Admin)
   const navItems = [
     { 
       label: 'Mission & Targets', 
@@ -81,17 +79,10 @@ export default function AppSidebar() {
     },
     { 
       label: 'Knowledge & Playbooks', 
-      href: '/admin/frameworks', 
+      href: '/cockpit', 
       icon: BookOpen, 
       isActive: false, 
       tag: 'ARM' 
-    },
-    { 
-      label: 'Leads & Cadence CRM', 
-      href: '/admin/campaigns/enterprise-outbound/leads', 
-      icon: Users, 
-      isActive: false, 
-      tag: 'B2B' 
     },
     { 
       label: 'Live Audio Monitoring', 
