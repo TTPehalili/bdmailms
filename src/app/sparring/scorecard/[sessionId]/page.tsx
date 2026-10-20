@@ -18,6 +18,7 @@ import {
   Percent
 } from 'lucide-react';
 import { QaEvaluationResult } from '@/lib/qaEvaluator';
+import NavigationHeader from '@/components/NavigationHeader';
 
 function ScorecardContent() {
   const params = useParams();
@@ -82,7 +83,6 @@ function ScorecardContent() {
     ]
   });
 
-  // Check if evaluation was stored in sessionStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = sessionStorage.getItem(`eval-${sessionId}`);
@@ -94,74 +94,38 @@ function ScorecardContent() {
     }
   }, [sessionId]);
 
-  const gradeColor = 
-    evaluation.overallGrade === 'A+' || evaluation.overallGrade === 'A' ? 'text-emerald-400 bg-emerald-950/80 border-emerald-700/80' :
-    evaluation.overallGrade === 'B' ? 'text-blue-400 bg-blue-950/80 border-blue-700/80' :
-    evaluation.overallGrade === 'C' ? 'text-amber-400 bg-amber-950/80 border-amber-700/80' :
-    'text-red-400 bg-red-950/80 border-red-700/80';
+  const gradeBadge = 
+    evaluation.overallGrade === 'A+' || evaluation.overallGrade === 'A' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' :
+    evaluation.overallGrade === 'B' ? 'text-blue-700 bg-blue-50 border-blue-300' :
+    evaluation.overallGrade === 'C' ? 'text-amber-700 bg-amber-50 border-amber-300' :
+    'text-rose-700 bg-rose-50 border-rose-300';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Header */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/sparring"
-            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-lg tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                SPARRING PERFORMANCE SCORECARD
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
-                {sessionId}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400">Automated QA Rubric & Turn-by-Turn ARM Analysis</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/sparring"
-            className="text-xs px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold transition-colors flex items-center gap-1.5"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span>Try Another Persona</span>
-          </Link>
-          <Link
-            href="/cockpit"
-            className="text-xs px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold transition-all shadow-md shadow-red-900/20"
-          >
-            Return to Live Cockpit
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
+      {/* Top Navbar */}
+      <NavigationHeader />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-8 flex flex-col gap-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-6 flex flex-col gap-6">
         
         {/* Banner Score Card */}
-        <div className="rounded-3xl p-8 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
-          <div className="flex items-center gap-6">
-            <div className={`h-24 w-24 rounded-3xl border-2 flex flex-col items-center justify-center font-black shadow-xl ${gradeColor}`}>
-              <span className="text-4xl">{evaluation.overallGrade}</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider mt-0.5">GRADE</span>
+        <div className="rounded-2xl p-6 bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className={`h-20 w-20 rounded-2xl border-2 flex flex-col items-center justify-center font-black shadow-xs shrink-0 ${gradeBadge}`}>
+              <span className="text-3xl">{evaluation.overallGrade}</span>
+              <span className="text-[9px] uppercase font-bold tracking-wider">GRADE</span>
             </div>
 
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-semibold mb-2">
-                <Trophy className="h-3.5 w-3.5 text-amber-400" />
-                <span>Overall Performance Score</span>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold mb-1">
+                <Trophy className="h-3 w-3 text-amber-500" />
+                <span>Audited Performance Evaluation</span>
               </div>
-              <h1 className="text-3xl font-black text-white">
+              <h1 className="text-2xl font-bold text-slate-900">
                 {evaluation.overallScore} / 100 Points
               </h1>
-              <p className="text-xs text-slate-400 mt-1 max-w-md">
-                Rep successfully navigated friction without arguing, meeting BPO outbound certification standards.
+              <p className="text-xs text-slate-500 mt-0.5 max-w-md">
+                Candidate demonstrated adherence to the ARM objection methodology under realistic buyer pushback.
               </p>
             </div>
           </div>
@@ -169,133 +133,140 @@ function ScorecardContent() {
           <div className="flex items-center gap-3">
             <Link
               href="/sparring"
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-lg shadow-red-900/30 flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5"
             >
-              <span>ADVANCE TO NEXT PERSONA</span>
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Retry Session</span>
+            </Link>
+            <Link
+              href="/sparring"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center gap-2"
+            >
+              <span>NEXT PERSONA</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
 
         {/* 3 Metrics Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           
           {/* ARM Execution */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4 text-purple-400" />
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
                 ARM Execution
               </span>
-              <span className="text-lg font-black text-purple-300 font-mono">
+              <span className="text-base font-black text-indigo-700 font-mono">
                 {evaluation.armExecutionScore}%
               </span>
             </div>
-            <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-purple-500 rounded-full" style={{ width: `${evaluation.armExecutionScore}%` }} />
+            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${evaluation.armExecutionScore}%` }} />
             </div>
-            <p className="text-xs text-slate-400 mt-3">
+            <p className="text-[11px] text-slate-500 mt-2.5">
               Measures Acknowledge, Respond, and Move sequence fidelity under pushback.
             </p>
           </div>
 
           {/* Script Adherence */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <BarChart3 className="h-4 w-4 text-emerald-400" />
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <BarChart3 className="h-3.5 w-3.5 text-emerald-600" />
                 Script Adherence
               </span>
-              <span className="text-lg font-black text-emerald-300 font-mono">
+              <span className="text-base font-black text-emerald-700 font-mono">
                 {evaluation.scriptAdherenceScore}%
               </span>
             </div>
-            <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${evaluation.scriptAdherenceScore}%` }} />
+            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${evaluation.scriptAdherenceScore}%` }} />
             </div>
-            <p className="text-xs text-slate-400 mt-3">
-              Adherence to company discovery criteria, disqualification, and positioning.
+            <p className="text-[11px] text-slate-500 mt-2.5">
+              Adherence to consultative value reframe and disqualification questions.
             </p>
           </div>
 
           {/* Talk-to-Listen Ratio */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Percent className="h-4 w-4 text-amber-400" />
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Percent className="h-3.5 w-3.5 text-amber-600" />
                 Talk / Listen Ratio
               </span>
-              <span className="text-xs font-black text-amber-300 font-mono">
-                {evaluation.talkToListenRatio.repPercent}% Rep / {evaluation.talkToListenRatio.prospectPercent}% Prospect
+              <span className="text-xs font-black text-slate-800 font-mono">
+                {evaluation.talkToListenRatio.repPercent}% Rep / {evaluation.talkToListenRatio.prospectPercent}% Buyer
               </span>
             </div>
-            <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
-              <div className="h-full bg-amber-500" style={{ width: `${evaluation.talkToListenRatio.repPercent}%` }} />
-              <div className="h-full bg-slate-700" style={{ width: `${evaluation.talkToListenRatio.prospectPercent}%` }} />
+            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
+              <div className="h-full bg-indigo-600" style={{ width: `${evaluation.talkToListenRatio.repPercent}%` }} />
+              <div className="h-full bg-slate-300" style={{ width: `${evaluation.talkToListenRatio.prospectPercent}%` }} />
             </div>
-            <p className="text-xs text-slate-400 mt-3">
+            <p className="text-[11px] text-slate-500 mt-2.5">
               {evaluation.talkToListenRatio.isOptimal ? 'Optimal conversational balance (Target: 40-55% rep)' : 'Review conversational balance'}
             </p>
           </div>
         </div>
 
-        {/* Chronological Dialogue Breakdown with Coaching Tags */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col gap-5">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        {/* Turn-by-Turn Dialogue Breakdown */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                <Layers className="h-4 w-4 text-red-500" />
-                Chronological Dialogue Breakdown
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 text-indigo-600" />
+                Turn-by-Turn Dialogue Rubric
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Turn-by-turn replay annotated with ARM badge detections and coaching critique.
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Transcript annotated with ARM detection badges and coaching feedback.
               </p>
             </div>
-            <span className="text-xs font-mono text-slate-500">
+            <span className="text-xs font-mono text-slate-400">
               {evaluation.annotatedTranscript.length} Turns
             </span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {evaluation.annotatedTranscript.map((turn, idx) => (
               <div
                 key={idx}
-                className={`p-4 rounded-xl border flex flex-col gap-2.5 transition-all ${
+                className={`p-3.5 rounded-xl border flex flex-col gap-2 ${
                   turn.role === 'rep'
-                    ? 'bg-slate-950 border-slate-800/90'
-                    : 'bg-slate-900/40 border-slate-800/40'
+                    ? 'bg-indigo-50/40 border-indigo-100'
+                    : 'bg-slate-50 border-slate-200'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${
-                      turn.role === 'rep' ? 'bg-slate-800 text-emerald-400' : 'bg-slate-800 text-red-400'
+                      turn.role === 'rep' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-700'
                     }`}>
                       {turn.role === 'rep' ? 'Sales Rep' : 'Buyer Persona'}
                     </span>
                     {turn.timestamp && (
-                      <span className="text-[10px] text-slate-500">{turn.timestamp}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{turn.timestamp}</span>
                     )}
                   </div>
 
                   {turn.armTag && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-black border ${
-                      turn.armTag === 'A' ? 'bg-purple-950 text-purple-300 border-purple-800' :
-                      turn.armTag === 'R' ? 'bg-emerald-950 text-emerald-300 border-emerald-800' :
-                      'bg-amber-950 text-amber-300 border-amber-800'
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${
+                      turn.armTag === 'A' ? 'bg-amber-50 text-amber-900 border-amber-200' :
+                      turn.armTag === 'R' ? 'bg-blue-50 text-blue-900 border-blue-200' :
+                      'bg-emerald-50 text-emerald-900 border-emerald-200'
                     }`}>
                       [{turn.armTag}] {turn.armTag === 'A' ? 'Acknowledge' : turn.armTag === 'R' ? 'Respond' : 'Move'}
                     </span>
                   )}
                 </div>
 
-                <p className="text-xs text-slate-200 leading-relaxed font-sans">
+                <p className="text-xs text-slate-800 leading-relaxed">
                   "{turn.content}"
                 </p>
 
                 {turn.coachingFeedback && (
-                  <div className="mt-1 p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                  <div className="mt-0.5 p-2 rounded-lg bg-white border border-slate-200 text-[11px] text-slate-600 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <span>{turn.coachingFeedback}</span>
                   </div>
                 )}
@@ -304,34 +275,32 @@ function ScorecardContent() {
           </div>
         </div>
 
-        {/* Strengths & Action Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Strengths */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col gap-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
+        {/* Strengths & Action Items */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
               Observed Strengths
             </h4>
-            <ul className="space-y-2 text-xs text-slate-300">
+            <ul className="space-y-1.5 text-xs text-slate-700">
               {evaluation.strengths.map((str, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">•</span>
+                  <span className="text-emerald-600 font-bold">•</span>
                   <span>{str}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Action Items */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col gap-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
               Coaching Action Items
             </h4>
-            <ul className="space-y-2 text-xs text-slate-300">
+            <ul className="space-y-1.5 text-xs text-slate-700">
               {evaluation.coachingActionItems.map((act, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="text-amber-400 font-bold">•</span>
+                  <span className="text-amber-600 font-bold">•</span>
                   <span>{act}</span>
                 </li>
               ))}
@@ -345,7 +314,7 @@ function ScorecardContent() {
 
 export default function ScorecardPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-xs font-mono">LOADING SCORECARD...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center text-xs font-mono text-slate-500">LOADING SCORECARD...</div>}>
       <ScorecardContent />
     </Suspense>
   );
