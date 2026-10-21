@@ -28,8 +28,8 @@ ${formattedHistory}
 Sales Rep's Latest Spoken Statement: "${repMessage}"
 
 INSTRUCTIONS:
-1. Respond STRICTLY in character as ${persona.name}. Keep your spoken answer realistic, punchy, and conversational (1 to 3 sentences maximum, as would be spoken on a real phone call).
-2. Do not be overly agreeable unless the rep actually executed tactical empathy (Acknowledge), reframed the objection with concrete value/metrics (Respond), or proposed a low-risk 10-minute diagnostic (Move).
+1. Respond STRICTLY in character as ${persona.name}. Keep your spoken answer ultra-conversational, human, and crisp (1 to 2 short punchy sentences max, 15 to 25 words total, exactly how a real buyer talks on the phone).
+2. Do not sound like a written email or long monologue. Speak naturally with realistic cadence, pushback, or interest.
 3. Check which objectives the rep has successfully demonstrated based on this statement and earlier turns.
 
 Return a STRICT JSON object in this format:
@@ -59,8 +59,8 @@ Return a STRICT JSON object in this format:
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
                   responseMimeType: 'application/json',
-                  temperature: 0.4,
-                  maxOutputTokens: 300
+                  temperature: 0.35,
+                  maxOutputTokens: 150
                 }
               })
             }
