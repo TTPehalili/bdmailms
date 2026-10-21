@@ -711,6 +711,23 @@ export default function BorisCallingCockpit() {
                         />
                       </div>
                     </div>
+
+                    {/* Click-to-Call Dialer Button */}
+                    <a
+                      href={phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : '#'}
+                      onClick={(e) => {
+                        if (!phone) {
+                          e.preventDefault();
+                          alert('Please enter a phone number first');
+                          return;
+                        }
+                      }}
+                      className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all duration-150 group cursor-pointer"
+                      title="Click to call via your default dialer application (Dialpad, RingCentral, Zoom Phone, Teams, Phone Link, Softphone)"
+                    >
+                      <PhoneCall className="h-3.5 w-3.5 text-white transition-transform group-hover:scale-110" />
+                      <span>Click to Call ({phone || 'No Number'})</span>
+                    </a>
                   </div>
                 </div>
 
@@ -1653,16 +1670,32 @@ export default function BorisCallingCockpit() {
                             <label className="text-[11px] font-bold text-[#222021] block mb-1">
                               Direct Cell / Mobile (for 10-min SMS reminder)
                             </label>
-                            <input
-                              type="tel"
-                              value={cellPhone}
-                              onChange={(e) => {
-                                setCellPhone(e.target.value);
-                                setNotesDraft(generateCrmNotes({ cell: e.target.value }));
-                              }}
-                              placeholder="e.g. +1 (415) 890-1284"
-                              className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
-                            />
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="tel"
+                                value={cellPhone}
+                                onChange={(e) => {
+                                  setCellPhone(e.target.value);
+                                  setNotesDraft(generateCrmNotes({ cell: e.target.value }));
+                                }}
+                                placeholder="e.g. +1 (415) 890-1284"
+                                className="flex-1 bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                              />
+                              <a
+                                href={cellPhone ? `tel:${cellPhone.replace(/[^\d+]/g, '')}` : '#'}
+                                onClick={(e) => {
+                                  if (!cellPhone) {
+                                    e.preventDefault();
+                                    alert('Please enter a mobile phone number first');
+                                    return;
+                                  }
+                                }}
+                                className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-xs"
+                                title="Click to call mobile via default dialer"
+                              >
+                                <PhoneCall className="h-4 w-4" />
+                              </a>
+                            </div>
                           </div>
                         </div>
 
