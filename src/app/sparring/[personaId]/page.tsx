@@ -76,6 +76,13 @@ function SparringRoomContent() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioSourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const analyserNodeRef = useRef<AnalyserNode | null>(null);
+  const speechStreamRef = useRef<MediaStream | null>(null);
+  const lastAudioUrlRef = useRef<string | null>(null);
+  const lastTextRef = useRef<string>('');
+
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recognizedTextRef = useRef('');
@@ -95,6 +102,26 @@ function SparringRoomContent() {
   useEffect(() => {
     isPlayingAudioRef.current = isPlayingAudio;
   }, [isPlayingAudio]);
+
+  // Global interaction listener: seamlessly resume AudioContext on ANY click/tap/keypress in browser
+  useEffect(() => {
+    const handleGlobalInteraction = () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().catch(() => {});
+      }
+      setAudioBlocked(false);
+    };
+
+    window.addEventListener('click', handleGlobalInteraction);
+    window.addEventListener('keydown', handleGlobalInteraction);
+    window.addEventListener('touchstart', handleGlobalInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleGlobalInteraction);
+      window.removeEventListener('keydown', handleGlobalInteraction);
+      window.removeEventListener('touchstart', handleGlobalInteraction);
+    };
+  }, []);
 
   // Call duration counter
   useEffect(() => {
@@ -201,11 +228,11 @@ function SparringRoomContent() {
           setRepInput(currentSpeech);
 
           // Intelligent silence detection:
-          // Wait 1.2s of silence after speech, then auto-send!
+          // Wait 1.3s of silence after speech, then auto-send!
           const words = currentSpeech.toLowerCase().split(/\s+/);
           const lastWord = words[words.length - 1];
-          const midFillers = ['and', 'so', 'but', 'because', 'uh', 'um', 'or', 'if', 'like', 'with', 'to'];
-          const silenceDelay = midFillers.includes(lastWord) ? 2000 : 1200;
+          const midFillers = ['and', 'so', 'but', 'because', 'uh', 'um', 'or', 'if', 'like', 'with', 'to', 'that', 'we', 'our'];
+          const silenceDelay = midFillers.includes(lastWord) ? 2200 : 1300;
 
           if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
           silenceTimerRef.current = setTimeout(() => {
@@ -251,89 +278,217 @@ function SparringRoomContent() {
     }
   }, [stopListening]);
 
-  // Robust Audio Player with guaranteed speech output
-  const playVoiceAudio = useCallback(async (audioUrl: string, turnIndex?: number): Promise<void> => {
-    if (isMuted) return;
+  // Guaranteed AudioContext getter / initializer
+  const getOrCreateAudioContext = useCallback(async (): Promise<AudioContext | null> => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return null;
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
+      }
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+      return audioContextRef.current;
+    } catch (err) {
+      console.warn('AudioContext init note:', err);
+      return null;
+    }
+  }, []);
 
-    // Immediately stop mic while AI speaks to prevent audio loopback
-    stopListening();
-
+  // Web Speech API fallback to ensure prospect voice is 100% audible under all conditions
+  const speakWebSpeechFallback = useCallback((text: string): Promise<void> => {
     return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+        resolve();
+        return;
+      }
       try {
-        if (audioElementRef.current) {
-          try {
-            audioElementRef.current.pause();
-            audioElementRef.current.currentTime = 0;
-          } catch {}
-        }
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.05;
+        utter.pitch = 1.0;
+        
+        const voices = window.speechSynthesis.getVoices();
+        const enVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+        if (enVoice) utter.voice = enVoice;
 
-        const playableSrc = audioUrl.startsWith('data:') ? getBlobUrlFromBase64(audioUrl) : audioUrl;
-        const audio = new Audio(playableSrc);
-        audio.volume = 1.0;
-        audioElementRef.current = audio;
+        utter.onend = () => {
+          setIsPlayingAudio(false);
+          setActiveAudioTurn(null);
+          resolve();
+          if (isCallActiveRef.current && !isAiRespondingRef.current) {
+            startHandsFreeListening();
+          }
+        };
+
+        utter.onerror = () => {
+          setIsPlayingAudio(false);
+          setActiveAudioTurn(null);
+          resolve();
+          if (isCallActiveRef.current && !isAiRespondingRef.current) {
+            startHandsFreeListening();
+          }
+        };
 
         setIsPlayingAudio(true);
-        if (turnIndex !== undefined) setActiveAudioTurn(turnIndex);
-
-        audio.onended = () => {
-          setIsPlayingAudio(false);
-          setActiveAudioTurn(null);
-          setAudioBlocked(false);
-          resolve();
-          // The instant AI finishes speaking, auto-start hands-free listening!
-          if (isCallActiveRef.current && !isAiRespondingRef.current) {
-            startHandsFreeListening();
-          }
-        };
-
-        audio.onerror = (err) => {
-          console.warn('Audio playback error:', err);
-          setIsPlayingAudio(false);
-          setActiveAudioTurn(null);
-          resolve();
-          if (isCallActiveRef.current && !isAiRespondingRef.current) {
-            startHandsFreeListening();
-          }
-        };
-
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((err) => {
-            console.warn('Browser autoplay notice:', err);
-            setIsPlayingAudio(false);
-            setActiveAudioTurn(null);
-            setAudioBlocked(true);
-            resolve();
-            if (isCallActiveRef.current && !isAiRespondingRef.current) {
-              startHandsFreeListening();
-            }
-          });
-        }
-      } catch (err) {
-        console.error('playVoiceAudio error:', err);
+        window.speechSynthesis.speak(utter);
+      } catch {
         setIsPlayingAudio(false);
-        setActiveAudioTurn(null);
         resolve();
         if (isCallActiveRef.current && !isAiRespondingRef.current) {
           startHandsFreeListening();
         }
       }
     });
-  }, [isMuted, stopListening, startHandsFreeListening]);
+  }, [startHandsFreeListening]);
 
-  // Synchronously unlock browser audio on user gesture with silent WAV
-  const primeAudioContext = () => {
+  // Multi-tier resilient audio playback engine
+  const playVoiceAudio = useCallback(async (audioUrl: string, textFallback: string, turnIndex?: number): Promise<void> => {
+    if (isMuted) return;
+
+    // Immediately stop mic while AI speaks to prevent audio loopback echo
+    stopListening();
+
+    lastAudioUrlRef.current = audioUrl;
+    lastTextRef.current = textFallback;
+    setIsPlayingAudio(true);
+    if (turnIndex !== undefined) setActiveAudioTurn(turnIndex);
+
+    // Stop any existing Web Audio playback
+    if (audioSourceNodeRef.current) {
+      try {
+        audioSourceNodeRef.current.stop();
+        audioSourceNodeRef.current.disconnect();
+      } catch {}
+      audioSourceNodeRef.current = null;
+    }
+
+    // Cancel any existing SpeechSynthesis
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch {}
+    }
+
+    // TIER 1: Native Web Audio API decodeAudioData (zero autoplay restriction once context is active)
     try {
-      const primer = new Audio(SILENT_WAV);
-      primer.play().catch(() => {});
+      const ctx = await getOrCreateAudioContext();
+      if (ctx && ctx.state === 'running' && audioUrl.startsWith('data:audio/')) {
+        const cleaned = audioUrl.replace(/^data:audio\/[^;]+;base64,/, '');
+        const binaryString = window.atob(cleaned);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+
+        if (!analyserNodeRef.current) {
+          analyserNodeRef.current = ctx.createAnalyser();
+          analyserNodeRef.current.fftSize = 64;
+        }
+        source.connect(analyserNodeRef.current);
+        analyserNodeRef.current.connect(ctx.destination);
+        audioSourceNodeRef.current = source;
+
+        return new Promise<void>((resolve) => {
+          source.onended = () => {
+            setIsPlayingAudio(false);
+            setActiveAudioTurn(null);
+            setAudioBlocked(false);
+            audioSourceNodeRef.current = null;
+            resolve();
+            if (isCallActiveRef.current && !isAiRespondingRef.current) {
+              startHandsFreeListening();
+            }
+          };
+
+          source.start(0);
+        });
+      }
+    } catch (webAudioErr) {
+      console.warn('Web Audio decoding note, falling back to HTML5 Audio element:', webAudioErr);
+    }
+
+    // TIER 2: Persistent DOM HTML5 Audio element
+    try {
+      const playableSrc = audioUrl.startsWith('data:') ? getBlobUrlFromBase64(audioUrl) : audioUrl;
+      const audio = audioElementRef.current || new Audio();
+      audioElementRef.current = audio;
+      audio.src = playableSrc;
+      audio.volume = 1.0;
+
+      return new Promise<void>((resolve) => {
+        audio.onended = () => {
+          setIsPlayingAudio(false);
+          setActiveAudioTurn(null);
+          setAudioBlocked(false);
+          resolve();
+          if (isCallActiveRef.current && !isAiRespondingRef.current) {
+            startHandsFreeListening();
+          }
+        };
+
+        audio.onerror = (err) => {
+          console.warn('HTML5 Audio playback error, falling back to Web Speech:', err);
+          speakWebSpeechFallback(textFallback).then(resolve);
+        };
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn('Autoplay notice, falling back to Web Speech:', err);
+            setAudioBlocked(true);
+            speakWebSpeechFallback(textFallback).then(resolve);
+          });
+        }
+      });
+    } catch (err) {
+      console.warn('Audio playback error, using speech synthesis fallback:', err);
+      return speakWebSpeechFallback(textFallback);
+    }
+  }, [isMuted, stopListening, startHandsFreeListening, getOrCreateAudioContext, speakWebSpeechFallback]);
+
+  // Unblock / prime audio context synchronously
+  const primeAudioContext = async () => {
+    try {
+      await getOrCreateAudioContext();
+      if (audioElementRef.current) {
+        audioElementRef.current.src = SILENT_WAV;
+        audioElementRef.current.play().catch(() => {});
+      }
       setAudioBlocked(false);
+      if (lastAudioUrlRef.current && isPlayingAudioRef.current) {
+        playVoiceAudio(lastAudioUrlRef.current, lastTextRef.current);
+      }
     } catch {}
   };
 
   // Start Call & Dial in
   const startCall = async () => {
-    // 1. Prime audio context synchronously inside click handler!
-    primeAudioContext();
+    // 1. Prime Web Audio Context & DOM audio synchronously on click gesture!
+    await primeAudioContext();
+
+    // 2. Pre-arm microphone stream on direct user click gesture!
+    // This immediately prompts for mic permission so hands-free speech recognition works seamlessly!
+    try {
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        });
+        speechStreamRef.current = stream;
+        setMicPermissionDenied(false);
+      }
+    } catch (micErr) {
+      console.warn('Microphone pre-arm notice:', micErr);
+      setMicPermissionDenied(true);
+    }
 
     setCallConnecting(true);
     setCallActive(true);
@@ -362,19 +517,35 @@ function SparringRoomContent() {
           ]);
 
           if (data.audioUrl) {
-            await playVoiceAudio(data.audioUrl, 0);
+            await playVoiceAudio(data.audioUrl, data.greetingText, 0);
           } else {
-            startHandsFreeListening();
+            await speakWebSpeechFallback(data.greetingText);
           }
         }
       } else {
         setCallConnecting(false);
-        startHandsFreeListening();
+        const fallbackGreeting = `${persona.name} here. ${persona.coreObjection}`;
+        setTranscript([
+          {
+            role: 'prospect',
+            content: fallbackGreeting,
+            timestamp: '00:01'
+          }
+        ]);
+        await speakWebSpeechFallback(fallbackGreeting);
       }
     } catch (err) {
       console.warn('Dial request note:', err);
       setCallConnecting(false);
-      startHandsFreeListening();
+      const fallbackGreeting = `${persona.name} here. ${persona.coreObjection}`;
+      setTranscript([
+        {
+          role: 'prospect',
+          content: fallbackGreeting,
+          timestamp: '00:01'
+        }
+      ]);
+      await speakWebSpeechFallback(fallbackGreeting);
     } finally {
       setIsAiResponding(false);
     }
@@ -437,9 +608,9 @@ function SparringRoomContent() {
         ]);
 
         if (audioUrl) {
-          await playVoiceAudio(audioUrl, newTurnIndex);
+          await playVoiceAudio(audioUrl, aiReply, newTurnIndex);
         } else {
-          startHandsFreeListening();
+          await speakWebSpeechFallback(aiReply);
         }
       } else {
         const fallbackReply = "That's an interesting approach, but what kind of turnaround time and hold rate can you commit to?";
@@ -451,7 +622,7 @@ function SparringRoomContent() {
             timestamp: formatTime(callDuration + 2)
           }
         ]);
-        startHandsFreeListening();
+        await speakWebSpeechFallback(fallbackReply);
       }
     } catch (err) {
       console.error('Turn dispatch error:', err);
@@ -471,10 +642,27 @@ function SparringRoomContent() {
     setIsFinishingCall(true);
     setCallActive(false);
     stopListening();
+    if (audioSourceNodeRef.current) {
+      try {
+        audioSourceNodeRef.current.stop();
+        audioSourceNodeRef.current.disconnect();
+      } catch {}
+      audioSourceNodeRef.current = null;
+    }
     if (audioElementRef.current) {
       try {
         audioElementRef.current.pause();
+        audioElementRef.current.src = '';
       } catch {}
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch {}
+    }
+    if (speechStreamRef.current) {
+      try {
+        speechStreamRef.current.getTracks().forEach(t => t.stop());
+      } catch {}
+      speechStreamRef.current = null;
     }
 
     try {
@@ -569,6 +757,9 @@ function SparringRoomContent() {
             
             {/* Waveform / Call Centerpiece Card */}
             <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-2xs relative overflow-hidden">
+              {/* Permanent Blessed Audio Player */}
+              <audio ref={audioElementRef} id="sparring-audio-player" preload="auto" playsInline className="hidden" />
+
               <div className="flex items-center gap-2 absolute top-4 right-4">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 text-[10px] font-mono text-[#222021] border border-zinc-200 font-semibold">
                   <Headphones className="h-3 w-3 text-[#ED1C24]" />
@@ -669,6 +860,7 @@ function SparringRoomContent() {
               {/* Call Control Actions */}
               {!callActive ? (
                 <button
+                  id="dial-in-btn"
                   onClick={startCall}
                   className="px-8 py-3.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
@@ -700,8 +892,17 @@ function SparringRoomContent() {
                   {/* Speaker Mute Toggle */}
                   <button
                     onClick={() => {
-                      if (!isMuted && audioElementRef.current) {
-                        try { audioElementRef.current.pause(); } catch {}
+                      if (!isMuted) {
+                        if (audioSourceNodeRef.current) {
+                          try { audioSourceNodeRef.current.stop(); } catch {}
+                          audioSourceNodeRef.current = null;
+                        }
+                        if (audioElementRef.current) {
+                          try { audioElementRef.current.pause(); } catch {}
+                        }
+                        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                          try { window.speechSynthesis.cancel(); } catch {}
+                        }
                         setIsPlayingAudio(false);
                       }
                       setIsMuted(!isMuted);
@@ -766,7 +967,7 @@ function SparringRoomContent() {
                       {/* Replay audio button for prospect turns */}
                       {t.role === 'prospect' && t.audioUrl && (
                         <button
-                          onClick={() => playVoiceAudio(t.audioUrl!, i)}
+                          onClick={() => playVoiceAudio(t.audioUrl!, t.content, i)}
                           title="Replay Voice Audio"
                           className={`p-1 rounded hover:bg-[#e7e4e2] text-[#6b6968] transition-colors cursor-pointer ${
                             activeAudioTurn === i ? 'text-[#ED1C24]' : ''
