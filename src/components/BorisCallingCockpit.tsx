@@ -87,8 +87,13 @@ export default function BorisCallingCockpit() {
   const [primaryService, setPrimaryService] = useState<'customer-service' | 'bookkeeping' | 'outbound-sales' | 'technical-support' | 'other'>('customer-service');
   const [customServiceInput, setCustomServiceInput] = useState('');
 
-  // Screen 6: The Close & Emil Calendly
+  // Screen 5 & 6: The Close & Setting Expectations
   const [bookingSlot, setBookingSlot] = useState<string | null>(null);
+  const [directEmail, setDirectEmail] = useState<string>('julian@apexglobalbpo.com');
+  const [cellPhone, setCellPhone] = useState<string>('+1 (415) 890-1284');
+  const [attendanceMode, setAttendanceMode] = useState<'laptop' | 'mobile' | null>('laptop');
+  const [verbalCommitment, setVerbalCommitment] = useState<boolean>(true);
+  const [inviteAccepted, setInviteAccepted] = useState<boolean>(false);
   const [disposition, setDisposition] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState<string | null>(null);
   const [showCalendlyModal, setShowCalendlyModal] = useState<boolean>(false);
@@ -124,6 +129,10 @@ export default function BorisCallingCockpit() {
     customServ?: string;
     slot?: string | null;
     disp?: string | null;
+    email?: string;
+    cell?: string;
+    mode?: 'laptop' | 'mobile' | null;
+    committed?: boolean;
     custom?: string;
   }) => {
     const cName = overrides?.cName ?? customerName;
@@ -140,6 +149,10 @@ export default function BorisCallingCockpit() {
     const customServ = overrides?.customServ !== undefined ? overrides.customServ : customServiceInput;
     const slot = overrides?.slot !== undefined ? overrides.slot : bookingSlot;
     const disp = overrides?.disp !== undefined ? overrides.disp : disposition;
+    const email = overrides?.email ?? directEmail;
+    const cell = overrides?.cell ?? cellPhone;
+    const mode = overrides?.mode !== undefined ? overrides.mode : attendanceMode;
+    const committed = overrides?.committed !== undefined ? overrides.committed : verbalCommitment;
     const custom = overrides?.custom !== undefined ? overrides.custom : customRepNotes;
 
     const roleText = rStatus === 'confirmed'
@@ -194,6 +207,11 @@ export default function BorisCallingCockpit() {
     out += `• Target Industries: ${industryText}\n`;
     out += `• Primary Revenue Service: ${serviceText}\n`;
     out += `• Founder Meeting: ${meetingText}\n`;
+    if (slot) {
+      out += `• Attendance Expectation: ${mode === 'laptop' ? 'Laptop / Desk (Screen Share Ready)' : mode === 'mobile' ? 'Mobile / On-The-Go' : 'Unspecified'}\n`;
+      out += `• Direct Calendar Contact: ${email} | Cell: ${cell}\n`;
+      out += `• Verbal Commitment: ${committed ? '✓ Confirmed by prospect (Zero prep needed)' : 'Pending final confirmation'}\n`;
+    }
     if (custom && custom.trim()) {
       out += `\nREP NOTES:\n${custom.trim()}\n`;
     }
@@ -303,10 +321,17 @@ export default function BorisCallingCockpit() {
     },
     {
       num: 5,
-      shortTitle: '5. Founder Demo Close',
+      shortTitle: '5. Calendar & Slot',
       title: 'The Close: 20-Min Screen Share with Emil',
       time: '30 SEC',
-      purpose: 'Anchor Founder Emil (17+ yrs BDM) and lock calendar slot directly in live Calendly widget.'
+      purpose: 'Anchor Founder Emil (17+ yrs BDM) and lock calendar slot via quick buttons or live Calendly.'
+    },
+    {
+      num: 6,
+      shortTitle: '6. Expectations & Closing',
+      title: 'Setting Expectations & Final Confirmation',
+      time: '30 SEC',
+      purpose: 'Set zero-prep screen share expectations, verify direct email and mobile, secure verbal commitment, and wrap call cleanly.'
     }
   ];
 
@@ -1441,6 +1466,23 @@ export default function BorisCallingCockpit() {
                           </button>
                         </div>
 
+                        {/* Top Bypass Calendar / Continue to Setting Expectations Button */}
+                        <div className="pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!bookingSlot) {
+                                handleSelectSlot('Thursday 2:00 PM');
+                              }
+                              setCurrentStep(6);
+                            }}
+                            className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer hover:scale-[1.01]"
+                          >
+                            <span>⚡ Continue to Setting Expectations & Closing (Bypass Calendar)</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+
                         {/* Embedded Calendly Live Widget */}
                         {showCalendlyEmbed && (
                           <div className="rounded-xl border border-zinc-700 bg-white overflow-hidden shadow-2xl">
@@ -1468,6 +1510,238 @@ export default function BorisCallingCockpit() {
                             </div>
                           </div>
                         )}
+
+                        {/* Bottom Continue Button (Bypass Calendar) */}
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!bookingSlot) {
+                                handleSelectSlot('Thursday 2:00 PM');
+                              }
+                              setCurrentStep(6);
+                            }}
+                            className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer hover:scale-[1.01]"
+                          >
+                            <span>Continue to Screen 6: Setting Expectations & Closing ➔</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ===================================================================
+                      SCREEN 6: Setting Expectations & Closing
+                      =================================================================== */}
+                  {currentStep === 6 && (
+                    <div className="space-y-4">
+                      {/* Teleprompter Script Card */}
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                              SCREEN 6: SETTING EXPECTATIONS & CLOSING
+                            </span>
+                            <span className="text-xs font-extrabold text-[#222021]">
+                              Locked Slot: <span className="text-[#ED1C24] font-mono">{bookingSlot || 'Thursday 2:00 PM'}</span>
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCurrentStep(5)}
+                            className="text-xs text-[#6b6968] hover:text-[#222021] flex items-center gap-1 font-semibold cursor-pointer"
+                          >
+                            <span>Change Slot / Calendar</span>
+                            <ChevronRight className="h-3 w-3" />
+                          </button>
+                        </div>
+
+                        {/* Line 1: What to Expect */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide">
+                            1. Set Screen Share Expectations
+                          </span>
+                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                            textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
+                          }`}>
+                            "Perfect, <span className="font-bold text-[#ED1C24]">{customerName.split(' ')[0] || 'there'}</span>. Just so you know what to expect on <span className="bg-emerald-100 text-emerald-950 px-1.5 py-0.5 rounded font-mono font-bold">{bookingSlot || 'Thursday at 2:00 PM'}</span>—Emil will share his screen directly to walk you through how Claude AI builds your private list, and run a quick 2-minute sparring simulation tuned for your <strong className="text-[#222021]">{activeServiceLabel}</strong> team."
+                          </p>
+                        </div>
+
+                        {/* Line 2: Zero Prep Guarantee */}
+                        <div className="space-y-1 pt-1">
+                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide">
+                            2. Zero Prep Guarantee
+                          </span>
+                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                            textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
+                          }`}>
+                            "He'll already have <strong className="text-[#222021]">{partnerName}</strong>'s market profile and competitor pricing pulled up beforehand, so there is <span className="underline decoration-emerald-500 decoration-2 font-bold text-emerald-900 bg-emerald-50 px-1 rounded">zero preparation needed</span> on your end."
+                          </p>
+                        </div>
+
+                        {/* Line 3: Device & Contact Gate */}
+                        <div className="space-y-1 pt-1">
+                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide">
+                            3. Attendance & Contact Verification
+                          </span>
+                          <p className={`font-extrabold text-[#222021] leading-relaxed ${
+                            textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
+                          }`}>
+                            "Are you usually at your desk with your laptop open around that time, or will you be mobile? And what is the best direct email and cell number to send the calendar invite and text a 10-minute heads-up?"
+                          </p>
+                        </div>
+
+                        {/* Line 4: Professional Wrap-up */}
+                        <div className="space-y-1 pt-1">
+                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide">
+                            4. Calendar Invite & Professional Wrap-up
+                          </span>
+                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                            textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
+                          }`}>
+                            "I'm dispatching the calendar invite right now from <span className="font-mono text-xs bg-slate-200 text-slate-900 px-1.5 py-0.5 rounded font-bold">emil@appointmentlyy.com</span> with the screen share link. Once you see it hit your inbox, go ahead and hit accept so it reserves that slot on Emil's schedule. Really appreciate your time today, <span className="font-bold text-[#ED1C24]">{customerName.split(' ')[0] || 'there'}</span>—talk soon!"
+                          </p>
+                        </div>
+
+                        {/* Audio / Copy helpers */}
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-200">
+                          <button
+                            type="button"
+                            onClick={() => playSpeech(`Perfect, ${customerName.split(' ')[0] || 'there'}. Just so you know what to expect on ${bookingSlot || 'Thursday at 2:00 PM'}—Emil will share his screen directly to walk you through how Claude AI builds your private list. Zero preparation needed on your end. I'm dispatching the calendar invite right now from emil@appointmentlyy.com with the screen share link. Once you see it hit your inbox, go ahead and hit accept. Talk soon!`, 'expect_speech')}
+                            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 cursor-pointer shadow-2xs"
+                          >
+                            <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
+                            <span>Hear Wrap-Up Script</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyText(`Perfect, ${customerName.split(' ')[0] || 'there'}. Just so you know what to expect on ${bookingSlot || 'Thursday at 2:00 PM'}—Emil will share his screen directly... Zero preparation needed on your end. Talk soon!`, 'expect_cp')}
+                            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 cursor-pointer shadow-2xs"
+                          >
+                            {copiedKey === 'expect_cp' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                            <span>Copy Wrap-Up Script</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Attendance Verification & Contact Confirmation Box */}
+                      <div className="p-4 rounded-xl border border-[#222021]/15 bg-white space-y-3.5 shadow-2xs">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968] block">
+                          ATTENDANCE VERIFICATION & DIRECT CONTACT
+                        </span>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] font-bold text-[#222021] block mb-1">
+                              Direct Calendar Invite Email
+                            </label>
+                            <input
+                              type="email"
+                              value={directEmail}
+                              onChange={(e) => {
+                                setDirectEmail(e.target.value);
+                                setNotesDraft(generateCrmNotes({ email: e.target.value }));
+                              }}
+                              placeholder="e.g. julian@apexglobalbpo.com"
+                              className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] font-bold text-[#222021] block mb-1">
+                              Direct Cell / Mobile (for 10-min SMS reminder)
+                            </label>
+                            <input
+                              type="tel"
+                              value={cellPhone}
+                              onChange={(e) => {
+                                setCellPhone(e.target.value);
+                                setNotesDraft(generateCrmNotes({ cell: e.target.value }));
+                              }}
+                              placeholder="e.g. +1 (415) 890-1284"
+                              className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Interactive Verification Badges */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = attendanceMode === 'laptop' ? 'mobile' : 'laptop';
+                              setAttendanceMode(next);
+                              setNotesDraft(generateCrmNotes({ mode: next }));
+                            }}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                              attendanceMode === 'laptop'
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
+                                : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
+                            }`}
+                          >
+                            <span>💻</span>
+                            <span>{attendanceMode === 'laptop' ? 'Laptop / Desk Confirmed' : 'Mobile / On-The-Go'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = !verbalCommitment;
+                              setVerbalCommitment(next);
+                              setNotesDraft(generateCrmNotes({ committed: next }));
+                            }}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                              verbalCommitment
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
+                                : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
+                            }`}
+                          >
+                            <span>{verbalCommitment ? '✅' : '⚪'}</span>
+                            <span>Verbal Commitment</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = !inviteAccepted;
+                              setInviteAccepted(next);
+                              setNotesDraft(generateCrmNotes({ custom: (notesDraft || '') + (next ? '\n[Invite sent from emil@appointmentlyy.com - Prospect accepted]' : '') }));
+                            }}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                              inviteAccepted
+                                ? 'bg-purple-50 border-purple-300 text-purple-900 shadow-2xs'
+                                : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
+                            }`}
+                          >
+                            <span>{inviteAccepted ? '✉️' : '📨'}</span>
+                            <span>{inviteAccepted ? 'Invite Accepted' : 'Invite Dispatched'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Final Action Buttons */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStep(5)}
+                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-bold text-xs flex items-center justify-center gap-1.5 border border-[#222021]/10 transition-colors cursor-pointer"
+                        >
+                          <span>⬅ Back to Calendar</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleSetDisposition('Meeting Booked');
+                            copyText(notesDraft, 'crm_booked_copy');
+                          }}
+                          className="flex-1 w-full py-3 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer hover:scale-[1.01]"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>{copiedKey === 'crm_booked_copy' ? 'Copied to CRM!' : 'Lock Meeting Booked & Copy CRM Notes'}</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1534,6 +1808,9 @@ export default function BorisCallingCockpit() {
                       setCustomServiceInput('');
                       setBookingSlot(null);
                       setDisposition(null);
+                      setAttendanceMode('laptop');
+                      setVerbalCommitment(true);
+                      setInviteAccepted(false);
                       setCurrentStep(1);
                       setNotesDraft(generateCrmNotes({
                         rStatus: null,
@@ -1544,6 +1821,10 @@ export default function BorisCallingCockpit() {
                         customServ: '',
                         slot: null,
                         disp: null,
+                        email: 'julian@apexglobalbpo.com',
+                        cell: '+1 (415) 890-1284',
+                        mode: 'laptop',
+                        committed: true,
                         custom: ''
                       }));
                     }}
