@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SPARRING_PERSONAS } from '@/lib/personas';
+import { SPARRING_PERSONAS, SparringPersona } from '@/lib/personas';
 
 function extractJson(text: string) {
   try {
@@ -12,6 +12,147 @@ function extractJson(text: string) {
   } catch {
     return null;
   }
+}
+
+// Persona-specific contextual fallback logic that dynamically responds and never repeats
+function generateContextualFallback(
+  persona: SparringPersona,
+  repMessage: string,
+  history: Array<{ role: string; content: string }>
+): { reply: string; completedIds: string[]; sentiment: string; armObservation: string } {
+  const lower = repMessage.toLowerCase();
+  const pastReplies = history
+    .filter(t => t.role === 'prospect')
+    .map(t => t.content.toLowerCase());
+
+  const hasEmpathy = lower.includes('understand') || lower.includes('hear you') || lower.includes('fair') || lower.includes('appreciate') || lower.includes('makes sense');
+  const hasValue = lower.includes('benchmark') || lower.includes('diagnostic') || lower.includes('sla') || lower.includes('rate') || lower.includes('conversion') || lower.includes('drop-off') || lower.includes('percent') || lower.includes('%') || lower.includes('save') || lower.includes('pipeline');
+  const hasClose = (lower.includes('?') || lower.includes('open to') || lower.includes('calendar')) && (lower.includes('tuesday') || lower.includes('thursday') || lower.includes('minute') || lower.includes('review') || lower.includes('compare') || lower.includes('diagnostic'));
+
+  let candidateReplies: string[] = [];
+  let completedIds: string[] = [];
+  let sentiment = 'skeptical';
+  let armObservation = 'Rep engaged prospect.';
+
+  if (persona.id === 'incumbent-loyalist') {
+    // David Reynolds
+    if (hasClose) {
+      candidateReplies = [
+        "Alright, fair enough. If it's literally just a 10-minute SLA benchmark comparison and not a hard sales pitch, put 10:30 AM Thursday on my calendar.",
+        "Look, if you can actually show where our incumbent has conversion blindspots in 10 minutes, I'll take a look on Thursday."
+      ];
+      completedIds = persona.objectives.map(o => o.id);
+      sentiment = 'agreed';
+      armObservation = 'Rep closed with low-friction SLA benchmark comparison.';
+    } else if (hasValue || lower.includes('happy') || lower.includes('team') || lower.includes('partner') || lower.includes('agency')) {
+      candidateReplies = [
+        "Yes, our agency partner has been consistent for three years. So what makes your model any different from what they already do?",
+        "We're completely satisfied with our current vendors. Unless you can pinpoint a specific leak in our SDR hold rate, why would we switch?",
+        "I'm not looking to fire an agency that hits quota. What exact gap in our outbound pipeline are you proposing to fix?"
+      ];
+      completedIds = [persona.objectives[0].id, persona.objectives[1].id];
+      sentiment = 'softened';
+      armObservation = 'Rep probed current vendor relationship with value focus.';
+    } else if (hasEmpathy) {
+      candidateReplies = [
+        "I appreciate you acknowledging that. We value our partners. What makes you think our current team has any performance gaps?",
+        "Glad you understand. Most reps just bash our existing agency. What specifically prompted your outreach to my team today?"
+      ];
+      completedIds = [persona.objectives[0].id];
+      sentiment = 'neutral';
+      armObservation = 'Rep demonstrated tactical empathy toward existing vendor relationship.';
+    } else {
+      candidateReplies = [
+        "Like I said, we have an established vendor handling this. Why are you reaching out to us right now?",
+        "What specifically is your team offering that would ever justify disrupting our current workflow?",
+        "I don't have time for a generic pitch. If you know our space, what exact problem are you solving?"
+      ];
+      completedIds = [];
+      sentiment = 'skeptical';
+      armObservation = 'Prospect defended incumbent vendor.';
+    }
+  } else if (persona.id === 'rushed-vp') {
+    // Marcus Vance
+    if (hasClose) {
+      candidateReplies = [
+        "20% lift? Fine, send an invite for Thursday at 8:00 AM sharp before my standup. I'm stepping into the boardroom right now.",
+        "Alright, if it's literally 10 minutes to review that hold rate diagnostic, put Thursday morning on my calendar."
+      ];
+      completedIds = persona.objectives.map(o => o.id);
+      sentiment = 'agreed';
+      armObservation = 'Rep secured 10-minute diagnostic commitment.';
+    } else if (hasValue) {
+      candidateReplies = [
+        "You mention conversion metrics, but how does your team actually integrate without adding more management burden?",
+        "What kind of SDR hold rate can you realistically commit to for high-growth fintech?"
+      ];
+      completedIds = [persona.objectives[0].id, persona.objectives[1].id];
+      sentiment = 'softened';
+      armObservation = 'Rep cited ROI metric; prospect leaned in.';
+    } else if (hasEmpathy) {
+      candidateReplies = [
+        "I appreciate you being brief. You've got 15 seconds—what is the headline?",
+        "Fair enough on the time crunch. What exactly is the metric you're calling about?"
+      ];
+      completedIds = [persona.objectives[0].id];
+      sentiment = 'neutral';
+      armObservation = 'Rep acknowledged time constraint under 5 seconds.';
+    } else {
+      candidateReplies = [
+        "Look, I have 15 seconds before my meeting starts. Give me the bottom line.",
+        "I don't have time for fluff right now. What is this regarding?"
+      ];
+      completedIds = [];
+      sentiment = 'hostile';
+      armObservation = 'Prospect pressed for brevity.';
+    }
+  } else {
+    // General persona dynamic replies
+    if (hasClose) {
+      candidateReplies = [
+        `If it's literally just a 10-minute diagnostic without high pressure, send an invite for Thursday morning.`,
+        `Fair enough. Send through a tentative 10-minute hold for Thursday and I'll review the numbers.`
+      ];
+      completedIds = persona.objectives.map(o => o.id);
+      sentiment = 'agreed';
+      armObservation = 'Rep secured low-friction next step.';
+    } else if (hasValue) {
+      candidateReplies = [
+        `You mention those numbers, but how does that actually work in practice for our department?`,
+        `That sounds fine in theory, but what kind of turnaround time and hold rate do you guarantee?`
+      ];
+      completedIds = [persona.objectives[0]?.id, persona.objectives[1]?.id].filter(Boolean);
+      sentiment = 'softened';
+      armObservation = 'Rep introduced value metrics.';
+    } else if (hasEmpathy) {
+      candidateReplies = [
+        `I appreciate you hearing me out. Most cold callers just plow through their script.`,
+        `Fair point. But why should we prioritize this over our current initiatives?`
+      ];
+      completedIds = [persona.objectives[0]?.id].filter(Boolean);
+      sentiment = 'neutral';
+      armObservation = 'Rep used tactical empathy.';
+    } else {
+      candidateReplies = [
+        `Look, what specifically does this solve for my team right now?`,
+        `I need concrete specifics, not a generic pitch. What are you actually offering?`,
+        `Why should I spend my time discussing this today?`
+      ];
+      completedIds = [];
+      sentiment = 'skeptical';
+      armObservation = 'Prospect pushed back on value clarity.';
+    }
+  }
+
+  // Find the first candidate reply that hasn't been said yet
+  const chosenReply = candidateReplies.find(r => !pastReplies.includes(r.toLowerCase())) || candidateReplies[0];
+
+  return {
+    reply: chosenReply,
+    completedIds,
+    sentiment,
+    armObservation
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -30,24 +171,28 @@ export async function POST(req: NextRequest) {
 
     const prompt = `You are roleplaying as ${persona.name}, ${persona.title} at ${persona.companyType}.
 Scenario: ${persona.scenario}
-Core Pushback: ${persona.coreObjection}
+Core Pushback / Default Stance: ${persona.coreObjection}
 Persona Behavioral Rules: ${persona.systemPrompt}
 
 Current Objectives Rep Must Achieve:
 ${persona.objectives.map((o: any, idx: number) => `Objective ${idx + 1} [id: ${o.id}]: ${o.description}`).join('\n')}
 
-Conversation History:
+Conversation History so far:
 ${formattedHistory}
-Sales Rep's Latest Spoken Statement: "${repMessage}"
 
-INSTRUCTIONS:
-1. Respond STRICTLY in character as ${persona.name}. Keep your spoken answer ultra-conversational, human, and punchy (1 to 2 short sentences, 15 to 25 words total, exactly how an impatient executive talks on the phone).
-2. Do not produce markdown or text outside JSON.
+Sales Rep just said to you: "${repMessage}"
 
-Return a STRICT JSON object:
+CRITICAL CONVERSATIONAL & LOGICAL THINKING RULES:
+1. Think carefully and respond directly, logically, and authentically to what the Sales Rep just said.
+2. NEVER repeat a sentence or phrase you already said earlier in the conversation history!
+3. If the rep asks a direct question (e.g. "are you happy with your team?", "what is your biggest challenge?"), answer their question directly in character.
+4. Keep your answer ultra-conversational, human, and punchy (1 to 2 short sentences, 15 to 25 words total, exactly how real people talk on the phone).
+5. Only agree to a meeting if the rep actually acknowledged your reality and proposed a low-pressure diagnostic/benchmark comparison.
+
+Return STRICT JSON only:
 {
-  "reply": "Your in-character spoken response",
-  "completedObjectiveIds": ["id_of_completed_objective_if_any"],
+  "reply": "Your in-character spoken response directly answering the rep",
+  "completedObjectiveIds": ["id_of_completed_objective_if_earned"],
   "sentiment": "hostile" | "skeptical" | "neutral" | "softened" | "agreed",
   "armObservation": "One sentence assessing rep's ARM execution"
 }`;
@@ -57,13 +202,13 @@ Return a STRICT JSON object:
     let sentiment = 'skeptical';
     let armObservation = '';
 
-    // 1. Try Gemini with 3.5s timeout per request
+    // 1. Try Gemini 3.5 Flash Lite first (fastest sub-second model), then 3.5 Flash
     if (googleApiKey) {
-      const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash'];
+      const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
       for (const model of candidateModels) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const timeoutId = setTimeout(() => controller.abort(), 6500);
 
           const res = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleApiKey}`,
@@ -75,8 +220,8 @@ Return a STRICT JSON object:
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
                   responseMimeType: 'application/json',
-                  temperature: 0.35,
-                  maxOutputTokens: 150
+                  temperature: 0.65,
+                  maxOutputTokens: 180
                 }
               })
             }
@@ -96,6 +241,8 @@ Return a STRICT JSON object:
                 break;
               }
             }
+          } else {
+            console.warn(`[Sparring Chat] Gemini ${model} status ${res.status}:`, (await res.text()).slice(0, 80));
           }
         } catch (geminiErr) {
           console.warn(`[Sparring Chat] Gemini ${model} note:`, geminiErr);
@@ -103,37 +250,16 @@ Return a STRICT JSON object:
       }
     }
 
-    // 2. Intelligent scenario fallback if Gemini output wasn't generated
+    // 2. Intelligent persona-aware fallback if Gemini was unreachable
     if (!personaReply) {
-      const lower = repMessage.toLowerCase();
-      const hasEmpathy = lower.includes('understand') || lower.includes('hear you') || lower.includes('fair') || lower.includes('appreciate') || lower.includes('makes sense');
-      const hasValue = lower.includes('benchmark') || lower.includes('diagnostic') || lower.includes('sla') || lower.includes('rate') || lower.includes('conversion') || lower.includes('drop-off') || lower.includes('percent') || lower.includes('%') || lower.includes('save') || lower.includes('pipeline');
-      const hasClose = (lower.includes('?') || lower.includes('open to') || lower.includes('calendar')) && (lower.includes('tuesday') || lower.includes('thursday') || lower.includes('minute') || lower.includes('review') || lower.includes('compare') || lower.includes('diagnostic'));
-
-      if (hasClose && (hasEmpathy || hasValue)) {
-        personaReply = `Alright, fair enough. If it's literally just 10 minutes to compare benchmark numbers, put 10:30 AM on Thursday on my calendar. Send the invite.`;
-        completedIds = persona.objectives.map(o => o.id);
-        sentiment = 'agreed';
-        armObservation = 'Rep cleanly acknowledged friction, introduced value benchmark, and closed diagnostic.';
-      } else if (hasValue) {
-        personaReply = `You mention benchmark conversion rates, but how does your team actually integrate without adding more management burden?`;
-        completedIds = [persona.objectives[0]?.id, persona.objectives[1]?.id].filter(Boolean);
-        sentiment = 'softened';
-        armObservation = 'Rep introduced value metrics; prospect leaned in with an operational question.';
-      } else if (hasEmpathy) {
-        personaReply = `I appreciate you hearing me out, but I get dozens of these pitches every week. Why should I give your team another second?`;
-        completedIds = [persona.objectives[0]?.id].filter(Boolean);
-        sentiment = 'neutral';
-        armObservation = 'Rep demonstrated tactical empathy; prospect defensive barrier disarmed.';
-      } else {
-        personaReply = `Look, I don't have time for a generic sales pitch. What specifically does this solve for my team right now?`;
-        completedIds = [];
-        sentiment = 'hostile';
-        armObservation = 'Rep failed to acknowledge constraint; prospect pushed back sharply.';
-      }
+      const fallbackResult = generateContextualFallback(persona, repMessage, transcript);
+      personaReply = fallbackResult.reply;
+      completedIds = fallbackResult.completedIds;
+      sentiment = fallbackResult.sentiment;
+      armObservation = fallbackResult.armObservation;
     }
 
-    // 3. Synthesize Voice with ElevenLabs TTS
+    // 3. Synthesize Voice with ElevenLabs TTS using persona's conversational voice settings
     let audioUrl: string | null = null;
     if (elevenApiKey && personaReply) {
       try {
