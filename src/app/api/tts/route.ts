@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Default to Rachel (standard executive female) if voiceId not provided
-    const targetVoiceId = voiceId || '21m00Tcm4TlvDq8ikWAM';
+    // Default to Adam (standard executive male) if voiceId not provided
+    const targetVoiceId = voiceId || 'pNInz6obpgDQGcFmaJgB';
 
     const candidateModels = [
       {

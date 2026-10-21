@@ -32,7 +32,7 @@ export const SPARRING_PERSONAS: SparringPersona[] = [
     companyType: 'High-Growth Fintech ($80M ARR)',
     difficulty: 'Intermediate',
     accent: 'Fast-paced US Executive',
-    voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel / Adam
+    voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam - Dominant, Firm Executive Male
     avatarBg: 'from-amber-500 to-orange-700',
     scenario: 'Walking into a board meeting in 45 seconds. High impatience. Zero tolerance for fluff.',
     coreObjection: 'I have literally 30 seconds before a board meeting. Why are you calling me?',
