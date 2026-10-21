@@ -47,7 +47,7 @@ Output a STRICT JSON object conforming exactly to this structure:
 Return pure JSON only.`;
 
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleApiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${googleApiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

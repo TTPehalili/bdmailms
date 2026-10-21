@@ -103,26 +103,39 @@ Evaluate the rep's performance and return a STRICT JSON response:
 Only rep turns should be annotated in turnAnnotations. 'armTag' should be 'A', 'R', 'M', or null.
 Return valid JSON only.`;
 
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
-            })
+        const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+        let parsed: any = null;
+
+        for (const model of candidateModels) {
+          try {
+            const res = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleApiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
+                })
+              }
+            );
+
+            if (res.ok) {
+              const data = await res.json();
+              const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (candidate) {
+                parsed = JSON.parse(candidate);
+                break;
+              }
+            }
+          } catch (modelErr) {
+            console.warn(`[QaEvaluator] Error with ${model}:`, modelErr);
           }
-        );
+        }
 
-        if (res.ok) {
-          const data = await res.json();
-          const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (candidate) {
-            const parsed = JSON.parse(candidate);
-
-            // Merge turn annotations into transcript
-            const annotated = transcript.map((turn, idx) => {
+        if (parsed) {
+          // Merge turn annotations into transcript
+          const annotated = transcript.map((turn, idx) => {
               const ann = (parsed.turnAnnotations || []).find((a: any) => a.turnIndex === idx + 1);
               return {
                 ...turn,
@@ -144,7 +157,6 @@ Return valid JSON only.`;
               coachingActionItems: parsed.coachingActionItems || ['Focus on transitioning from [R] to [M] with a 10-minute diagnostic question']
             };
           }
-        }
       } catch (err) {
         console.warn('[QaEvaluator] AI grading notice, utilizing heuristic scoring:', err);
       }
