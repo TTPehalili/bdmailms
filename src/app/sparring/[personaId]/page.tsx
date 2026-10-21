@@ -29,6 +29,9 @@ import { DialogueTurn } from '@/lib/qaEvaluator';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
 
+// 1-frame silent WAV to unlock browser audio without triggering empty-src error
+const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
 // Browser speech recognition types
 interface SpeechRecognitionResultItem {
   transcript: string;
@@ -64,14 +67,7 @@ function SparringRoomContent() {
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
   const [liveTranscriptPreview, setLiveTranscriptPreview] = useState('');
 
-  const [transcript, setTranscript] = useState<(DialogueTurn & { audioUrl?: string })[]>([
-    {
-      role: 'prospect',
-      content: `${persona.name} here. ${persona.coreObjection}`,
-      timestamp: '00:01'
-    }
-  ]);
-
+  const [transcript, setTranscript] = useState<(DialogueTurn & { audioUrl?: string })[]>([]);
   const [objectives, setObjectives] = useState(
     persona.objectives.map(o => ({ ...o, completed: false }))
   );
@@ -85,6 +81,7 @@ function SparringRoomContent() {
   const recognizedTextRef = useRef('');
   const isCallActiveRef = useRef(false);
   const isAiRespondingRef = useRef(false);
+  const isPlayingAudioRef = useRef(false);
 
   // Sync refs for async closures
   useEffect(() => {
@@ -94,6 +91,10 @@ function SparringRoomContent() {
   useEffect(() => {
     isAiRespondingRef.current = isAiResponding;
   }, [isAiResponding]);
+
+  useEffect(() => {
+    isPlayingAudioRef.current = isPlayingAudio;
+  }, [isPlayingAudio]);
 
   // Call duration counter
   useEffect(() => {
@@ -122,7 +123,7 @@ function SparringRoomContent() {
     return `${m}:${s}`;
   };
 
-  // Helper to convert base64 to Blob URL for instant native audio decoding
+  // Convert base64 to Blob URL for instant native hardware decoding
   const getBlobUrlFromBase64 = (base64Audio: string): string => {
     try {
       const cleaned = base64Audio.replace(/^data:audio\/[^;]+;base64,/, '');
@@ -139,7 +140,7 @@ function SparringRoomContent() {
     }
   };
 
-  // Speech Recognition / Hands-free Listening helper
+  // Stop microphone listening
   const stopListening = useCallback(() => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -158,12 +159,12 @@ function SparringRoomContent() {
     setLiveTranscriptPreview('');
   }, []);
 
-  // Forward ref for handleSendMessage so closures can call it
+  // Forward ref for handleSendMessage
   const handleSendMessageRef = useRef<(textToSend?: string) => Promise<void>>(async () => {});
 
   // Hands-free voice recognition starter
   const startHandsFreeListening = useCallback(() => {
-    if (!isCallActiveRef.current || isAiRespondingRef.current) return;
+    if (!isCallActiveRef.current || isAiRespondingRef.current || isPlayingAudioRef.current) return;
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
@@ -200,12 +201,11 @@ function SparringRoomContent() {
           setRepInput(currentSpeech);
 
           // Intelligent silence detection:
-          // If speaker ends on a filler/conjunction ("and", "so", "but", "uh"), wait 2.2s.
-          // Otherwise after a natural sentence end, wait 1.3s before auto-sending.
+          // Wait 1.2s of silence after speech, then auto-send!
           const words = currentSpeech.toLowerCase().split(/\s+/);
           const lastWord = words[words.length - 1];
           const midFillers = ['and', 'so', 'but', 'because', 'uh', 'um', 'or', 'if', 'like', 'with', 'to'];
-          const silenceDelay = midFillers.includes(lastWord) ? 2200 : 1300;
+          const silenceDelay = midFillers.includes(lastWord) ? 2000 : 1200;
 
           if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
           silenceTimerRef.current = setTimeout(() => {
@@ -221,13 +221,11 @@ function SparringRoomContent() {
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('SpeechRecognition error:', event.error);
         if (event.error === 'not-allowed') {
           setMicPermissionDenied(true);
           stopListening();
         } else if (event.error === 'no-speech' || event.error === 'network') {
-          // Restart gracefully if still active
-          if (isCallActiveRef.current && !isAiRespondingRef.current) {
+          if (isCallActiveRef.current && !isAiRespondingRef.current && !isPlayingAudioRef.current) {
             setTimeout(() => {
               try { recognition.start(); } catch {}
             }, 200);
@@ -236,7 +234,7 @@ function SparringRoomContent() {
       };
 
       recognition.onend = () => {
-        if (isCallActiveRef.current && !isAiRespondingRef.current && !isPlayingAudio) {
+        if (isCallActiveRef.current && !isAiRespondingRef.current && !isPlayingAudioRef.current) {
           setTimeout(() => {
             try { recognition.start(); } catch {}
           }, 150);
@@ -248,93 +246,94 @@ function SparringRoomContent() {
       recognitionRef.current = recognition;
       recognition.start();
     } catch (e) {
-      console.warn('Failed to start speech recognition:', e);
+      console.warn('SpeechRecognition start notice:', e);
       setIsListeningMic(false);
     }
-  }, [stopListening, isPlayingAudio]);
+  }, [stopListening]);
 
-  // Play voice audio with robust browser unlock and auto-listen on completion
-  const playVoiceAudio = useCallback(async (audioUrl: string, turnIndex?: number) => {
+  // Robust Audio Player with guaranteed speech output
+  const playVoiceAudio = useCallback(async (audioUrl: string, turnIndex?: number): Promise<void> => {
     if (isMuted) return;
 
-    // Pause listening while persona speaks to avoid mic echo
+    // Immediately stop mic while AI speaks to prevent audio loopback
     stopListening();
 
-    try {
-      let audio = audioElementRef.current;
-      if (!audio) {
-        audio = new Audio();
+    return new Promise((resolve) => {
+      try {
+        if (audioElementRef.current) {
+          try {
+            audioElementRef.current.pause();
+            audioElementRef.current.currentTime = 0;
+          } catch {}
+        }
+
+        const playableSrc = audioUrl.startsWith('data:') ? getBlobUrlFromBase64(audioUrl) : audioUrl;
+        const audio = new Audio(playableSrc);
+        audio.volume = 1.0;
         audioElementRef.current = audio;
-      } else {
-        try {
-          audio.pause();
-          audio.currentTime = 0;
-        } catch {}
-      }
 
-      const playableSrc = audioUrl.startsWith('data:') ? getBlobUrlFromBase64(audioUrl) : audioUrl;
-      audio.src = playableSrc;
+        setIsPlayingAudio(true);
+        if (turnIndex !== undefined) setActiveAudioTurn(turnIndex);
 
-      setIsPlayingAudio(true);
-      if (turnIndex !== undefined) setActiveAudioTurn(turnIndex);
-
-      audio.onended = () => {
-        setIsPlayingAudio(false);
-        setActiveAudioTurn(null);
-        setAudioBlocked(false);
-        // FULL DUPLEX: The moment the prospect finishes speaking, immediately listen hands-free!
-        if (isCallActiveRef.current && !isAiRespondingRef.current) {
-          startHandsFreeListening();
-        }
-      };
-
-      audio.onerror = (err) => {
-        console.warn('Audio playback error:', err);
-        setIsPlayingAudio(false);
-        setActiveAudioTurn(null);
-        if (isCallActiveRef.current && !isAiRespondingRef.current) {
-          startHandsFreeListening();
-        }
-      };
-
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn('Autoplay prevented by browser:', err);
+        audio.onended = () => {
           setIsPlayingAudio(false);
           setActiveAudioTurn(null);
-          setAudioBlocked(true);
-          // If audio blocked, still allow hands-free listening
+          setAudioBlocked(false);
+          resolve();
+          // The instant AI finishes speaking, auto-start hands-free listening!
           if (isCallActiveRef.current && !isAiRespondingRef.current) {
             startHandsFreeListening();
           }
-        });
+        };
+
+        audio.onerror = (err) => {
+          console.warn('Audio playback error:', err);
+          setIsPlayingAudio(false);
+          setActiveAudioTurn(null);
+          resolve();
+          if (isCallActiveRef.current && !isAiRespondingRef.current) {
+            startHandsFreeListening();
+          }
+        };
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn('Browser autoplay notice:', err);
+            setIsPlayingAudio(false);
+            setActiveAudioTurn(null);
+            setAudioBlocked(true);
+            resolve();
+            if (isCallActiveRef.current && !isAiRespondingRef.current) {
+              startHandsFreeListening();
+            }
+          });
+        }
+      } catch (err) {
+        console.error('playVoiceAudio error:', err);
+        setIsPlayingAudio(false);
+        setActiveAudioTurn(null);
+        resolve();
+        if (isCallActiveRef.current && !isAiRespondingRef.current) {
+          startHandsFreeListening();
+        }
       }
-    } catch (err) {
-      console.error('playVoiceAudio error:', err);
-      setIsPlayingAudio(false);
-      setActiveAudioTurn(null);
-      if (isCallActiveRef.current && !isAiRespondingRef.current) {
-        startHandsFreeListening();
-      }
-    }
+    });
   }, [isMuted, stopListening, startHandsFreeListening]);
 
-  // Synchronously unlock browser audio on user gesture
-  const unlockBrowserAudio = () => {
+  // Synchronously unlock browser audio on user gesture with silent WAV
+  const primeAudioContext = () => {
     try {
-      if (!audioElementRef.current) {
-        audioElementRef.current = new Audio();
-      }
-      audioElementRef.current.play().catch(() => {});
+      const primer = new Audio(SILENT_WAV);
+      primer.play().catch(() => {});
       setAudioBlocked(false);
     } catch {}
   };
 
   // Start Call & Dial in
   const startCall = async () => {
-    // 1. Immediately unlock browser audio synchronously inside the click handler!
-    unlockBrowserAudio();
+    // 1. Prime audio context synchronously inside click handler!
+    primeAudioContext();
 
     setCallConnecting(true);
     setCallActive(true);
@@ -556,8 +555,8 @@ function SparringRoomContent() {
                   ? `${persona.name} Speaking` 
                   : isListeningMic 
                   ? 'Your Turn (Mic Live)' 
-                  : 'Processing Response...' 
-                : 'Awaiting Dial-in'}
+                  : 'Thinking...' 
+                : 'Ready to Dial'}
             </span>
           </div>
         </div>
@@ -571,28 +570,28 @@ function SparringRoomContent() {
             {/* Waveform / Call Centerpiece Card */}
             <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-2xs relative overflow-hidden">
               <div className="flex items-center gap-2 absolute top-4 right-4">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-100 text-[10px] font-mono text-[#6b6968] border border-zinc-200">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 text-[10px] font-mono text-[#222021] border border-zinc-200 font-semibold">
                   <Headphones className="h-3 w-3 text-[#ED1C24]" />
-                  <span>Two-Way Voice Dialogue</span>
+                  <span>Two-Way Hands-Free Voice</span>
                 </span>
               </div>
 
-              {/* Autoplay block notification banner if caught */}
+              {/* Autoplay block prompt if browser blocked audio */}
               {audioBlocked && (
                 <div 
-                  onClick={unlockBrowserAudio}
+                  onClick={primeAudioContext}
                   className="mb-3 px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2 cursor-pointer animate-bounce"
                 >
                   <Volume2 className="h-4 w-4 text-amber-700" />
-                  <span className="font-semibold">Tap here to enable voice audio in your browser</span>
+                  <span className="font-semibold">Tap here to enable audio playback in your browser</span>
                 </div>
               )}
 
-              {/* Mic permission denied notification */}
+              {/* Mic permission prompt */}
               {micPermissionDenied && (
                 <div className="mb-3 px-4 py-2 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-rose-700" />
-                  <span>Microphone access blocked. Click the lock/site settings in your browser address bar to allow mic.</span>
+                  <span>Microphone blocked in browser. Click the lock icon in your URL bar to allow mic.</span>
                 </div>
               )}
 
@@ -605,7 +604,7 @@ function SparringRoomContent() {
 
               {/* Dynamic Reactive Voice Waveform Indicator */}
               <div className="flex items-center gap-1.5 h-14 my-3">
-                {[14, 28, 42, 24, 36, 48, 26, 44, 20, 32, 46, 22, 38, 50, 18, 34, 40].map((h, i) => {
+                {[16, 32, 44, 24, 38, 50, 28, 46, 20, 36, 48, 22, 40, 52, 18, 34, 42].map((h, i) => {
                   const isActive = callActive && (isPlayingAudio || isListeningMic || isAiResponding);
                   const dynamicHeight = isActive
                     ? isPlayingAudio
@@ -640,13 +639,13 @@ function SparringRoomContent() {
                 {isPlayingAudio && (
                   <span className="text-xs font-mono font-semibold text-[#ED1C24] flex items-center gap-1.5 animate-pulse">
                     <Sparkles className="h-3.5 w-3.5 animate-spin" />
-                    <span>{persona.name} is speaking... (Listen)</span>
+                    <span>{persona.name} is speaking audibly... (Listen)</span>
                   </span>
                 )}
                 {isListeningMic && !isPlayingAudio && (
                   <span className="text-xs font-mono font-bold text-emerald-700 flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
                     <span className="h-2 w-2 rounded-full bg-emerald-600 animate-ping" />
-                    <span>Mic is live — speak naturally into your headset</span>
+                    <span>Mic is live — speak naturally into your mic (Hands-free)</span>
                   </span>
                 )}
                 {isAiResponding && !isPlayingAudio && (
@@ -660,15 +659,20 @@ function SparringRoomContent() {
                     Speak into your microphone or type below
                   </span>
                 )}
+                {!callActive && (
+                  <span className="text-xs font-mono text-[#6b6968]">
+                    Click Dial In below to start hands-free voice conversation
+                  </span>
+                )}
               </div>
 
               {/* Call Control Actions */}
               {!callActive ? (
                 <button
                   onClick={startCall}
-                  className="px-6 py-2.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-2xs flex items-center gap-2 cursor-pointer"
+                  className="px-8 py-3.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <Radio className="h-4 w-4" />
+                  <PhoneCall className="h-4 w-4" />
                   <span>DIAL IN & START TWO-WAY CONVERSATION</span>
                 </button>
               ) : (
@@ -733,11 +737,17 @@ function SparringRoomContent() {
                 </span>
                 <span className="text-[11px] font-mono text-[#6b6968] flex items-center gap-1.5">
                   <span className={`h-2 w-2 rounded-full ${callActive ? 'bg-emerald-500 animate-ping' : 'bg-zinc-400'} inline-block`} />
-                  <span>Full-Duplex Speech Channel</span>
+                  <span>ElevenLabs Realtime Voice Active</span>
                 </span>
               </div>
 
               <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-3 max-h-[350px]">
+                {transcript.length === 0 && (
+                  <div className="py-12 text-center text-xs text-[#6b6968]">
+                    Click <strong className="text-[#222021]">"DIAL IN & START TWO-WAY CONVERSATION"</strong> above to connect and hear {persona.name} speak.
+                  </div>
+                )}
+
                 {transcript.map((t, i) => (
                   <div
                     key={i}
@@ -778,11 +788,11 @@ function SparringRoomContent() {
 
                 {/* Real-time Speech Transcription Preview while speaking */}
                 {liveTranscriptPreview && (
-                  <div className="flex flex-col gap-1 max-w-[85%] ml-auto items-end opacity-80 animate-pulse">
+                  <div className="flex flex-col gap-1 max-w-[85%] ml-auto items-end opacity-90 animate-pulse">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold uppercase text-emerald-600">You (Speaking...)</span>
                     </div>
-                    <div className="p-3 rounded-2xl text-xs leading-relaxed bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-tr-none">
+                    <div className="p-3 rounded-2xl text-xs leading-relaxed bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-tr-none shadow-sm">
                       {liveTranscriptPreview}
                     </div>
                   </div>
@@ -833,7 +843,7 @@ function SparringRoomContent() {
                     !callActive 
                       ? "Dial in above to start two-way phone call..."
                       : isListeningMic
-                      ? "Listening to you... pause talking to auto-send, or edit here"
+                      ? "Listening to you hands-free... pause talking to auto-send, or edit here"
                       : "Type your spoken response or toggle microphone..."
                   }
                   className="flex-1 bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-4 py-2 text-xs text-[#222021] placeholder-[#6b6968] focus:outline-none focus:bg-white focus:border-[#ED1C24] disabled:opacity-50"

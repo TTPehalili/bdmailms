@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SPARRING_PERSONAS } from '@/lib/personas';
 
+function extractJson(text: string) {
+  try {
+    const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    const match = stripped.match(/\{[\s\S]*\}/);
+    if (match) {
+      return JSON.parse(match[0]);
+    }
+    return JSON.parse(stripped);
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { personaId, transcript = [], repMessage = '', objectives = [] } = await req.json();
@@ -11,16 +24,16 @@ export async function POST(req: NextRequest) {
 
     // Format transcript turns for the prompt
     const formattedHistory = transcript
+      .slice(-6)
       .map((t: any) => `${t.role === 'rep' ? 'Sales Rep' : persona.name}: "${t.content}"`)
       .join('\n');
 
     const prompt = `You are roleplaying as ${persona.name}, ${persona.title} at ${persona.companyType}.
 Scenario: ${persona.scenario}
-Core Pushback / Objection: ${persona.coreObjection}
-Persona Behavioral Rules:
-${persona.systemPrompt}
+Core Pushback: ${persona.coreObjection}
+Persona Behavioral Rules: ${persona.systemPrompt}
 
-Current Objectives Rep Must Achieve in this scenario:
+Current Objectives Rep Must Achieve:
 ${persona.objectives.map((o: any, idx: number) => `Objective ${idx + 1} [id: ${o.id}]: ${o.description}`).join('\n')}
 
 Conversation History:
@@ -28,11 +41,10 @@ ${formattedHistory}
 Sales Rep's Latest Spoken Statement: "${repMessage}"
 
 INSTRUCTIONS:
-1. Respond STRICTLY in character as ${persona.name}. Keep your spoken answer ultra-conversational, human, and crisp (1 to 2 short punchy sentences max, 15 to 25 words total, exactly how a real buyer talks on the phone).
-2. Do not sound like a written email or long monologue. Speak naturally with realistic cadence, pushback, or interest.
-3. Check which objectives the rep has successfully demonstrated based on this statement and earlier turns.
+1. Respond STRICTLY in character as ${persona.name}. Keep your spoken answer ultra-conversational, human, and punchy (1 to 2 short sentences, 15 to 25 words total, exactly how an impatient executive talks on the phone).
+2. Do not produce markdown or text outside JSON.
 
-Return a STRICT JSON object in this format:
+Return a STRICT JSON object:
 {
   "reply": "Your in-character spoken response",
   "completedObjectiveIds": ["id_of_completed_objective_if_any"],
@@ -45,16 +57,20 @@ Return a STRICT JSON object in this format:
     let sentiment = 'skeptical';
     let armObservation = '';
 
-    // 1. Try Gemini 3.8 Flash
+    // 1. Try Gemini with 3.5s timeout per request
     if (googleApiKey) {
-      const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+      const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash'];
       for (const model of candidateModels) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+
           const res = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleApiKey}`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              signal: controller.signal,
               body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
@@ -65,21 +81,24 @@ Return a STRICT JSON object in this format:
               })
             }
           );
+          clearTimeout(timeoutId);
 
           if (res.ok) {
             const data = await res.json();
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (text) {
-              const parsed = JSON.parse(text);
-              personaReply = parsed.reply;
-              completedIds = parsed.completedObjectiveIds || [];
-              sentiment = parsed.sentiment || 'skeptical';
-              armObservation = parsed.armObservation || '';
-              break;
+              const parsed = extractJson(text);
+              if (parsed && parsed.reply) {
+                personaReply = parsed.reply;
+                completedIds = parsed.completedObjectiveIds || [];
+                sentiment = parsed.sentiment || 'skeptical';
+                armObservation = parsed.armObservation || '';
+                break;
+              }
             }
           }
         } catch (geminiErr) {
-          console.warn(`[Sparring Chat] Gemini ${model} error:`, geminiErr);
+          console.warn(`[Sparring Chat] Gemini ${model} note:`, geminiErr);
         }
       }
     }
@@ -88,16 +107,16 @@ Return a STRICT JSON object in this format:
     if (!personaReply) {
       const lower = repMessage.toLowerCase();
       const hasEmpathy = lower.includes('understand') || lower.includes('hear you') || lower.includes('fair') || lower.includes('appreciate') || lower.includes('makes sense');
-      const hasValue = lower.includes('benchmark') || lower.includes('diagnostic') || lower.includes('sla') || lower.includes('rate') || lower.includes('conversion') || lower.includes('drop-off') || lower.includes('percent') || lower.includes('%');
-      const hasClose = (lower.includes('?') || lower.includes('open to')) && (lower.includes('tuesday') || lower.includes('thursday') || lower.includes('calendar') || lower.includes('10 minute') || lower.includes('review') || lower.includes('compare'));
+      const hasValue = lower.includes('benchmark') || lower.includes('diagnostic') || lower.includes('sla') || lower.includes('rate') || lower.includes('conversion') || lower.includes('drop-off') || lower.includes('percent') || lower.includes('%') || lower.includes('save') || lower.includes('pipeline');
+      const hasClose = (lower.includes('?') || lower.includes('open to') || lower.includes('calendar')) && (lower.includes('tuesday') || lower.includes('thursday') || lower.includes('minute') || lower.includes('review') || lower.includes('compare') || lower.includes('diagnostic'));
 
       if (hasClose && (hasEmpathy || hasValue)) {
-        personaReply = `Alright, fair enough. If it's literally just 10 minutes to compare the benchmark numbers, put 10:30 AM on Thursday on my calendar. Send the invite.`;
+        personaReply = `Alright, fair enough. If it's literally just 10 minutes to compare benchmark numbers, put 10:30 AM on Thursday on my calendar. Send the invite.`;
         completedIds = persona.objectives.map(o => o.id);
         sentiment = 'agreed';
         armObservation = 'Rep cleanly acknowledged friction, introduced value benchmark, and closed diagnostic.';
       } else if (hasValue) {
-        personaReply = `You mention benchmark conversion rates, but how does your team actually integrate with our existing workflow without adding more management burden?`;
+        personaReply = `You mention benchmark conversion rates, but how does your team actually integrate without adding more management burden?`;
         completedIds = [persona.objectives[0]?.id, persona.objectives[1]?.id].filter(Boolean);
         sentiment = 'softened';
         armObservation = 'Rep introduced value metrics; prospect leaned in with an operational question.';
