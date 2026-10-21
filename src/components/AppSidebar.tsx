@@ -14,19 +14,28 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronRight
+  ChevronRight,
+  Workflow
 } from 'lucide-react';
 
 export default function AppSidebar() {
   const pathname = usePathname();
   // State: 'expanded' (w-60 with labels), 'icons' (w-16 compact dock), or 'hidden' (w-0 full screen)
   const [trayState, setTrayState] = useState<'expanded' | 'icons' | 'hidden'>('icons');
+  const [userRole, setUserRole] = useState<string>('Super Admin');
 
-  // Load user preference from localStorage if available
+  // Load user preference & role from localStorage if available
   useEffect(() => {
     const saved = localStorage.getItem('sdr_tray_state');
     if (saved === 'expanded' || saved === 'icons' || saved === 'hidden') {
       setTrayState(saved);
+    }
+    const savedRole = localStorage.getItem('user_role');
+    if (savedRole) {
+      setUserRole(savedRole);
+    } else {
+      localStorage.setItem('user_role', 'Super Admin');
+      setUserRole('Super Admin');
     }
   }, []);
 
@@ -40,7 +49,10 @@ export default function AppSidebar() {
   const isSparring = pathname.startsWith('/sparring');
   const isGuide = pathname.startsWith('/guide');
   const isMonitoring = pathname.startsWith('/monitoring');
+  const isWorkflows = pathname.startsWith('/workflows') || pathname.startsWith('/automation');
   const isAdmin = pathname.startsWith('/admin');
+
+  const isAdminUser = userRole === 'Super Admin' || userRole === 'Admin' || userRole === 'Manager';
 
   // Front-Line SDR Navigation Stack
   const navItems = [
@@ -78,6 +90,14 @@ export default function AppSidebar() {
       icon: Radio, 
       isActive: isMonitoring, 
       tag: 'LIVE' 
+    },
+    { 
+      label: 'Workflow Studio', 
+      href: '/workflows', 
+      icon: Workflow, 
+      isActive: isWorkflows, 
+      tag: 'N8N',
+      adminOnly: true
     },
     { 
       label: 'Admin Control', 
@@ -164,7 +184,9 @@ export default function AppSidebar() {
 
         {/* Navigation Items */}
         <nav className="flex flex-col gap-1.5 w-full">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => !item.adminOnly || isAdminUser)
+            .map((item) => {
             const Icon = item.icon;
             return (
               <Link
