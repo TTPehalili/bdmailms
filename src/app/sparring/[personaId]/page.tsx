@@ -1,31 +1,32 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   PhoneOff, 
   Mic, 
   MicOff, 
   Volume2, 
-  VolumeX,
+  VolumeX, 
   CheckCircle, 
   Clock, 
   Sparkles, 
   Send, 
   ArrowLeft, 
-  Radio,
-  CheckCircle2,
-  Circle,
-  Play,
-  Pause,
-  AlertCircle,
-  Headphones,
-  RotateCcw,
-  PhoneCall,
-  Copy
+  Radio, 
+  CheckCircle2, 
+  Circle, 
+  Play, 
+  Pause, 
+  AlertCircle, 
+  Headphones, 
+  RotateCcw, 
+  PhoneCall, 
+  Copy,
+  Globe
 } from 'lucide-react';
-import { SPARRING_PERSONAS, ScriptAssist } from '@/lib/personas';
+import { SPARRING_PERSONAS, ScriptAssist, SparringCountry, getPersonaVoiceByCountry } from '@/lib/personas';
 import { DialogueTurn } from '@/lib/qaEvaluator';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
@@ -51,9 +52,31 @@ interface SpeechRecognitionEvent {
 
 function SparringRoomContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const personaId = (params?.personaId as string) || '';
   const router = useRouter();
   const persona = SPARRING_PERSONAS.find(p => p.id === personaId) || SPARRING_PERSONAS[0];
+
+  // Country Voice model accent selection (USA, Australia, UK)
+  const [selectedCountry, setSelectedCountry] = useState<SparringCountry>('USA');
+
+  useEffect(() => {
+    const countryQuery = searchParams.get('country') as SparringCountry | null;
+    if (countryQuery === 'USA' || countryQuery === 'Australia' || countryQuery === 'UK') {
+      setSelectedCountry(countryQuery);
+      localStorage.setItem('sparring_country', countryQuery);
+    } else {
+      const saved = localStorage.getItem('sparring_country') as SparringCountry | null;
+      if (saved === 'USA' || saved === 'Australia' || saved === 'UK') {
+        setSelectedCountry(saved);
+      }
+    }
+  }, [searchParams]);
+
+  const handleCountryChange = (country: SparringCountry) => {
+    setSelectedCountry(country);
+    localStorage.setItem('sparring_country', country);
+  };
 
   const [callActive, setCallActive] = useState(false);
   const [callConnecting, setCallConnecting] = useState(false);
@@ -70,7 +93,7 @@ function SparringRoomContent() {
 
   const [transcript, setTranscript] = useState<(DialogueTurn & { audioUrl?: string })[]>([]);
   const [objectives, setObjectives] = useState(
-    persona.objectives.map(o => ({ ...o, completed: false }))
+    persona.objectives.map((o: any) => ({ ...o, completed: false }))
   );
   const [scriptAssist, setScriptAssist] = useState<ScriptAssist>(persona.initialScriptAssist);
   const [copiedScript, setCopiedScript] = useState(false);
@@ -299,7 +322,7 @@ function SparringRoomContent() {
     }
   }, []);
 
-  // Web Speech API fallback to ensure prospect voice is 100% audible under all conditions
+  // Web Speech API fallback to ensure prospect voice matches selected country accent
   const speakWebSpeechFallback = useCallback((text: string): Promise<void> => {
     return new Promise((resolve) => {
       if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -312,9 +335,13 @@ function SparringRoomContent() {
         utter.rate = 1.05;
         utter.pitch = 1.0;
         
+        const voiceConfig = getPersonaVoiceByCountry(persona, selectedCountry);
+        const targetLang = voiceConfig.langCode.toLowerCase();
         const voices = window.speechSynthesis.getVoices();
-        const enVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
-        if (enVoice) utter.voice = enVoice;
+        const countryVoice = voices.find(v => v.lang.toLowerCase().startsWith(targetLang)) ||
+                             voices.find(v => v.lang.toLowerCase().startsWith('en')) ||
+                             voices[0];
+        if (countryVoice) utter.voice = countryVoice;
 
         utter.onend = () => {
           setIsPlayingAudio(false);
@@ -344,7 +371,7 @@ function SparringRoomContent() {
         }
       }
     });
-  }, [startHandsFreeListening]);
+  }, [startHandsFreeListening, persona, selectedCountry]);
 
   // Multi-tier resilient audio playback engine
   const playVoiceAudio = useCallback(async (audioUrl: string, textFallback: string, turnIndex?: number): Promise<void> => {
@@ -513,7 +540,7 @@ function SparringRoomContent() {
       const res = await fetch('/api/sparring/dial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personaId: persona.id })
+        body: JSON.stringify({ personaId: persona.id, country: selectedCountry })
       });
 
       if (res.ok) {
@@ -605,7 +632,8 @@ function SparringRoomContent() {
           personaId: persona.id,
           transcript: updatedTurns,
           repMessage: message,
-          objectives
+          objectives,
+          country: selectedCountry
         })
       });
 
@@ -621,7 +649,7 @@ function SparringRoomContent() {
 
         // Update objectives checklist
         if (Array.isArray(data.completedObjectiveIds) && data.completedObjectiveIds.length > 0) {
-          setObjectives(prev => prev.map(obj => ({
+          setObjectives((prev: any) => prev.map((obj: any) => ({
             ...obj,
             completed: obj.completed || data.completedObjectiveIds.includes(obj.id)
           })));
@@ -728,7 +756,7 @@ function SparringRoomContent() {
     }
   };
 
-  const completedObjectivesCount = objectives.filter(o => o.completed).length;
+  const completedObjectivesCount = objectives.filter((o: any) => o.completed).length;
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F2F0EF] font-sans antialiased text-[#222021]">
@@ -753,7 +781,22 @@ function SparringRoomContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Country Voice Accent Switcher Dropdown */}
+            <div className="flex items-center gap-1.5 bg-[#F2F0EF] border border-[#222021]/15 px-2.5 py-1 rounded-lg">
+              <Globe className="h-3.5 w-3.5 text-[#ED1C24]" />
+              <select
+                value={selectedCountry}
+                onChange={(e) => handleCountryChange(e.target.value as SparringCountry)}
+                className="bg-transparent text-xs font-bold text-[#222021] focus:outline-none cursor-pointer"
+                title="AI Voice Actor Accent Switcher"
+              >
+                <option value="USA">🇺🇸 USA</option>
+                <option value="Australia">🇦🇺 Australia</option>
+                <option value="UK">🇬🇧 UK</option>
+              </select>
+            </div>
+
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F2F0EF] border border-[#222021]/10 font-mono text-[11px] text-[#222021] font-semibold">
               <Clock className="h-3.5 w-3.5 text-[#ED1C24]" />
               <span>{formatTime(callDuration)}</span>
@@ -818,7 +861,7 @@ function SparringRoomContent() {
               )}
 
               <div className="h-16 w-16 rounded-2xl bg-[#222021] text-white font-black text-xl flex items-center justify-center shadow-sm mb-3">
-                {persona.name.split(' ').map(n => n[0]).join('')}
+                {persona.name.split(' ').map((n: string) => n[0]).join('')}
               </div>
 
               <h2 className="text-base font-bold text-[#222021]">{persona.name}</h2>
@@ -1215,7 +1258,7 @@ function SparringRoomContent() {
               </div>
 
               <div className="space-y-2 text-xs">
-                {objectives.map((obj) => (
+                {objectives.map((obj: any) => (
                   <div
                     key={obj.id}
                     className={`p-3 rounded-xl border transition-all duration-300 flex items-center gap-2.5 ${
@@ -1264,11 +1307,15 @@ function SparringRoomContent() {
             <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs flex items-center justify-between text-xs">
               <div>
                 <span className="text-[10px] uppercase font-mono font-bold text-[#6b6968] block">Voice Accent</span>
-                <span className="font-semibold text-[#222021]">{persona.accent}</span>
+                <span className="font-semibold text-[#222021]">
+                  {getPersonaVoiceByCountry(persona, selectedCountry).accentLabel}
+                </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] uppercase font-mono font-bold text-[#6b6968] block">Voice Engine</span>
-                <span className="font-mono text-[11px] text-emerald-700 font-bold">ElevenLabs Turbo v2.5</span>
+                <span className="text-[10px] uppercase font-mono font-bold text-[#6b6968] block">Territory Voice Model</span>
+                <span className="font-mono text-[11px] text-[#ED1C24] font-bold">
+                  {selectedCountry} ElevenLabs Turbo v2.5
+                </span>
               </div>
             </div>
 

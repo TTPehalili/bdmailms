@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SPARRING_PERSONAS } from '@/lib/personas';
+import { SPARRING_PERSONAS, getPersonaVoiceByCountry, SparringCountry } from '@/lib/personas';
 
 export async function POST(req: NextRequest) {
   try {
-    const { personaId } = await req.json();
+    const { personaId, country } = await req.json();
     const persona = SPARRING_PERSONAS.find(p => p.id === personaId) || SPARRING_PERSONAS[0];
+    const voiceConfig = getPersonaVoiceByCountry(persona, (country as SparringCountry) || 'USA');
     const elevenApiKey = (process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '').trim();
 
     const greetingText = `${persona.name} here. ${persona.coreObjection}`;
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (elevenApiKey) {
       try {
         const ttsRes = await fetch(
-          `https://api.elevenlabs.io/v1/text-to-speech/${persona.voiceId}?optimize_streaming_latency=4`,
+          `https://api.elevenlabs.io/v1/text-to-speech/${voiceConfig.voiceId}?optimize_streaming_latency=4`,
           {
             method: 'POST',
             headers: {

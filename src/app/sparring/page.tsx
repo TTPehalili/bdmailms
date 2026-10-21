@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Users, 
@@ -9,14 +9,29 @@ import {
   Sparkles, 
   SlidersHorizontal,
   Building,
-  Target
+  Target,
+  Globe
 } from 'lucide-react';
-import { SPARRING_PERSONAS } from '@/lib/personas';
+import { SPARRING_PERSONAS, SparringCountry, getPersonaVoiceByCountry } from '@/lib/personas';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
 
 export default function SparringLobbyPage() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [selectedCountry, setSelectedCountry] = useState<SparringCountry>('USA');
+
+  // Sync country preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('sparring_country');
+    if (saved === 'USA' || saved === 'Australia' || saved === 'UK') {
+      setSelectedCountry(saved);
+    }
+  }, []);
+
+  const handleCountryChange = (c: SparringCountry) => {
+    setSelectedCountry(c);
+    localStorage.setItem('sparring_country', c);
+  };
 
   const filteredPersonas = selectedDifficulty === 'all' 
     ? SPARRING_PERSONAS 
@@ -57,29 +72,56 @@ export default function SparringLobbyPage() {
             </div>
           </div>
 
-          {/* Filter Controls */}
+          {/* Filter Controls & Country Voice Switcher */}
           <div className="flex items-center justify-between gap-4 flex-wrap bg-white border border-[#222021]/10 rounded-2xl px-5 py-3 shadow-2xs">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-[#6b6968]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[#6b6968]">
-                Filter By Difficulty:
+            {/* Country Voice Accent Dropdown Selector */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#222021]">
+                <Globe className="h-4 w-4 text-[#ED1C24]" />
+                <span>Voice Accent:</span>
+              </div>
+              <div className="relative inline-block">
+                <select
+                  value={selectedCountry}
+                  onChange={(e) => handleCountryChange(e.target.value as SparringCountry)}
+                  className="appearance-none bg-[#F2F0EF] hover:bg-[#e7e4e2] border border-[#222021]/15 text-[#222021] text-xs font-bold py-1.5 pl-3 pr-8 rounded-xl transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#ED1C24]/30"
+                >
+                  <option value="USA">🇺🇸 USA (American Accent)</option>
+                  <option value="Australia">🇦🇺 Australia (Australian Accent)</option>
+                  <option value="UK">🇬🇧 UK (British Accent)</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#6b6968]">
+                  <svg className="fill-current h-3 w-3" viewBox="0 0 20 20">
+                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                  </svg>
+                </div>
+              </div>
+              <span className="text-[11px] text-[#6b6968] hidden sm:inline font-mono">
+                Switches AI voice actor accents
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {['all', 'beginner', 'intermediate', 'advanced', 'nightmare'].map((lvl) => (
-                <button
-                  key={lvl}
-                  onClick={() => setSelectedDifficulty(lvl)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                    selectedDifficulty === lvl
-                      ? 'bg-[#ED1C24] text-white shadow-xs'
-                      : 'bg-[#F2F0EF] text-[#6b6968] hover:bg-[#e7e4e2] hover:text-[#222021]'
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
+            {/* Difficulty Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#6b6968]">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-[#6b6968]" />
+                <span className="hidden md:inline">Difficulty:</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {['all', 'beginner', 'intermediate', 'advanced', 'nightmare'].map((lvl) => (
+                  <button
+                    key={lvl}
+                    onClick={() => setSelectedDifficulty(lvl)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                      selectedDifficulty === lvl
+                        ? 'bg-[#ED1C24] text-white shadow-xs'
+                        : 'bg-[#F2F0EF] text-[#6b6968] hover:bg-[#e7e4e2] hover:text-[#222021]'
+                    }`}
+                  >
+                    {lvl}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -126,8 +168,10 @@ export default function SparringLobbyPage() {
                         <span>{persona.companyType}</span>
                       </div>
                       <div className="flex items-center gap-2 text-[#6b6968]">
-                        <Target className="h-3.5 w-3.5 text-[#6b6968]" />
-                        <span>Accent: {persona.accent}</span>
+                        <Target className="h-3.5 w-3.5 text-[#ED1C24]" />
+                        <span className="font-medium text-[#222021]">
+                          Accent: {getPersonaVoiceByCountry(persona, selectedCountry).accentLabel}
+                        </span>
                       </div>
                     </div>
 
@@ -150,7 +194,7 @@ export default function SparringLobbyPage() {
                     </span>
 
                     <Link
-                      href={`/sparring/${persona.id}`}
+                      href={`/sparring/${persona.id}?country=${selectedCountry}`}
                       className="px-3.5 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs transition-colors flex items-center gap-1 shadow-2xs"
                     >
                       <span>Start Sparring</span>

@@ -30,11 +30,11 @@ export interface SparringPersona {
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced' | 'Nightmare';
   accent: string;
   voiceId: string;
-  voiceSettings?: {
+  voiceSettings: {
     stability: number;
     similarity_boost: number;
     style: number;
-    use_speaker_boost?: boolean;
+    use_speaker_boost: boolean;
   };
   avatarBg: string;
   scenario: string;
@@ -42,6 +42,44 @@ export interface SparringPersona {
   systemPrompt: string;
   objectives: SparringObjective[];
   initialScriptAssist: ScriptAssist;
+}
+
+export type SparringCountry = 'USA' | 'Australia' | 'UK';
+
+export interface CountryVoiceConfig {
+  voiceId: string;
+  accentLabel: string;
+  langCode: string;
+}
+
+export function getPersonaVoiceByCountry(
+  persona: SparringPersona,
+  country: SparringCountry = 'USA'
+): CountryVoiceConfig {
+  const isFemale = ['enterprise-gatekeeper', 'burned-agency-owner', 'procurement-shark', 'bpo-talent-director-linda'].includes(persona.id);
+
+  if (country === 'Australia') {
+    return {
+      voiceId: isFemale ? 'XrExE9yKIg1WjnnlVkGX' : 'pNInz6obpgDQGcFmaJgB',
+      accentLabel: isFemale ? 'Australian Executive Female' : 'Australian Executive Male',
+      langCode: 'en-AU'
+    };
+  }
+
+  if (country === 'UK') {
+    return {
+      voiceId: isFemale ? 'XB0fDUnXU5powFXDhCwa' : 'SOYHLrjzK2X1ezoPC6cr',
+      accentLabel: isFemale ? 'British Professional Female' : 'British Articulate Male',
+      langCode: 'en-GB'
+    };
+  }
+
+  // Default: USA
+  return {
+    voiceId: persona.voiceId || (isFemale ? 'EXAVITQu4vr4xnSDxMaL' : 'CwhRBWXzGAHq8TQ4Fs17'),
+    accentLabel: isFemale ? 'American Conversational Female' : 'American Conversational Male',
+    langCode: 'en-US'
+  };
 }
 
 export const SPARRING_PERSONAS: SparringPersona[] = [

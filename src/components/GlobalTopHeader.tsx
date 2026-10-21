@@ -77,13 +77,6 @@ export default function GlobalTopHeader() {
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#ED1C24] ring-2 ring-white" />
         </button>
 
-        {/* Territory Flag / Language Selector */}
-        <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-[#F2F0EF] cursor-pointer text-xs font-semibold text-[#222021] transition-colors">
-          <span className="text-sm">🇦🇺</span>
-          <span>AU</span>
-          <ChevronDown className="h-3.5 w-3.5 text-[#6b6968]" />
-        </div>
-
         <div className="h-4 w-[1px] bg-[#222021]/10" />
 
         {/* AI Copilot Status Pill (Active) */}

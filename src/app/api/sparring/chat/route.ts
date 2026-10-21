@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SPARRING_PERSONAS, SparringPersona } from '@/lib/personas';
+import { SPARRING_PERSONAS, SparringPersona, getPersonaVoiceByCountry, SparringCountry } from '@/lib/personas';
 
 function extractJson(text: string) {
   try {
@@ -47,7 +47,7 @@ function generateContextualFallback(
         "If Emil has 17 years in the BPO space and can show us private lists that aren't shared on directories, I'll take a look Thursday at 2:00 PM.",
         "Alright, if it's strictly a 20-minute screen share with Emil to see how the sparring simulator works on our floor, put Friday morning on my calendar."
       ];
-      completedIds = persona.objectives.map(o => o.id);
+      completedIds = persona.objectives.map((o: any) => o.id);
       sentiment = 'agreed';
       armObservation = 'Rep executed BPO playbook and locked 20-min demo with Founder Emil.';
     } else if (isAskingQuestion) {
@@ -90,7 +90,7 @@ function generateContextualFallback(
         "Look, if it's strictly a 10-minute SLA benchmark comparison and not a pitch to fire my agency, send an invite for Thursday at 10:30 AM.",
         "Fair enough. If you can actually show where our incumbent has conversion blindspots in 10 minutes without disrupting our team, put Thursday on my calendar."
       ];
-      completedIds = persona.objectives.map(o => o.id);
+      completedIds = persona.objectives.map((o: any) => o.id);
       sentiment = 'agreed';
       armObservation = 'Rep executed full ARM framework and earned 10-minute benchmark.';
     } else if (isAskingQuestion) {
@@ -142,7 +142,7 @@ function generateContextualFallback(
         "Alright, fair enough on the 10-minute diagnostic. Send an invite for Thursday at 8:00 AM sharp before my standup. I'm stepping into the boardroom right now.",
         "Fine, if it's strictly 10 minutes to review that hold rate diagnostic, put Thursday morning on my calendar. Now let me go."
       ];
-      completedIds = persona.objectives.map(o => o.id);
+      completedIds = persona.objectives.map((o: any) => o.id);
       sentiment = 'agreed';
       armObservation = 'Rep executed ARM under pressure and secured diagnostic commitment.';
     } else if (isAskingQuestion) {
@@ -193,7 +193,7 @@ function generateContextualFallback(
         `Look, I'm still skeptical, but if it's literally just a 10-minute diagnostic without high pressure, send an invite for Thursday morning.`,
         `Fair enough. Send through a tentative 10-minute hold for Thursday and I'll review the diagnostic data.`
       ];
-      completedIds = persona.objectives.map(o => o.id);
+      completedIds = persona.objectives.map((o: any) => o.id);
       sentiment = 'agreed';
       armObservation = 'Rep executed ARM and earned diagnostic meeting.';
     } else if (isAskingQuestion) {
@@ -438,9 +438,10 @@ function deriveDynamicScriptAssist(
 
 export async function POST(req: NextRequest) {
   try {
-    const { personaId, transcript = [], repMessage = '', objectives = [] } = await req.json();
+    const { personaId, transcript = [], repMessage = '', objectives = [], country = 'USA' } = await req.json();
 
     const persona = SPARRING_PERSONAS.find(p => p.id === personaId) || SPARRING_PERSONAS[0];
+    const voiceConfig = getPersonaVoiceByCountry(persona, (country as SparringCountry) || 'USA');
     const googleApiKey = process.env.GOOGLE_API_KEY;
     const elevenApiKey = (process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '').trim();
 
@@ -587,7 +588,7 @@ Return STRICT JSON only:
     if (elevenApiKey && personaReply) {
       try {
         const ttsRes = await fetch(
-          `https://api.elevenlabs.io/v1/text-to-speech/${persona.voiceId}?optimize_streaming_latency=4`,
+          `https://api.elevenlabs.io/v1/text-to-speech/${voiceConfig.voiceId}?optimize_streaming_latency=4`,
           {
             method: 'POST',
             headers: {

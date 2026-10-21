@@ -38,6 +38,8 @@ export default function AppSidebar() {
   const isMission = pathname === '/';
   const isDojo = pathname === '/cockpit';
   const isSparring = pathname.startsWith('/sparring');
+  const isGuide = pathname.startsWith('/guide');
+  const isMonitoring = pathname.startsWith('/monitoring');
   const isAdmin = pathname.startsWith('/admin');
 
   // Front-Line SDR Navigation Stack
@@ -64,18 +66,18 @@ export default function AppSidebar() {
       tag: 'VOICE' 
     },
     { 
-      label: 'Knowledge & Playbooks', 
-      href: '/cockpit', 
+      label: 'User Guide', 
+      href: '/guide', 
       icon: BookOpen, 
-      isActive: false, 
-      tag: 'ARM' 
+      isActive: isGuide, 
+      tag: 'GUIDE' 
     },
     { 
-      label: 'Live Audio Monitoring', 
-      href: '/cockpit', 
+      label: 'Live Monitoring', 
+      href: '/monitoring', 
       icon: Radio, 
-      isActive: false, 
-      tag: '140ms' 
+      isActive: isMonitoring, 
+      tag: 'LIVE' 
     },
     { 
       label: 'Admin Control', 
