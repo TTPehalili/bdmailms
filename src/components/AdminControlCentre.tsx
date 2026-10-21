@@ -33,7 +33,13 @@ import {
   Eye,
   SlidersHorizontal,
   Lock,
-  Unlock
+  Unlock,
+  Building2,
+  Layers,
+  KeyRound,
+  UserCheck,
+  ShieldAlert,
+  Radio
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
@@ -62,12 +68,131 @@ interface AdminLead {
   assignedRep: string;
 }
 
+interface TenantRecord {
+  id: string;
+  name: string;
+  slug: string;
+  adminEmail: string;
+  plan: 'GTM Turnkey ($4,500/line)' | 'AI LMS Software ($50/rep)' | 'Qualifier Gate ($50/rep)' | 'Sandbox Trial';
+  seats: number;
+  seatsUsed: number;
+  telephony: 'Twilio BYOT' | 'Platform Pooled SIP' | 'VICIdial Trunk' | 'WebRTC Softphone';
+  status: 'Active' | 'Trial' | 'Suspended';
+  modules: {
+    borisCockpit: boolean;
+    sparringArena: boolean;
+    certificationGate: boolean;
+    crmCadence: boolean;
+    qaAuditing: boolean;
+  };
+  monthlySpend: string;
+  createdDate: string;
+}
+
 export default function AdminControlCentre() {
-  const [activeTab, setActiveTab] = useState<'people' | 'modules' | 'access' | 'leads' | 'reps' | 'feedback' | 'audit'>('people');
+  const [activeTab, setActiveTab] = useState<'tenants' | 'people' | 'modules' | 'access' | 'leads' | 'reps' | 'feedback' | 'audit'>('tenants');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [tenantFilter, setTenantFilter] = useState('all');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Tenant Access & Provisioning State
+  const [impersonatingTenant, setImpersonatingTenant] = useState<TenantRecord | null>(null);
+  const [showAddTenantModal, setShowAddTenantModal] = useState(false);
+  const [tenantSearchQuery, setTenantSearchQuery] = useState('');
+  const [tenantStatusFilter, setTenantStatusFilter] = useState<'all' | 'Active' | 'Trial' | 'Suspended'>('all');
+
+  const [newTenantName, setNewTenantName] = useState('');
+  const [newTenantSlug, setNewTenantSlug] = useState('');
+  const [newTenantAdminEmail, setNewTenantAdminEmail] = useState('');
+  const [newTenantPlan, setNewTenantPlan] = useState<'GTM Turnkey ($4,500/line)' | 'AI LMS Software ($50/rep)' | 'Qualifier Gate ($50/rep)' | 'Sandbox Trial'>('GTM Turnkey ($4,500/line)');
+  const [newTenantSeats, setNewTenantSeats] = useState<number>(25);
+  const [newTenantTelephony, setNewTenantTelephony] = useState<'Twilio BYOT' | 'Platform Pooled SIP' | 'VICIdial Trunk' | 'WebRTC Softphone'>('Twilio BYOT');
+  const [newTenantCertGate, setNewTenantCertGate] = useState<boolean>(true);
+
+  // Master Tenants Directory
+  const [tenants, setTenants] = useState<TenantRecord[]>([
+    {
+      id: 'ten_1',
+      name: 'Apex Global BPO',
+      slug: 'apex-global',
+      adminEmail: 'julian.vance@apexglobal.ph',
+      plan: 'GTM Turnkey ($4,500/line)',
+      seats: 250,
+      seatsUsed: 184,
+      telephony: 'Twilio BYOT',
+      status: 'Active',
+      modules: {
+        borisCockpit: true,
+        sparringArena: true,
+        certificationGate: true,
+        crmCadence: true,
+        qaAuditing: true
+      },
+      monthlySpend: '$9,000/mo',
+      createdDate: 'Oct 02, 2026'
+    },
+    {
+      id: 'ten_2',
+      name: 'Outsource Accelerator Partner A',
+      slug: 'oa-partner-a',
+      adminEmail: 'ops@oapartner.com',
+      plan: 'AI LMS Software ($50/rep)',
+      seats: 60,
+      seatsUsed: 42,
+      telephony: 'Platform Pooled SIP',
+      status: 'Active',
+      modules: {
+        borisCockpit: true,
+        sparringArena: true,
+        certificationGate: false,
+        crmCadence: true,
+        qaAuditing: true
+      },
+      monthlySpend: '$3,000/mo',
+      createdDate: 'Oct 10, 2026'
+    },
+    {
+      id: 'ten_3',
+      name: 'Horizon Solar Sales Floor',
+      slug: 'horizon-solar',
+      adminEmail: 'rick@horizonsolar.us',
+      plan: 'Qualifier Gate ($50/rep)',
+      seats: 25,
+      seatsUsed: 19,
+      telephony: 'VICIdial Trunk',
+      status: 'Active',
+      modules: {
+        borisCockpit: true,
+        sparringArena: true,
+        certificationGate: true,
+        crmCadence: false,
+        qaAuditing: true
+      },
+      monthlySpend: '$1,250/mo',
+      createdDate: 'Oct 14, 2026'
+    },
+    {
+      id: 'ten_4',
+      name: 'Metro Cloud BPO Manila',
+      slug: 'metro-cloud-bpo',
+      adminEmail: 'contact@metrocloud.ph',
+      plan: 'Sandbox Trial',
+      seats: 15,
+      seatsUsed: 12,
+      telephony: 'WebRTC Softphone',
+      status: 'Trial',
+      modules: {
+        borisCockpit: true,
+        sparringArena: true,
+        certificationGate: false,
+        crmCadence: false,
+        qaAuditing: false
+      },
+      monthlySpend: '$0 (Trial)',
+      createdDate: 'Oct 18, 2026'
+    }
+  ]);
 
   // Add Person Modal state
   const [showAddPersonModal, setShowAddPersonModal] = useState(false);
@@ -75,6 +200,36 @@ export default function AdminControlCentre() {
   const [newPersonEmail, setNewPersonEmail] = useState('');
   const [newPersonRole, setNewPersonRole] = useState('Sales Rep');
   const [newPersonTenant, setNewPersonTenant] = useState('Enterprise Outbound Q4');
+
+  const handleAddTenant = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTenantName || !newTenantAdminEmail) return;
+    const newRecord: TenantRecord = {
+      id: `ten_${Date.now()}`,
+      name: newTenantName,
+      slug: newTenantSlug || newTenantName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      adminEmail: newTenantAdminEmail,
+      plan: newTenantPlan,
+      seats: newTenantSeats || 25,
+      seatsUsed: 0,
+      telephony: newTenantTelephony,
+      status: 'Active',
+      modules: {
+        borisCockpit: true,
+        sparringArena: true,
+        certificationGate: newTenantCertGate,
+        crmCadence: true,
+        qaAuditing: true
+      },
+      monthlySpend: newTenantPlan.includes('4,500') ? '$4,500/mo' : '$1,250/mo',
+      createdDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+    };
+    setTenants([newRecord, ...tenants]);
+    setShowAddTenantModal(false);
+    setNewTenantName('');
+    setNewTenantSlug('');
+    setNewTenantAdminEmail('');
+  };
 
   // People Data
   const [users, setUsers] = useState<UserRecord[]>([
@@ -237,6 +392,27 @@ export default function AdminControlCentre() {
         {/* Top Global Utility Bar */}
         <GlobalTopHeader />
 
+        {/* Masquerade / Impersonation Alert Banner */}
+        {impersonatingTenant && (
+          <div className="bg-amber-400 text-stone-950 px-6 py-2.5 font-bold text-xs flex items-center justify-between shrink-0 shadow-sm border-b border-amber-500">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-stone-950 animate-ping inline-block" />
+              <span>
+                ADMIN SHADOW MODE: You are currently viewing workspace <strong>{impersonatingTenant.name}</strong> ({impersonatingTenant.slug}).
+              </span>
+              <span className="text-[10px] font-mono bg-stone-950 text-amber-300 px-2 py-0.5 rounded">
+                {impersonatingTenant.plan}
+              </span>
+            </div>
+            <button
+              onClick={() => setImpersonatingTenant(null)}
+              className="px-3 py-1 rounded-lg bg-stone-950 hover:bg-stone-800 text-white font-mono text-xs transition-colors cursor-pointer"
+            >
+              Exit Shadow Mode
+            </button>
+          </div>
+        )}
+
         {/* Scrollable Main Area */}
         <main className="flex-1 overflow-y-auto px-8 py-8 space-y-6">
           
@@ -244,13 +420,13 @@ export default function AdminControlCentre() {
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-[#ED1C24] block mb-1">
-                SUPER ADMIN
+                ADMIN CONTROL
               </span>
               <h1 className="text-3xl font-black tracking-tight text-[#222021]">
-                Control centre
+                Admin Control
               </h1>
               <p className="text-xs text-[#6b6968] mt-1">
-                Centralized tenant configuration, rep permissions, training modules, and B2B leads & cadence CRM.
+                Centralized client tenant access, seat quotas, floor permissions, training curriculum, and B2B leads CRM.
               </p>
             </div>
 
@@ -269,16 +445,16 @@ export default function AdminControlCentre() {
             </div>
           </div>
 
-          {/* Navigation Sub-Tabs (Strict B2B SaaS CRM & Training) */}
+          {/* Navigation Sub-Tabs */}
           <div className="flex items-center gap-6 border-b border-[#222021]/10 text-sm font-semibold overflow-x-auto scrollbar-none">
             {[
-              { id: 'people', label: 'People' },
-              { id: 'modules', label: 'Training modules' },
-              { id: 'access', label: 'Module access' },
+              { id: 'tenants', label: 'Tenants & Client Access' },
+              { id: 'people', label: 'People & Seats' },
+              { id: 'modules', label: 'Training Modules' },
+              { id: 'access', label: 'Module Access' },
               { id: 'leads', label: 'Leads & Cadence CRM' },
-              { id: 'reps', label: 'Sales reps' },
-              { id: 'feedback', label: 'Rep feedback' },
-              { id: 'audit', label: 'Audit log' },
+              { id: 'reps', label: 'Sales Reps' },
+              { id: 'audit', label: 'Audit Log' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -296,6 +472,257 @@ export default function AdminControlCentre() {
               </button>
             ))}
           </div>
+
+          {/* TAB 0: TENANTS & CLIENT ACCESS */}
+          {activeTab === 'tenants' && (
+            <div className="space-y-6">
+              {/* Filter & Actions Bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="relative flex-1 w-full sm:max-w-xl">
+                  <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6b6968]" />
+                  <input
+                    type="text"
+                    value={tenantSearchQuery}
+                    onChange={(e) => setTenantSearchQuery(e.target.value)}
+                    placeholder="Search client tenant by company name, slug, or admin email..."
+                    className="w-full h-11 pl-10 pr-4 rounded-xl bg-white border border-[#222021]/15 text-xs font-medium placeholder-[#6b6968] text-[#222021] shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#ED1C24] transition-all"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <select
+                    value={tenantStatusFilter}
+                    onChange={(e) => setTenantStatusFilter(e.target.value as any)}
+                    className="h-11 px-3.5 rounded-xl bg-white border border-[#222021]/15 text-xs font-semibold text-[#222021] focus:outline-none shadow-2xs cursor-pointer"
+                  >
+                    <option value="all">All Client Statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Trial">Trial</option>
+                    <option value="Suspended">Suspended</option>
+                  </select>
+
+                  <button 
+                    onClick={() => setShowAddTenantModal(true)}
+                    className="h-11 px-4 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors shrink-0 cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Provision Tenant</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* High-Level Tenant Telemetry (4 Cards) */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
+                  <span className="text-[10px] font-mono uppercase text-[#6b6968] block">Active BPO Tenants</span>
+                  <span className="text-2xl font-black text-[#222021] font-mono">
+                    {tenants.filter(t => t.status === 'Active').length} <span className="text-xs font-normal text-[#6b6968]">/ {tenants.length} Total</span>
+                  </span>
+                  <p className="text-[11px] text-emerald-700 font-medium">100% SLA uptime</p>
+                </div>
+
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
+                  <span className="text-[10px] font-mono uppercase text-[#6b6968] block">Allocated SDR Seats</span>
+                  <span className="text-2xl font-black text-[#222021] font-mono">
+                    {tenants.reduce((acc, t) => acc + t.seatsUsed, 0)} <span className="text-xs font-normal text-[#6b6968]">/ {tenants.reduce((acc, t) => acc + t.seats, 0)} Cap</span>
+                  </span>
+                  <p className="text-[11px] text-[#6b6968]">73% Floor Utilization</p>
+                </div>
+
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
+                  <span className="text-[10px] font-mono uppercase text-[#6b6968] block">Telephony Trunks</span>
+                  <span className="text-2xl font-black text-blue-600 font-mono">4 Gateways</span>
+                  <p className="text-[11px] text-[#6b6968]">Twilio, SIP, VICIdial, WebRTC</p>
+                </div>
+
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
+                  <span className="text-[10px] font-mono uppercase text-[#6b6968] block">Monthly Run Rate</span>
+                  <span className="text-2xl font-black text-[#ED1C24] font-mono">$13,250</span>
+                  <p className="text-[11px] text-emerald-700 font-medium">+20% vs last month</p>
+                </div>
+              </div>
+
+              {/* Tenants Directory Cards */}
+              <div className="space-y-4">
+                {tenants
+                  .filter(t => {
+                    const matchQuery = t.name.toLowerCase().includes(tenantSearchQuery.toLowerCase()) || 
+                                       t.slug.toLowerCase().includes(tenantSearchQuery.toLowerCase()) ||
+                                       t.adminEmail.toLowerCase().includes(tenantSearchQuery.toLowerCase());
+                    const matchStatus = tenantStatusFilter === 'all' || t.status === tenantStatusFilter;
+                    return matchQuery && matchStatus;
+                  })
+                  .map((tenant) => (
+                    <div 
+                      key={tenant.id} 
+                      className="bg-white border border-[#222021]/10 rounded-2xl p-5 shadow-2xs space-y-4 hover:border-[#222021]/25 transition-all"
+                    >
+                      {/* Tenant Header Row */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-[#222021] text-white flex items-center justify-center font-bold text-sm shrink-0">
+                            <Building2 className="h-5 w-5 text-stone-200" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-base font-extrabold text-[#222021]">{tenant.name}</h3>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F2F0EF] text-[#6b6968] border border-[#222021]/10">
+                                {tenant.slug}
+                              </span>
+                            </div>
+                            <p className="text-xs text-[#6b6968]">
+                              Admin: <strong className="text-[#222021]">{tenant.adminEmail}</strong> &bull; Telephony: <strong className="text-[#222021]">{tenant.telephony}</strong>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${
+                            tenant.status === 'Active' 
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                              : tenant.status === 'Trial' 
+                                ? 'bg-amber-50 text-amber-800 border-amber-200' 
+                                : 'bg-red-50 text-red-800 border-red-200'
+                          }`}>
+                            {tenant.status.toUpperCase()}
+                          </span>
+                          <span className="text-xs font-mono font-bold text-[#222021] bg-[#F2F0EF] px-2.5 py-1 rounded-lg border border-[#222021]/10">
+                            {tenant.plan}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Seat Allocation Bar & Telemetry */}
+                      <div className="bg-[#FAF9F5] p-3.5 rounded-xl border border-[#222021]/10 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="text-[#6b6968]">Seat Capacity & Floor Allocation:</span>
+                          <span className="font-bold text-[#222021]">
+                            {tenant.seatsUsed} / {tenant.seats} Seats Occupied ({Math.round((tenant.seatsUsed / tenant.seats) * 100)}%)
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-[#222021]/10 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all ${
+                              tenant.status === 'Suspended' ? 'bg-stone-400' : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${Math.min(100, Math.round((tenant.seatsUsed / tenant.seats) * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Modular Entitlements / Feature Flags (Interactive) */}
+                      <div className="pt-1 border-t border-[#222021]/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div>
+                          <span className="text-[10px] font-mono uppercase text-[#6b6968] block mb-1">
+                            Tenant Module Entitlements:
+                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTenants(tenants.map(t => t.id === tenant.id ? { ...t, modules: { ...t.modules, borisCockpit: !t.modules.borisCockpit } } : t));
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-colors cursor-pointer ${
+                                tenant.modules.borisCockpit 
+                                  ? 'bg-red-50 text-[#ED1C24] border-[#ED1C24]/30' 
+                                  : 'bg-[#F2F0EF] text-[#6b6968] border-[#222021]/10 line-through'
+                              }`}
+                              title="Toggle AI Boris Cockpit access"
+                            >
+                              AI Boris Cockpit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTenants(tenants.map(t => t.id === tenant.id ? { ...t, modules: { ...t.modules, sparringArena: !t.modules.sparringArena } } : t));
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-colors cursor-pointer ${
+                                tenant.modules.sparringArena 
+                                  ? 'bg-blue-50 text-blue-800 border-blue-200' 
+                                  : 'bg-[#F2F0EF] text-[#6b6968] border-[#222021]/10 line-through'
+                              }`}
+                              title="Toggle AI Sparring Arena access"
+                            >
+                              AI Sparring Arena
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTenants(tenants.map(t => t.id === tenant.id ? { ...t, modules: { ...t.modules, certificationGate: !t.modules.certificationGate } } : t));
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-colors cursor-pointer ${
+                                tenant.modules.certificationGate 
+                                  ? 'bg-purple-50 text-purple-800 border-purple-200' 
+                                  : 'bg-[#F2F0EF] text-[#6b6968] border-[#222021]/10'
+                              }`}
+                              title="Enforce 80% passing certification gate"
+                            >
+                              {tenant.modules.certificationGate ? '✓ Cert Gate Enforced' : '○ Cert Gate Optional'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTenants(tenants.map(t => t.id === tenant.id ? { ...t, modules: { ...t.modules, crmCadence: !t.modules.crmCadence } } : t));
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-colors cursor-pointer ${
+                                tenant.modules.crmCadence 
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                                  : 'bg-[#F2F0EF] text-[#6b6968] border-[#222021]/10 line-through'
+                              }`}
+                              title="Toggle Leads & Cadence CRM"
+                            >
+                              Leads CRM
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 pt-1 sm:pt-0">
+                          <button
+                            onClick={() => setImpersonatingTenant(tenant)}
+                            className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                            title="Shadow this tenant's workspace"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            <span>Impersonate</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              const nextStatus = tenant.status === 'Active' ? 'Suspended' : 'Active';
+                              setTenants(tenants.map(t => t.id === tenant.id ? { ...t, status: nextStatus } : t));
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
+                              tenant.status === 'Active'
+                                ? 'bg-[#F2F0EF] hover:bg-red-50 text-[#6b6968] hover:text-[#ED1C24] border-[#222021]/10 hover:border-red-200'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
+                            }`}
+                          >
+                            {tenant.status === 'Active' ? 'Suspend' : 'Activate'}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              const extra = prompt(`Add seats for ${tenant.name} (Current: ${tenant.seats}):`, '10');
+                              if (extra && !isNaN(Number(extra))) {
+                                setTenants(tenants.map(t => t.id === tenant.id ? { ...t, seats: t.seats + Number(extra) } : t));
+                              }
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-semibold text-xs border border-[#222021]/10 transition-colors cursor-pointer"
+                            title="Adjust seat limit"
+                          >
+                            + Seats
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* TAB 1: PEOPLE (User Management) */}
           {activeTab === 'people' && (
@@ -931,6 +1358,139 @@ export default function AdminControlCentre() {
                   className="px-4 py-2 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs shadow-2xs transition-colors"
                 >
                   Add Person
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Provision Tenant Modal */}
+      {showAddTenantModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-[#222021]/20 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#222021]/10 pb-3">
+              <div>
+                <h3 className="text-base font-black text-[#222021]">Provision Client BPO Tenant</h3>
+                <p className="text-xs text-[#6b6968]">Set up a dedicated workspace, seat limits, and telephony gateway.</p>
+              </div>
+              <button 
+                onClick={() => setShowAddTenantModal(false)}
+                className="text-[#6b6968] hover:text-[#222021] p-1 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddTenant} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[#6b6968] font-bold mb-1">Company / BPO Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTenantName}
+                    onChange={(e) => {
+                      setNewTenantName(e.target.value);
+                      if (!newTenantSlug) {
+                        setNewTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+                      }
+                    }}
+                    placeholder="e.g. Apex Global BPO"
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#6b6968] font-bold mb-1">Workspace Slug</label>
+                  <input
+                    type="text"
+                    value={newTenantSlug}
+                    onChange={(e) => setNewTenantSlug(e.target.value)}
+                    placeholder="e.g. apex-global"
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[#6b6968] font-bold mb-1">Primary Admin Email</label>
+                <input
+                  type="email"
+                  required
+                  value={newTenantAdminEmail}
+                  onChange={(e) => setNewTenantAdminEmail(e.target.value)}
+                  placeholder="e.g. operations@apexglobal.ph"
+                  className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[#6b6968] font-bold mb-1">Plan Offering</label>
+                  <select
+                    value={newTenantPlan}
+                    onChange={(e) => setNewTenantPlan(e.target.value as any)}
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  >
+                    <option value="GTM Turnkey ($4,500/line)">GTM Turnkey ($4,500/line)</option>
+                    <option value="AI LMS Software ($50/rep)">AI LMS Software ($50/rep)</option>
+                    <option value="Qualifier Gate ($50/rep)">Qualifier Gate ($50/rep)</option>
+                    <option value="Sandbox Trial">Sandbox Trial</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[#6b6968] font-bold mb-1">Initial Seats Allocation</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={newTenantSeats}
+                    onChange={(e) => setNewTenantSeats(Number(e.target.value))}
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[#6b6968] font-bold mb-1">Telephony Mode</label>
+                  <select
+                    value={newTenantTelephony}
+                    onChange={(e) => setNewTenantTelephony(e.target.value as any)}
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  >
+                    <option value="Twilio BYOT">Twilio BYOT</option>
+                    <option value="Platform Pooled SIP">Platform Pooled SIP</option>
+                    <option value="VICIdial Trunk">VICIdial Trunk</option>
+                    <option value="WebRTC Softphone">WebRTC Softphone</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[#6b6968] font-bold mb-1">Pass Exam Gate</label>
+                  <select
+                    value={newTenantCertGate ? 'yes' : 'no'}
+                    onChange={(e) => setNewTenantCertGate(e.target.value === 'yes')}
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  >
+                    <option value="yes">Enforce 80% Cert Gate</option>
+                    <option value="no">Open Floor (No Exam)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#222021]/10 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddTenantModal(false)}
+                  className="px-4 py-2 rounded-xl bg-[#F2F0EF] text-[#222021] font-semibold text-xs hover:bg-[#e7e4e2] transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+                >
+                  Provision Client Tenant
                 </button>
               </div>
             </form>

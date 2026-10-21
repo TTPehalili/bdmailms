@@ -35,19 +35,19 @@ export default function AppSidebar() {
     localStorage.setItem('sdr_tray_state', state);
   };
 
-  const isDojo = pathname === '/' || pathname === '/cockpit';
+  const isMission = pathname === '/';
+  const isDojo = pathname === '/cockpit';
   const isSparring = pathname.startsWith('/sparring');
-  const isCert = pathname.startsWith('/certification');
   const isAdmin = pathname.startsWith('/admin');
 
-  // Pure Front-Line SDR Navigation Stack (Leads & Cadence CRM moved exclusively to Super Admin)
+  // Front-Line SDR Navigation Stack
   const navItems = [
     { 
       label: 'Mission & Targets', 
       href: '/', 
       icon: Target, 
-      isActive: false, 
-      tag: 'DAILY' 
+      isActive: isMission, 
+      tag: 'ABOUT' 
     },
     { 
       label: 'AI Boris Calling Cockpit', 
@@ -64,20 +64,6 @@ export default function AppSidebar() {
       tag: 'VOICE' 
     },
     { 
-      label: 'Dialer & Softphone', 
-      href: '/cockpit', 
-      icon: PhoneCall, 
-      isActive: false, 
-      tag: 'SIP' 
-    },
-    { 
-      label: 'Certification Gate', 
-      href: '/certification', 
-      icon: CalendarDays, 
-      isActive: isCert, 
-      tag: 'PASS' 
-    },
-    { 
       label: 'Knowledge & Playbooks', 
       href: '/cockpit', 
       icon: BookOpen, 
@@ -92,7 +78,7 @@ export default function AppSidebar() {
       tag: '140ms' 
     },
     { 
-      label: 'Super Admin Control Centre', 
+      label: 'Admin Control', 
       href: '/admin', 
       icon: ShieldCheck, 
       isActive: isAdmin, 

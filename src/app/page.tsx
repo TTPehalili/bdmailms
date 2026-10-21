@@ -1,7 +1,7 @@
 'use client';
 
-import BorisCallingCockpit from '@/components/BorisCallingCockpit';
+import MissionTargetsHub from '@/components/MissionTargetsHub';
 
-export default function CockpitPage() {
-  return <BorisCallingCockpit />;
+export default function MissionPage() {
+  return <MissionTargetsHub />;
 }
