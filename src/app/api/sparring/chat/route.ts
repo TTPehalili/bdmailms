@@ -265,75 +265,147 @@ function deriveDynamicScriptAssist(
     };
   }
 
-  // BPO Core Objection 1: "Our reps have years of experience, they don't need practice"
-  if (lower.includes('experience') || lower.includes('senior') || lower.includes('veteran') || lower.includes('practice') || lower.includes('roleplay') || lower.includes('years')) {
+  // 1. SCENARIO 1: OBJ_NEED_CLIENTS_NOT_TOOLS
+  if (lower.includes('need clients') || lower.includes('need customers') || lower.includes('another tool') || lower.includes('revenue not software') || lower.includes('more tools') || lower.includes('software to manage') || lower.includes('payroll') || lower.includes('only looking for clients') || lower.includes('only want customers')) {
     return {
-      objectionType: 'Senior Rep Experience Defense ("Reps don\'t need practice")',
-      recommendedScript: `Makes total sense, ${firstName}—having seasoned reps who know the BPO space inside and out is a massive advantage. The reason teams work with Emil is that when you're paying top dollar for leads, you can't afford to let even senior reps use the first 5 dials of the day as warm-up swings. Our AI gets them in the zone before they touch a single live contact. Would you be open to a 20-minute look with Emil this Thursday afternoon?`,
-      tacticalRationale: 'Validate veteran rep experience. Contrast burning expensive leads as warm-up swings with pre-dial AI sparring, and propose 20 minutes with Founder Emil.',
+      objectionType: 'Need Clients, Not Tools ("We just need clients, not another tool")',
+      recommendedScript: `100% fair, ${firstName}. At the end of the day, you can't pay payroll with software—you need paying clients. That's exactly why we don't sell 'just software.' The problem is, buying more leads doesn't fix anything if your reps get cut down on price the moment a prospect picks up. We give you the targeted client pipeline—built and fully enriched by Claude—and give your reps the sparring tool so they actually win and close those clients instead of losing them to cheaper BPOs. Emil built this specifically to put signed client contracts in your pipeline. Give him 20 minutes to show you how the client acquisition engine works. How does Thursday at 2:00 PM look?`,
+      tacticalRationale: 'Validate payroll reality (Acknowledge). Contrast lead purchase vs. pitch execution (Redirect). Propose 20-min demo with Emil (Move).',
       arm: {
-        acknowledge: 'Validate seasoned rep experience and industry tenure',
-        respond: 'Explain how expensive leads should not be wasted as warm-up practice swings',
-        move: 'Propose a 20-minute screen share with Founder Emil this Thursday at 2:00 PM'
+        acknowledge: "100% fair—you can't pay payroll with software, you need paying clients.",
+        respond: "Buying leads doesn't fix reps getting beaten on price. We give Claude-enriched lists AND sparring so reps win deals.",
+        move: "Give Emil 20 minutes to show how the acquisition engine works. How does Thursday at 2:00 PM look?"
       }
     };
   }
 
-  // BPO Core Objection 2: "We already buy our leads from Outsource Accelerator / brokers"
+  // 2. SCENARIO 2A: OBJ_PRICE_TELL_ME_NOW
+  if (lower.includes('just tell me the price') || lower.includes('give me the price') || lower.includes('how much is it') || lower.includes('how much do you charge') || lower.includes('what does it cost') || lower.includes("what's the cost") || lower.includes('what are you charging')) {
+    return {
+      objectionType: 'Price Demand ("How much does this cost? Just tell me the price")',
+      recommendedScript: `I completely get it, ${firstName}—you need to know if the numbers make sense before spending any time on this. Because everything we do is custom built, there’s no flat price tag. Our pricing depends strictly on your scope: how many enriched prospect records you need pulled each month, and how we customize the AI Sparring Agent to match your exact sales scripts. We need to be 100% clear on your outbound roadmap before we quote a dime so you never pay for things you don't need. Emil can map out that roadmap with you in 10 minutes on a screen share and give you an exact price based on your volume. How does Thursday at 2:00 PM look?`,
+      tacticalRationale: 'Validate cost sensitivity (Acknowledge). Explain pricing is scope and roadmap based (Redirect). Propose Emil 10-min pricing roadmap (Move).',
+      arm: {
+        acknowledge: "Completely get it—you need to know if numbers make sense before spending time.",
+        respond: "Pricing depends strictly on scope: number of enriched records and custom script tuning. We need a clear roadmap before quoting.",
+        move: "Emil can map that out with you in 10 minutes and give exact numbers. How does Thursday at 2:00 PM look?"
+      }
+    };
+  }
+
+  // 3. SCENARIO 2B: OBJ_PRICE_RATE_CARD
+  if (lower.includes('rate card') || lower.includes('price sheet') || lower.includes('rate sheet') || lower.includes('pricing sheet') || lower.includes('pdf of prices') || lower.includes('send pricing')) {
+    return {
+      objectionType: 'Rate Card Request ("Just email me a rate card or price sheet")',
+      recommendedScript: `I can definitely send information over, ${firstName}—I know you want to protect your calendar. The reason we don't have a static one-page rate card is because we aren't selling generic list packages. We build custom data pipelines for your specific service lines and train custom AI sparring bots on your internal scripts. Giving you a generic sheet would just be guessing at your needs. Hop on with Emil for 20 minutes. He’ll look at how many seats and leads you run, show you the custom sparring tool live, and walk you through an exact price breakdown. Would Thursday afternoon or Friday morning work better?`,
+      tacticalRationale: 'Agree to send info (Acknowledge). Explain generic rate cards do not fit custom data pipelines (Redirect). Propose Emil 20-min demo (Move).',
+      arm: {
+        acknowledge: "Definitely can send info over—protecting your calendar is important.",
+        respond: "No static rate card because we build custom data pipelines and train custom sparring bots on your scripts.",
+        move: "Hop on with Emil for 20 minutes to see the tool live and get an exact breakdown. Thursday afternoon or Friday morning?"
+      }
+    };
+  }
+
+  // 4. SCENARIO 2C: OBJ_PRICE_NO_BUDGET
+  if (lower.includes('no budget') || lower.includes('tight on money') || lower.includes('cannot afford') || lower.includes("can't afford") || lower.includes('not spending on software') || lower.includes('cost-cutting') || lower.includes('budget freeze')) {
+    return {
+      objectionType: 'Budget Constraint ("We don\'t have budget for new software right now")',
+      recommendedScript: `I completely respect that, ${firstName}. Running a BPO means keeping a tight lid on expenses. This isn't an extra software expense; it replaces the money you're already burning when reps fumble expensive leads or get beaten by cheaper offshore bids. We customize the whole scope to fit right inside what you already spend on lead data. Let’s take money off the table completely: take 20 minutes with Emil to see how the system stops lead burn. If the math doesn't show an immediate return, we shake hands and walk away. Does next Tuesday at 10:00 AM work?`,
+      tacticalRationale: 'Respect tight budget (Acknowledge). Frame as lead-burn replacement, not added cost (Redirect). Zero-risk demo ask (Move).',
+      arm: {
+        acknowledge: "Completely respect that—running a BPO requires tight expense control.",
+        respond: "Not an extra cost; it replaces the money burned when reps fumble expensive leads or lose to cheaper bids.",
+        move: "Take money off the table: 20 minutes with Emil to see the math. If no immediate return, we walk away. Next Tuesday at 10 AM?"
+      }
+    };
+  }
+
+  // 5. SCENARIO 3A: OBJ_VENDOR_OUTSOURCE_ACCELERATOR
   if (lower.includes('outsource accelerator') || lower.includes('oa') || lower.includes('buy our leads') || lower.includes('directory') || lower.includes('lead vendor') || lower.includes('broker')) {
     return {
-      objectionType: 'Directory Lead Status Quo ("We buy from Outsource Accelerator")',
-      recommendedScript: `That's great, ${firstName}—it means you have active budget and a dedicated sales team ready to close deals. The only catch is that directory leads get pitched by 3 to 5 rival BPOs simultaneously, cutting your margins in half. We generate private, Claude-enriched lists that zero competitors have seen, paired with pre-dial AI training. Could we show you a private sample list for your vertical this Thursday?`,
-      tacticalRationale: 'Praise their active lead budget. Expose the shared-lead price trap (3-5 rival BPOs) and offer a private Claude sample list preview with Emil.',
+      objectionType: 'Directory Lead Status Quo ("We already buy our leads from Outsource Accelerator / brokers")',
+      recommendedScript: `That makes total sense, ${firstName}—they do a great job sending lead volume. The catch is, you're paying full price for leads that are shared with 3 to 5 other BPOs. If your reps aren't pre-trained to beat lower price quotes the second a buyer brings them up, that lead spend is just wasted money. Let’s grab 20 minutes with Emil so he can show you how our private lists and AI sparring tool protect your margins on those calls. How does Thursday look?`,
+      tacticalRationale: 'Validate lead volume (Acknowledge). Expose shared lead 3-5 BPO price wars (Redirect). Propose Emil 20-min margin defense demo (Move).',
       arm: {
-        acknowledge: 'Validate active lead budget and sales team readiness',
-        respond: 'Expose the shared-lead price trap: 3-5 rival BPOs fighting over the same leads',
-        move: 'Offer a private sample list walkthrough for their vertical with Emil on Thursday'
+        acknowledge: "Totally makes sense—they do a great job sending lead volume.",
+        respond: "Full price for leads shared with 3 to 5 other BPOs. Reps must be trained to beat cheaper quotes immediately.",
+        move: "Grab 20 minutes with Emil to see how private lists and AI sparring protect margins. How does Thursday look?"
       }
     };
   }
 
-  // BPO Core Objection 3: "Just email me your pricing / send some info"
-  if (lower.includes('pricing') || lower.includes('price') || lower.includes('quote') || lower.includes('cost') || lower.includes('how much') || lower.includes('rate')) {
+  // 6. SCENARIO 3B: OBJ_VENDOR_EXCLUSIVE_LEADS
+  if (lower.includes('exclusive leads') || lower.includes('leads are exclusive') || lower.includes('exclusive to us') || lower.includes('we get exclusive')) {
     return {
-      objectionType: 'Pricing Brush-Off ("Just email me your pricing")',
-      recommendedScript: `Gladly, ${firstName}—I'll get a full overview sent over so you have it in writing. Because pricing is tied to your specific BPO vertical and how many reps are sparring on the platform, Emil tailors the numbers directly on a brief screen share. Are you free for 20 minutes with Emil on Thursday at 2:00 PM, or is Friday morning better?`,
-      tacticalRationale: 'Agree pleasantly to send information, explain pricing depends on vertical and sparring seats, and pivot to a 20-minute custom quote with Emil.',
+      objectionType: 'Exclusive Lead Claim ("Our lead vendor gives us exclusive leads")',
+      recommendedScript: `I hear that a lot, ${firstName}, and on paper, that's what they bill you for. Even if the calendar invite wasn't sold twice today, that same prospect was pitched by two other BPOs two weeks ago. If your reps sound like every other vendor pitching seats, the buyer will still shop you against offshore bargain rates. Emil can show you in 20 minutes how our AI sparring drills reps to completely steer the conversation away from hourly rates. Would Friday morning work?`,
+      tacticalRationale: 'Validate what vendor bills (Acknowledge). Expose market reality of previous BPO pitches (Redirect). Emil 20-min hourly-rate steering demo (Move).',
       arm: {
-        acknowledge: 'Agree to send documentation and pricing in writing',
-        respond: 'Explain pricing is customized based on vertical and sparring seats',
-        move: 'Propose a 20-minute screen share with Emil on Thursday 2 PM or Friday'
+        acknowledge: "Hear that a lot, and on paper, that's what they bill you for.",
+        respond: "Even if invite wasn't sold twice today, prospect was pitched by other BPOs weeks ago. Reps get shopped on price.",
+        move: "Emil can show in 20 minutes how sparring drills reps to steer away from hourly rates. Would Friday morning work?"
       }
     };
   }
 
-  // BPO Core Objection 4: "We train our reps internally"
-  if (lower.includes('internally') || lower.includes('internal') || lower.includes('team lead') || lower.includes('train our') || lower.includes('coaching')) {
+  // 7. SCENARIO 4A: OBJ_REPS_EXPERIENCED
+  if (lower.includes('experience') || lower.includes('senior') || lower.includes('veteran') || lower.includes('practice') || lower.includes('roleplay') || lower.includes('years') || lower.includes("don't need training")) {
     return {
-      objectionType: 'Internal Training Defense ("We train our reps internally")',
-      recommendedScript: `That's awesome, ${firstName}—internal coaching is how you maintain quality and culture. The challenge team leaders tell us is they don't have hours each morning to roleplay 1-on-1 with every rep. Our AI sparring tool gives each rep 5 realistic objection rounds in 5 minutes before their shift even starts. Would you be opposed to seeing how Emil sets up the sparring bots this Thursday at 2:00 PM?`,
-      tacticalRationale: 'Compliment internal training. Reframe team leader time constraints vs. 5 automated AI sparring rounds, and invite to see setup with Emil.',
+      objectionType: 'Veteran Rep Defense ("Our reps have years of experience, they don\'t need practice")',
+      recommendedScript: `That’s awesome, ${firstName}—having experienced callers is a huge advantage. The trouble is, leads cost too much money to use as warm-up swings. Even your best reps can get caught off guard when a buyer brings up a cheaper competitor's quote out of nowhere. Emil built this so reps can sharpen their edge in 2 minutes before dialing. Would 20 minutes with him next Tuesday be worth a look?`,
+      tacticalRationale: 'Praise experienced team (Acknowledge). Contrast burning expensive leads as warm-up swings (Redirect). 20-min look with Emil (Move).',
       arm: {
-        acknowledge: 'Compliment internal coaching and team culture',
-        respond: 'Highlight team leader bandwidth constraints vs. automated 5-minute pre-shift AI sparring',
-        move: 'Invite them to see how Emil sets up the sparring bots this Thursday at 2:00 PM'
+        acknowledge: "That's awesome—having experienced callers is a huge advantage.",
+        respond: "Leads cost too much money to use as warm-up swings. Even best reps get caught off guard by cheaper quotes.",
+        move: "Emil built this so reps sharpen edge in 2 minutes before dialing. 20 minutes with him next Tuesday worth a look?"
       }
     };
   }
 
-  if (lower.includes('specifically') || lower.includes('solve') || lower.includes('offering') || lower.includes('concrete') || lower.includes('pitch') || lower.includes('why should i spend my time')) {
+  // 8. SCENARIO 4B: OBJ_INTERNAL_LMS_EXISTS
+  if (lower.includes('internally') || lower.includes('internal') || lower.includes('team lead') || lower.includes('train our') || lower.includes('coaching') || lower.includes('have our own lms') || lower.includes('internal coaches')) {
     return {
-      objectionType: 'Value Clarity & Specificity Demand ("What specifically does this solve?")',
-      recommendedScript: `Fair question, ${firstName}. Specifically: we eliminate unqualified SDR meetings by inserting Boris live audio QA before leads hit AE calendars, lifting hold rates from 42% to 68%. If you're open to a 10-minute diagnostic benchmark on Thursday, when works?`,
-      tacticalRationale: 'Answer the specificity demand immediately with the exact acoustic QA mechanism and concrete hold rate metric, then close with a low-friction diagnostic.',
+      objectionType: 'Internal Training Defense ("We already have internal trainers and an LMS")',
+      recommendedScript: `That's great, ${firstName}! Internal coaches are super important for company culture and compliance. The hard part is team leaders can't roleplay with every single rep for an hour every morning before they dial. The AI Sparring Agent lets every rep do 5 practice calls before breakfast without taking up your manager's time. Let’s grab 20 quick minutes with Emil so you can see how much time this saves your trainers. How does Wednesday morning look?`,
+      tacticalRationale: 'Compliment internal training (Acknowledge). Highlight manager bandwidth bottleneck vs. 5 automated AI practice calls (Redirect). Propose 20-min demo with Emil (Move).',
       arm: {
-        acknowledge: 'Validate her demand for specifics instead of marketing fluff',
-        respond: 'Detail exact Boris acoustic QA mechanism and hold rate metric (42% to 68%)',
-        move: 'Propose a 10-minute diagnostic benchmark on Thursday'
+        acknowledge: "That's great! Internal coaches are super important for culture and compliance.",
+        respond: "Team leaders can't roleplay with every rep every morning. AI Sparring lets every rep do 5 practice calls without manager time.",
+        move: "Grab 20 quick minutes with Emil to see how much time this saves trainers. How does Wednesday morning look?"
       }
     };
   }
 
+  // 9. SCENARIO 5A: OBJ_BRUSH_OFF_EMAIL
+  if (lower.includes('send an email') || lower.includes('shoot me an email') || lower.includes('email me details') || lower.includes('send me some info') || lower.includes('send me info') || lower.includes('email me some info') || lower.includes('just email me')) {
+    return {
+      objectionType: 'Email Brush-Off ("Just send me an email")',
+      recommendedScript: `Happy to do that, ${firstName}! I know your inbox is swamped. Because Emil trains these AI agents on your specific work, a plain paper won't show you how the AI voice coaching actually works. Give Emil just 20 minutes. You can test out an AI sparring call yourself on screen. If you don't like it in 5 minutes, you can hang up. Would Thursday afternoon work?`,
+      tacticalRationale: 'Acknowledge swamped inbox (Acknowledge). Contrast static paper vs. live voice simulation (Redirect). Low-risk 20-min Emil test call ask (Move).',
+      arm: {
+        acknowledge: "Happy to do that! I know your inbox is swamped.",
+        respond: "Because AI agents are trained on your specific services, a plain PDF won't show how voice coaching works.",
+        move: "Give Emil 20 minutes to test an AI call on screen. If you don't like it in 5 mins, hang up. Thursday afternoon?"
+      }
+    };
+  }
+
+  // 10. SCENARIO 5B: OBJ_TIMING_BUSY
+  if (lower.includes('too busy') || lower.includes('call back in 6 months') || lower.includes('swamped right now') || lower.includes('running a floor') || lower.includes('busy shop') || lower.includes('bad time') || lower.includes('busy right now')) {
+    return {
+      objectionType: 'Time Constraint ("We are too busy right now / Call back in 6 months")',
+      recommendedScript: `I get it, ${firstName}! You have a busy shop to run and deals to close. The only reason other BPO bosses jump on with Emil is because every month they wait, they are burning thousands of dollars on shared leads that get stolen by cheaper competitors. Let’s grab 20 quick minutes with Emil early next week before your day gets crazy. How does Wednesday morning look?`,
+      tacticalRationale: 'Validate busy shop (Acknowledge). Expose ongoing lead-burn bleed while waiting (Redirect). Propose 20-min early next week (Move).',
+      arm: {
+        acknowledge: "I get it! You have a busy shop to run and deals to close.",
+        respond: "Other BPO bosses jump on with Emil because every month they wait, they burn thousands on shared leads stolen by cheaper rivals.",
+        move: "Let's grab 20 quick minutes with Emil early next week before your day gets crazy. How does Wednesday morning look?"
+      }
+    };
+  }
+
+  // Past Agency Burn (Samantha Cross specialized objection)
   if (lower.includes('burned') || lower.includes('disaster') || lower.includes('spam') || lower.includes('domain') || lower.includes('reputation')) {
     return {
       objectionType: 'Burned by Past Agency (Spam Leads & Domain Blacklist)',
@@ -347,84 +419,7 @@ function deriveDynamicScriptAssist(
     };
   }
 
-  if (lower.includes('why are you asking') || lower.includes('internal') || lower.includes('survey') || lower.includes('consultation') || lower.includes('grill')) {
-    return {
-      objectionType: 'Pushback on Qualification Questions ("Why are you asking about my team?")',
-      recommendedScript: `Fair pushback, ${firstName}—I'm not here to interrogate your team. The only reason I called is we helped a similar peer team double SDR hold rates from 42% to 68%. If you're open to a 10-minute diagnostic benchmark on Thursday, when works?`,
-      tacticalRationale: 'Validate their friction immediately, withdraw the intrusive questioning, and pivot back to hard peer metrics and a low-friction diagnostic.',
-      arm: {
-        acknowledge: 'Validate that uninvited qualification questions feel intrusive',
-        respond: 'Deliver quantified peer hold rate metric (42% to 68% lift)',
-        move: 'Propose a 10-minute diagnostic benchmark on Thursday'
-      }
-    };
-  }
-
-  if (lower.includes('partner') || lower.includes('agency') || lower.includes('vendor') || lower.includes('satisfied')) {
-    return {
-      objectionType: 'Incumbent Partner Loyalty',
-      recommendedScript: `Makes total sense, ${firstName}—3 years with a partner is great and I'm not suggesting you replace them. Most teams we work with keep their incumbent for routine volume while using our QA layer to plug conversion drop-offs. Open to a 10-minute SLA benchmark comparison Thursday morning?`,
-      tacticalRationale: 'Never attack their vendor. Position as complementary conversion insurance and offer a 10-minute SLA diagnostic comparison.',
-      arm: {
-        acknowledge: 'Validate partner relationship with tactical empathy',
-        respond: 'Frame as complementary overflow bottleneck solver',
-        move: 'Propose a 10-minute SLA benchmark diagnostic'
-      }
-    };
-  }
-
-  if (lower.includes('proof') || lower.includes('hype') || lower.includes('everyone says') || lower.includes('buzzword') || lower.includes('guarantee')) {
-    return {
-      objectionType: 'Vendor Skepticism / Proof Request ("Sounds like buzzwords")',
-      recommendedScript: `I don't blame you for being skeptical, ${firstName}—every vendor makes big promises. That's why I'm not asking you to buy anything. I'm suggesting a 10-minute side-by-side diagnostic benchmark so you can see the hard data yourself. How is Thursday morning?`,
-      tacticalRationale: 'Embrace their skepticism with complete poise. Remove the sales pressure, frame the diagnostic as an objective data comparison, and close.',
-      arm: {
-        acknowledge: 'Validate that cold call vendor promises usually sound like hype',
-        respond: 'Clarify this is a zero-commitment data diagnostic, not a sales pitch',
-        move: 'Propose a 10-minute benchmark review on Thursday'
-      }
-    };
-  }
-
-  if (lower.includes('budget') || lower.includes('cost') || lower.includes('expensive') || lower.includes('money') || lower.includes('spend') || lower.includes('cut')) {
-    return {
-      objectionType: 'Budget Constraint / SG&A Caution',
-      recommendedScript: `Completely hear you, ${firstName}—adding fixed seat burn right now makes zero sense. We operate on a 100% pay-per-qualified discovery model with zero fixed seat fees and a 3x break-even guarantee. What does Thursday look like for a 2-minute break-even review?`,
-      tacticalRationale: 'Validate budget friction immediately. Reframe from fixed SaaS costs to performance-only discovery with zero burn.',
-      arm: {
-        acknowledge: 'Agree that fixed SaaS burn is irresponsible right now',
-        respond: 'Highlight performance-only model with zero seat fees',
-        move: 'Ask for a 2-minute break-even review on Thursday'
-      }
-    };
-  }
-
-  if (lower.includes('email') || lower.includes('send') || lower.includes('deck') || lower.includes('info') || lower.includes('general inbox') || lower.includes('not available')) {
-    return {
-      objectionType: 'Email Brush-Off / Gatekeeper Deflection',
-      recommendedScript: `Gladly sending info, ${firstName}! To make sure I only send what's actually relevant to your team: are you currently focused more on rep ramp time or lead hold rate?`,
-      tacticalRationale: 'Agree pleasantly to send information, but use the request to anchor a binary qualifying diagnostic question.',
-      arm: {
-        acknowledge: 'Agree to send documentation willingly',
-        respond: 'Explain deck is extensive and needs to be tailored',
-        move: 'Ask diagnostic question on specific pipeline bottleneck'
-      }
-    };
-  }
-
-  if (lower.includes('busy') || lower.includes('meeting') || lower.includes('seconds') || lower.includes('swamped') || lower.includes('time') || lower.includes('breathe')) {
-    return {
-      objectionType: 'Time Constraint / Operational Burnout',
-      recommendedScript: `${firstName}, completely understand you're pressed for time. In 15 seconds: we helped a peer team double SDR hold rates from 42% to 68%. If you're open to a 10-minute diagnostic benchmark on Thursday, when works?`,
-      tacticalRationale: 'Acknowledge time urgency instantly, deliver the quantified 15-second metric, and propose a 10-min slot.',
-      arm: {
-        acknowledge: 'Acknowledge time urgency under 5 seconds',
-        respond: 'Deliver concise quantified metric headline',
-        move: 'Propose low-friction 10-minute diagnostic on Thursday'
-      }
-    };
-  }
-
+  // Technical compliance scrutiny (Vikram Patel)
   if (lower.includes('soc') || lower.includes('latency') || lower.includes('security') || lower.includes('api') || lower.includes('compliance')) {
     return {
       objectionType: 'Technical Architecture & Compliance Scrutiny',
