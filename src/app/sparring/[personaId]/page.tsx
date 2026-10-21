@@ -22,9 +22,10 @@ import {
   AlertCircle,
   Headphones,
   RotateCcw,
-  PhoneCall
+  PhoneCall,
+  Copy
 } from 'lucide-react';
-import { SPARRING_PERSONAS } from '@/lib/personas';
+import { SPARRING_PERSONAS, ScriptAssist } from '@/lib/personas';
 import { DialogueTurn } from '@/lib/qaEvaluator';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
@@ -71,6 +72,8 @@ function SparringRoomContent() {
   const [objectives, setObjectives] = useState(
     persona.objectives.map(o => ({ ...o, completed: false }))
   );
+  const [scriptAssist, setScriptAssist] = useState<ScriptAssist>(persona.initialScriptAssist);
+  const [copiedScript, setCopiedScript] = useState(false);
   const [isFinishingCall, setIsFinishingCall] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -517,6 +520,10 @@ function SparringRoomContent() {
         const data = await res.json();
         setCallConnecting(false);
 
+        if (data.scriptAssist) {
+          setScriptAssist(data.scriptAssist);
+        }
+
         if (data.greetingText) {
           setTranscript([
             {
@@ -562,6 +569,15 @@ function SparringRoomContent() {
     }
   };
 
+  // Copy script to clipboard helper
+  const handleCopyScript = (text: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedScript(true);
+      setTimeout(() => setCopiedScript(false), 2000);
+    }
+  };
+
   // Dispatch turn message (hands-free or typed)
   const handleSendMessage = async (textOverride?: string) => {
     const message = (textOverride || repInput).trim();
@@ -598,6 +614,10 @@ function SparringRoomContent() {
         const aiReply = data.reply || "I hear your point, but explain to me how this delivers measurable value.";
         const audioUrl = data.audioUrl;
         const newTimestamp = formatTime(callDuration + 2);
+
+        if (data.scriptAssist) {
+          setScriptAssist(data.scriptAssist);
+        }
 
         // Update objectives checklist
         if (Array.isArray(data.completedObjectiveIds) && data.completedObjectiveIds.length > 0) {
@@ -1075,6 +1095,113 @@ function SparringRoomContent() {
           {/* Right Column: Live Objectives & Scoring Criteria (4 Cols) */}
           <div className="lg:col-span-4 flex flex-col gap-5">
             
+            {/* Real-Time Teleprompter & Objection Script Assist */}
+            <div className="bg-white border-2 border-[#ED1C24]/30 rounded-2xl p-5 shadow-2xs space-y-3.5 relative overflow-hidden transition-all duration-300">
+              {/* Subtle top indicator bar */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#ED1C24] via-rose-500 to-amber-500" />
+
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#222021] flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-[#ED1C24] animate-pulse" />
+                  <span>REAL-TIME SCRIPT ASSIST</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span>LIVE PROMPTER</span>
+                </span>
+              </div>
+
+              {/* Current Friction / Objection Badge */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#6b6968] font-bold">Friction:</span>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">
+                  🎯 {scriptAssist?.objectionType || "Initial Gatekeeping / Friction"}
+                </span>
+              </div>
+
+              {/* Verbatim Script Teleprompter Box */}
+              <div className="bg-[#18181b] text-white rounded-xl p-3.5 border border-zinc-800 shadow-inner space-y-2.5">
+                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold flex items-center gap-1">
+                    <Radio className="h-3 w-3 text-rose-400 animate-pulse" />
+                    <span>WHAT TO SAY NEXT (VERBATIM):</span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => scriptAssist?.recommendedScript && handleCopyScript(scriptAssist.recommendedScript)}
+                      className="text-[10px] text-zinc-400 hover:text-white px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Copy script to clipboard"
+                    >
+                      {copiedScript ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                          <span className="text-emerald-400 font-medium">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-100 font-medium leading-relaxed italic selection:bg-rose-500 selection:text-white">
+                  "{scriptAssist?.recommendedScript || persona.initialScriptAssist?.recommendedScript}"
+                </p>
+
+                {/* 1-Click Action to drop into Rep Input */}
+                <div className="pt-1 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    disabled={!callActive || isAiResponding}
+                    onClick={() => {
+                      if (scriptAssist?.recommendedScript) {
+                        setRepInput(scriptAssist.recommendedScript);
+                      }
+                    }}
+                    className="w-full text-center py-1.5 px-2.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <span>🪄 Drop Into Input Bar</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* A.R.M. Framework Step Breakdown */}
+              {scriptAssist?.arm && (
+                <div className="space-y-1.5 bg-[#F2F0EF]/80 rounded-xl p-2.5 border border-[#222021]/10 text-[11px]">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-[#6b6968] font-bold">
+                    A.R.M. Execution Breakdown:
+                  </div>
+                  <div className="space-y-1 text-[#222021]">
+                    <div className="flex items-start gap-1.5">
+                      <span className="font-mono font-bold text-amber-700 bg-amber-100/80 px-1 py-0.5 rounded text-[10px] shrink-0">A</span>
+                      <span className="text-[11px] leading-tight text-[#444]"><strong className="text-[#222021]">Acknowledge:</strong> {scriptAssist.arm.acknowledge}</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="font-mono font-bold text-blue-700 bg-blue-100/80 px-1 py-0.5 rounded text-[10px] shrink-0">R</span>
+                      <span className="text-[11px] leading-tight text-[#444]"><strong className="text-[#222021]">Respond:</strong> {scriptAssist.arm.respond}</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="font-mono font-bold text-emerald-700 bg-emerald-100/80 px-1 py-0.5 rounded text-[10px] shrink-0">M</span>
+                      <span className="text-[11px] leading-tight text-[#444]"><strong className="text-[#222021]">Move:</strong> {scriptAssist.arm.move}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tactical Rationale */}
+              {scriptAssist?.tacticalRationale && (
+                <div className="text-[11px] text-[#6b6968] leading-tight flex items-start gap-1.5 pt-0.5">
+                  <span className="shrink-0 text-amber-600">💡</span>
+                  <span><strong className="text-[#222021]">Why this works:</strong> {scriptAssist.tacticalRationale}</span>
+                </div>
+              )}
+            </div>
+
             {/* Live Objectives Checklist */}
             <div className="bg-white border border-[#222021]/10 rounded-2xl p-5 shadow-2xs space-y-3">
               <div className="flex items-center justify-between">

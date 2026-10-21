@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       greetingText,
-      audioUrl
+      audioUrl,
+      scriptAssist: persona.initialScriptAssist
     });
   } catch (error: any) {
     console.error('[Sparring Dial Route] Error:', error);

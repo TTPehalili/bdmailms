@@ -2,12 +2,24 @@
  * 10 AI Sparring Personas Configuration
  * Central registry configuring voice profiles, scenario rules, objection triggers, and objectives.
  * Configured strictly with ElevenLabs 'conversational' use-case voices with low-style phone acoustic tuning.
+ * Includes real-time battle-tested ScriptAssist battlecards (A.R.M. Framework: Acknowledge, Respond, Move).
  */
 
 export interface SparringObjective {
   id: string;
   description: string;
   completed?: boolean;
+}
+
+export interface ScriptAssist {
+  objectionType: string;
+  recommendedScript: string;
+  tacticalRationale: string;
+  arm: {
+    acknowledge: string;
+    respond: string;
+    move: string;
+  };
 }
 
 export interface SparringPersona {
@@ -29,6 +41,7 @@ export interface SparringPersona {
   coreObjection: string;
   systemPrompt: string;
   objectives: SparringObjective[];
+  initialScriptAssist: ScriptAssist;
 }
 
 export const SPARRING_PERSONAS: SparringPersona[] = [
@@ -53,7 +66,17 @@ Only agree to a meeting if they propose a low-friction 10-minute diagnostic.`,
       { id: 'ack_time', description: 'Acknowledge time constraint under 5 seconds' },
       { id: 'give_metric', description: 'Deliver a quantified ROI or conversion metric' },
       { id: 'close_diag', description: 'Secure 10-minute diagnostic commitment' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Severe Time Crunch (Board Meeting in 30s)',
+      recommendedScript: "Marcus, completely understand you're walking into a meeting. In 15 seconds: we helped a similar fintech double SDR hold rates from 42% to 68%. If you're open to a 10-minute diagnostic benchmark on Thursday, when works?",
+      tacticalRationale: 'Acknowledge his exact 30-sec constraint immediately, deliver a high-impact metric, and close with a low-friction 10-min benchmark ask.',
+      arm: {
+        acknowledge: "Acknowledge the 30-second constraint with tactical empathy",
+        respond: "Introduce concrete metric (42% to 68% hold rate lift)",
+        move: "Propose low-friction 10-minute Thursday diagnostic"
+      }
+    }
   },
   {
     id: 'iron-gatekeeper',
@@ -76,7 +99,17 @@ If the rep acknowledges your role, clarifies they don't want to waste the CEO's 
       { id: 'respect_role', description: 'Acknowledge her role without arguing' },
       { id: 'qualify_department', description: 'Clarify target department workflow' },
       { id: 'get_referral', description: 'Obtain internal routing referral' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Executive Gatekeeper Wall (Send info to general inbox)',
+      recommendedScript: "Totally respect that, Brenda—I know you protect the executive calendar from unsolicited pitches. I'm actually not asking for the CEO's time. Who on your operations team specifically oversees the SDR outbound pipeline hold rates?",
+      tacticalRationale: 'Never argue with gatekeepers. Validate her protective gatekeeping role, state you do not want the CEO, and pivot to the operational stakeholder.',
+      arm: {
+        acknowledge: "Validate her role protecting executive calendar bandwidth",
+        respond: "Clarify you do not want to consume CEO executive time",
+        move: "Ask for the specific operational manager handling SDR pipeline"
+      }
+    }
   },
   {
     id: 'incumbent-loyalist',
@@ -98,7 +131,17 @@ If the rep validates your relationship with tactical empathy, explains how other
       { id: 'validate_incumbent', description: 'Validate existing vendor relationship (Acknowledge)' },
       { id: 'position_overflow', description: 'Frame as complementary bottleneck solver (Respond)' },
       { id: 'benchmark_cta', description: 'Propose SLA cost comparison benchmark (Move)' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Incumbent Agency Defense (3 years satisfied partner)',
+      recommendedScript: "Makes total sense, David—3 years with a partner is great and I'm not suggesting you replace them. Most teams we work with keep their incumbent for routine volume while using our QA layer to plug conversion drop-offs. Open to a 10-minute SLA benchmark comparison Thursday morning?",
+      tacticalRationale: 'Do NOT attack the incumbent agency. Validate his loyalty, frame Appointmentlyy as complementary QA bottleneck insurance, and propose a benchmark.',
+      arm: {
+        acknowledge: "Validate the 3-year vendor relationship with tactical empathy",
+        respond: "Frame as overflow bottleneck solver, keeping the incumbent",
+        move: "Propose a 10-minute SLA benchmark diagnostic comparison"
+      }
+    }
   },
   {
     id: 'frugal-cfo',
@@ -120,7 +163,17 @@ If the rep acknowledges P&L sensitivity, highlights performance-based discovery 
       { id: 'validate_budget', description: 'Validate strict budget constraints' },
       { id: 'pitch_performance', description: 'Present pay-per-qualified discovery model' },
       { id: 'breakeven_ask', description: 'Propose 2-minute break-even diagnostic' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Budget Freeze / SG&A Cost-Cutting Mandate',
+      recommendedScript: "Completely hear you, Arthur—given this quarter's cost mandate, adding fixed SaaS burn would be irresponsible. That's why we operate on a 100% performance discovery model with zero fixed seat fees and a 3x break-even guarantee. Open to a 3-minute break-even model on Thursday?",
+      tacticalRationale: 'Validate the P&L cost sensitivity immediately. Reframe away from fixed seat costs toward pure pay-per-performance with zero burn.',
+      arm: {
+        acknowledge: "Validate the P&L cost-cutting mandate immediately",
+        respond: "Present pay-per-qualified discovery model with zero fixed seats",
+        move: "Propose a 3-minute break-even review on Thursday"
+      }
+    }
   },
   {
     id: 'burned-director',
@@ -142,7 +195,17 @@ If the rep acknowledges the trauma of burned domains, details quality assurance 
       { id: 'empathy_burned', description: 'Acknowledge previous bad agency experience' },
       { id: 'qa_differentiator', description: 'Highlight AI QA listening & domain safety' },
       { id: 'audit_preview', description: 'Offer live sample call listening preview' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Bad Past Agency Experience (Burned Domain & Spam Leads)',
+      recommendedScript: "I hear that all the time, Samantha, and I don't blame you for being skeptical—most offshore agencies spam generic lists and ruin deliverability. We enforce live audio QA and Boris acoustic monitoring to guarantee domain safety. Can I share a 2-minute sample call audit on Thursday?",
+      tacticalRationale: 'Validate her bad past agency trauma. Detail acoustic QA safety guards and offer a concrete call audit preview rather than a pitch.',
+      arm: {
+        acknowledge: "Validate her previous negative agency disaster with empathy",
+        respond: "Detail live audio interception and domain safety controls",
+        move: "Offer a 2-minute sample call listening preview on Thursday"
+      }
+    }
   },
   {
     id: 'polite-ghoster',
@@ -164,7 +227,17 @@ If the rep says "Happy to send info, but usually decks get buried in 400 emails�
       { id: 'unmask_email', description: 'Politely intercept the email brush-off' },
       { id: 'ask_qualifier', description: 'Ask specific outbound volume question' },
       { id: 'pin_calendar', description: 'Pin down tentative calendar hold' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Polite Email Brush-off ("Send me some info")',
+      recommendedScript: "Happy to send over information, Chloe! But our deck has about 30 pages of workflow specs. To make sure I only send what's actually relevant to your team: are you currently focused more on rep ramp time or lead hold rate?",
+      tacticalRationale: 'Agree pleasantly to send information, but highlight that decks get lost unless tailored, then ask a binary qualifying diagnostic.',
+      arm: {
+        acknowledge: "Agree pleasantly to send documentation",
+        respond: "Clarify the deck is 30 pages and you want to tailor it",
+        move: "Ask a specific diagnostic question to unmask her real priority"
+      }
+    }
   },
   {
     id: 'overwhelmed-ops',
@@ -186,7 +259,17 @@ If the rep respects your bandwidth in one sentence, clarifies this eliminates SD
       { id: 'respect_bandwidth', description: 'Respect operational fatigue instantly' },
       { id: 'position_relief', description: 'Frame as removing headcount overhead' },
       { id: 'frictionless_cta', description: 'Propose zero-prep 5-minute synch' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Operational Burnout ("Swamped, no time to breathe")',
+      recommendedScript: "Greg, that's exactly why I'm calling. We require zero IT setup or engineer hours from your side—our system plugs directly into your existing CRM in 8 minutes. If I can show you how to shave 5 hours off your weekly reporting without any lift, do you have 10 minutes Thursday?",
+      tacticalRationale: 'Acknowledge his severe fatigue. Emphasize zero-lift implementation (8 min) that saves him hours weekly without adding management overhead.',
+      arm: {
+        acknowledge: "Validate his operational burnout in one sentence",
+        respond: "Emphasize zero engineer lift and 8-minute CRM integration",
+        move: "Propose a low-friction 10-minute synch on Thursday"
+      }
+    }
   },
   {
     id: 'technical-gatekeeper',
@@ -208,7 +291,17 @@ If the rep acknowledges technical boundaries, confirms the 16kHz Web Audio pipel
       { id: 'honor_technical', description: 'Acknowledge architectural requirements honestly' },
       { id: 'state_latency', description: 'Cite sub-second acoustic latency metrics' },
       { id: 'bring_engineer', description: 'Offer 10-minute technical brief with engineer' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Technical Architecture & Compliance Scrutiny',
+      recommendedScript: "We maintain full SOC2 Type II compliance with on-premise PII tokenization and zero data retention for model training. Our 16kHz Web Audio pipeline operates with sub-second STT latency. Can I share our architectural security brief on Thursday?",
+      tacticalRationale: 'Do NOT use marketing fluff. Cite concrete technical architecture, tokenization, and latency specs, and offer an engineer-to-engineer review.',
+      arm: {
+        acknowledge: "Respect his technical diligence and security standards",
+        respond: "Cite sub-second STT latency and SOC2 Type II PII tokenization",
+        move: "Offer a 10-minute architectural walkthrough with an engineer"
+      }
+    }
   },
   {
     id: 'indecisive-manager',
@@ -230,7 +323,17 @@ If the rep reassures you, frames the call as creating a risk-free internal busin
       { id: 'reduce_risk', description: 'De-escalate personal career risk' },
       { id: 'build_case', description: 'Offer to co-build internal VP business case' },
       { id: 'informal_preview', description: 'Schedule informal peer walkthrough' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Internal Committee Hesitation ("Need VP buy-in")',
+      recommendedScript: "Completely understand, Emily—getting internal alignment is tough without hard proof. How about this: let's run a 10-minute diagnostic benchmark first so you have concrete ROI numbers to show leadership before you ever propose a commitment. How is Thursday at 10 AM?",
+      tacticalRationale: 'De-escalate her personal career risk. Frame the benchmark as a way to arm HER with data so she looks prepared in front of her VP.',
+      arm: {
+        acknowledge: "De-escalate her fear of upper management blowback",
+        respond: "Frame diagnostic as building an internal business case for her VP",
+        move: "Schedule an informal 10-minute walkthrough on Thursday"
+      }
+    }
   },
   {
     id: 'aggressive-skeptic',
@@ -252,6 +355,16 @@ If the rep stays completely calm, acknowledges your reaction with zero fear, sta
       { id: 'poise_under_fire', description: 'Remain calm under hostile interrogation' },
       { id: 'transparent_source', description: 'Transparently state source with poise' },
       { id: 'pattern_interrupt', description: 'Execute fearless pattern interrupt question' }
-    ]
+    ],
+    initialScriptAssist: {
+      objectionType: 'Hostile Interrogation ("How did you get my number?")',
+      recommendedScript: "Fair enough, Ray. There's endless AI vaporware out there. I'm not asking you to believe my pitch—I'm asking you to look at hard SLA diagnostic numbers for 10 minutes. If it's hype, kick me off the call. How does Thursday look?",
+      tacticalRationale: 'Never apologize or act timid. Match his spine, call out the industry hype directly, and give him permission to hang up if the numbers fail.',
+      arm: {
+        acknowledge: "Agree fearlessly that most AI pitches are pure hype",
+        respond: "Stand your ground on hard SLA metrics and zero fluff",
+        move: "Challenge him to a 10-minute benchmark with permission to hang up"
+      }
+    }
   }
 ];

@@ -155,6 +155,83 @@ function generateContextualFallback(
   };
 }
 
+// Derive instant tactical ScriptAssist teleprompter content based on buyer reply & persona
+function deriveDynamicScriptAssist(
+  persona: SparringPersona,
+  buyerReply: string,
+  sentiment: string
+): any {
+  const lower = buyerReply.toLowerCase();
+  const firstName = persona.name.split(' ')[0];
+
+  if (sentiment === 'agreed' || lower.includes('invite') || lower.includes('calendar') || lower.includes('put') || lower.includes('thursday') || lower.includes('tuesday')) {
+    return {
+      objectionType: 'Agreement Reached (Lock down time & logistics)',
+      recommendedScript: `Perfect, ${firstName}. I have Thursday at 10 AM slotted on my calendar. I'll send through the invite with a 1-page benchmark prep doc. Who else on your team should be included?`,
+      tacticalRationale: 'Confirm time immediately, commit to a zero-lift 1-page doc, and expand meeting stakeholders without overselling.',
+      arm: {
+        acknowledge: 'Acknowledge agreed timeslot cleanly',
+        respond: 'Promise lightweight 1-page benchmark prep doc',
+        move: 'Ask who else from ops/sales leadership should join'
+      }
+    };
+  }
+
+  if (lower.includes('partner') || lower.includes('agency') || lower.includes('vendor') || lower.includes('satisfied')) {
+    return {
+      objectionType: 'Incumbent Partner Loyalty',
+      recommendedScript: `Makes total sense, ${firstName}—3 years with a partner is great and I'm not suggesting you replace them. Most teams we work with keep their incumbent for routine volume while using our QA layer to plug conversion drop-offs. Open to a 10-minute SLA benchmark comparison Thursday morning?`,
+      tacticalRationale: 'Never attack their vendor. Position as complementary conversion insurance and offer a 10-minute SLA diagnostic comparison.',
+      arm: {
+        acknowledge: 'Validate partner relationship with tactical empathy',
+        respond: 'Frame as complementary overflow bottleneck solver',
+        move: 'Propose a 10-minute SLA benchmark diagnostic'
+      }
+    };
+  }
+
+  if (lower.includes('budget') || lower.includes('cost') || lower.includes('expensive') || lower.includes('money') || lower.includes('spend') || lower.includes('cut')) {
+    return {
+      objectionType: 'Budget Constraint / SG&A Caution',
+      recommendedScript: `Completely hear you, ${firstName}—adding fixed seat burn right now makes zero sense. We operate on a 100% pay-per-qualified discovery model with zero fixed seat fees and a 3x break-even guarantee. What does Thursday look like for a 2-minute break-even review?`,
+      tacticalRationale: 'Validate budget friction immediately. Reframe from fixed SaaS costs to performance-only discovery with zero burn.',
+      arm: {
+        acknowledge: 'Agree that fixed SaaS burn is irresponsible right now',
+        respond: 'Highlight performance-only model with zero seat fees',
+        move: 'Ask for a 2-minute break-even review on Thursday'
+      }
+    };
+  }
+
+  if (lower.includes('email') || lower.includes('send') || lower.includes('deck') || lower.includes('info')) {
+    return {
+      objectionType: 'Email Brush-Off / Information Request',
+      recommendedScript: `Gladly sending info, ${firstName}! To make sure I only send what's actually relevant to your team: are you currently focused more on rep ramp time or lead hold rate?`,
+      tacticalRationale: 'Agree pleasantly to send information, but use the request to anchor a binary qualifying diagnostic question.',
+      arm: {
+        acknowledge: 'Agree to send documentation willingly',
+        respond: 'Explain deck is extensive and needs to be tailored',
+        move: 'Ask diagnostic question on specific pipeline bottleneck'
+      }
+    };
+  }
+
+  if (lower.includes('busy') || lower.includes('meeting') || lower.includes('seconds') || lower.includes('swamped') || lower.includes('time')) {
+    return {
+      objectionType: 'Time Constraint / Impatience',
+      recommendedScript: `${firstName}, completely understand you're pressed for time. In 15 seconds: we helped a peer team double SDR hold rates from 42% to 68%. If you're open to a 10-minute diagnostic benchmark on Thursday, when works?`,
+      tacticalRationale: 'Acknowledge time urgency instantly, deliver the quantified 15-second metric, and propose a 10-min slot.',
+      arm: {
+        acknowledge: 'Acknowledge time urgency under 5 seconds',
+        respond: 'Deliver concise quantified metric headline',
+        move: 'Propose low-friction 10-minute diagnostic on Thursday'
+      }
+    };
+  }
+
+  return persona.initialScriptAssist;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { personaId, transcript = [], repMessage = '', objectives = [] } = await req.json();
@@ -185,22 +262,34 @@ Sales Rep just said to you: "${repMessage}"
 CRITICAL CONVERSATIONAL & LOGICAL THINKING RULES:
 1. Think carefully and respond directly, logically, and authentically to what the Sales Rep just said.
 2. NEVER repeat a sentence or phrase you already said earlier in the conversation history!
-3. If the rep asks a direct question (e.g. "are you happy with your team?", "what is your biggest challenge?"), answer their question directly in character.
-4. Keep your answer ultra-conversational, human, and punchy (1 to 2 short sentences, 15 to 25 words total, exactly how real people talk on the phone).
+3. If the rep asks a direct question, answer it directly in character.
+4. Keep your answer ultra-conversational, human, and punchy (1 to 2 short sentences, 15 to 25 words total).
 5. Only agree to a meeting if the rep actually acknowledged your reality and proposed a low-pressure diagnostic/benchmark comparison.
+6. Also generate a real-time "scriptAssist" battlecard providing the EXACT winning verbatim words the sales rep should speak next to handle your reply, using the A.R.M. Framework (Acknowledge, Respond/Reframe, Move/CTA).
 
 Return STRICT JSON only:
 {
   "reply": "Your in-character spoken response directly answering the rep",
   "completedObjectiveIds": ["id_of_completed_objective_if_earned"],
   "sentiment": "hostile" | "skeptical" | "neutral" | "softened" | "agreed",
-  "armObservation": "One sentence assessing rep's ARM execution"
+  "armObservation": "One sentence assessing rep's ARM execution",
+  "scriptAssist": {
+    "objectionType": "Short label of the friction in your reply",
+    "recommendedScript": "Exact verbatim sentence(s) the rep should speak aloud right now to handle your reply and secure the meeting",
+    "tacticalRationale": "Why this specific script works against this pushback",
+    "arm": {
+      "acknowledge": "How to validate the buyer's friction",
+      "respond": "How to reframe with metrics or differentiation",
+      "move": "The low-friction closing question"
+    }
+  }
 }`;
 
     let personaReply = '';
     let completedIds: string[] = [];
     let sentiment = 'skeptical';
     let armObservation = '';
+    let scriptAssist: any = null;
 
     // 1. Try Gemini 3.5 Flash Lite first (fastest sub-second model), then 3.5 Flash
     if (googleApiKey) {
@@ -221,7 +310,7 @@ Return STRICT JSON only:
                 generationConfig: {
                   responseMimeType: 'application/json',
                   temperature: 0.65,
-                  maxOutputTokens: 180
+                  maxOutputTokens: 250
                 }
               })
             }
@@ -238,6 +327,9 @@ Return STRICT JSON only:
                 completedIds = parsed.completedObjectiveIds || [];
                 sentiment = parsed.sentiment || 'skeptical';
                 armObservation = parsed.armObservation || '';
+                if (parsed.scriptAssist && parsed.scriptAssist.recommendedScript) {
+                  scriptAssist = parsed.scriptAssist;
+                }
                 break;
               }
             }
@@ -259,7 +351,12 @@ Return STRICT JSON only:
       armObservation = fallbackResult.armObservation;
     }
 
-    // 3. Synthesize Voice with ElevenLabs TTS using persona's conversational voice settings
+    // 3. Ensure scriptAssist is always computed and robust
+    if (!scriptAssist || !scriptAssist.recommendedScript) {
+      scriptAssist = deriveDynamicScriptAssist(persona, personaReply, sentiment);
+    }
+
+    // 4. Synthesize Voice with ElevenLabs TTS using persona's conversational voice settings
     let audioUrl: string | null = null;
     if (elevenApiKey && personaReply) {
       try {
@@ -302,7 +399,8 @@ Return STRICT JSON only:
       audioUrl,
       completedObjectiveIds: completedIds,
       sentiment,
-      armObservation
+      armObservation,
+      scriptAssist
     });
 
   } catch (error: any) {
