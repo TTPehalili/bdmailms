@@ -188,57 +188,93 @@ export default function ScriptViewer({
         {activeChannel === 'call' && (
           <div className="space-y-4">
             
-            {/* Step 1: Opener */}
+            {/* Step 1: Opener & Directory Check */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 relative">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-[#ED1C24]/15 text-[#222021] font-mono">
-                  1. Pattern Interrupt & Opener
+                  1. Pattern Interrupt & OA Check (15s)
                 </span>
                 <button
-                  onClick={() => copyToClipboard(`Hey ${lead.name.split(' ')[0]}, Alex from Appointmentlyy. I know I caught you out of the blue, but I saw you're heading demand generation at ${lead.company}—do you have 30 seconds for me to tell you why I called?`, 'c1')}
+                  onClick={() => copyToClipboard(`Hey ${lead.name.split(' ')[0]}, quick question—are you guys currently buying any of your outbound leads from Outsource Accelerator or similar BPO directories?`, 'c1')}
                   className="text-slate-400 hover:text-slate-700 p-1 rounded"
                 >
                   {copiedKey === 'c1' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "Hey <span className="bg-[#ED1C24]/15 text-[#222021] px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.name.split(' ')[0]}</span>, Alex from Boris Outbound. I know I caught you in the middle of your day, but I noticed you're leading outbound at <span className="bg-[#ED1C24]/15 text-[#222021] px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.company}</span>—do you have 20 seconds for me to tell you why I'm calling?"
+                "Hey <span className="bg-[#ED1C24]/15 text-[#222021] px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.name.split(' ')[0]}</span>, quick question—are you guys currently buying any of your outbound leads from Outsource Accelerator or similar BPO directories?"
               </p>
             </div>
 
-            {/* Step 2: Value Reframe */}
+            {/* Step 2: Confirm Core Bottleneck */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 relative">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-purple-100/70 text-purple-800 font-mono">
-                  2. Value Reframe & Context Anchor
+                  2. The Shared-Lead Price Trap (30s)
                 </span>
                 <button
-                  onClick={() => copyToClipboard(`Most VPs we talk to who rely on ${lead.currentBpo} tell us their reps struggle with ${lead.painPoint}. We built an audio copilot that intercepts objection pushback in 140ms.`, 'c2')}
+                  onClick={() => copyToClipboard(`The reason I ask is most BPO owners we talk to tell us those directories sell the exact same lead list to 3 to 5 competing agencies at the exact same time. It forces you into an $8/hour price-war race to the bottom. Is that hitting your margins too?`, 'c2')}
                   className="text-slate-400 hover:text-slate-700 p-1 rounded"
                 >
                   {copiedKey === 'c2' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "Most teams running <span className="bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.techStack}</span> with <span className="bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.currentBpo}</span> run into friction around <span className="bg-amber-100 text-amber-950 px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.painPoint}</span>. We plug directly into your softphone to feed reps real-time objection talk tracks in sub-second latency."
+                "The reason I ask is most BPO owners tell us those directories sell the exact same lead list to 3 to 5 competing agencies at the exact same time. It forces you into an $8/hour price-war race to the bottom. Is that hitting your margins too?"
               </p>
             </div>
 
-            {/* Step 3: Diagnostic Question */}
+            {/* Step 3: Problem vs. Solution */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 relative">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-emerald-100/70 text-emerald-800 font-mono">
-                  3. Low-Friction Diagnostic Close
+                <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-amber-100/70 text-amber-900 font-mono">
+                  3. Lead Burn vs. Claude AI Lists + Sparring (45s)
                 </span>
                 <button
-                  onClick={() => copyToClipboard(`If we could cut rep ramp time by 50% without replacing your current team, would you be opposed to looking at a 10-minute side-by-side run next Tuesday?`, 'c3')}
+                  onClick={() => copyToClipboard(`What we do differently is twofold: First, we generate private, Claude-enriched ICP lists that zero competitors touch. Second, before your reps ever dial those leads, our AI Boris runs them through 5 realistic objection sparring rounds so they never burn expensive contacts on warm-up swings.`, 'c3')}
                   className="text-slate-400 hover:text-slate-700 p-1 rounded"
                 >
                   {copiedKey === 'c3' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "If we could eliminate rep hesitation on cold calls without replacing your existing SDRs, would you be fundamentally opposed to a 10-minute diagnostic run next Tuesday morning?"
+                "What we do differently is twofold: First, we generate private, Claude-enriched ICP lists that zero competitors touch. Second, before your reps ever dial those leads, our AI Boris runs them through 5 realistic objection sparring rounds so they never burn expensive contacts on warm-up swings."
+              </p>
+            </div>
+
+            {/* Step 4: Vertical Diagnostic Pivot */}
+            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 relative">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-blue-100/70 text-blue-800 font-mono">
+                  4. Vertical Diagnostic Pivot (30s)
+                </span>
+                <button
+                  onClick={() => copyToClipboard(`Are you guys currently placing more customer service reps, specialized bookkeeping, or outbound sales seats?`, 'c4')}
+                  className="text-slate-400 hover:text-slate-700 p-1 rounded"
+                >
+                  {copiedKey === 'c4' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                </button>
+              </div>
+              <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
+                "Are you guys currently placing more customer service reps, specialized bookkeeping, or outbound sales seats?"
+              </p>
+            </div>
+
+            {/* Step 5: Close with Founder Emil */}
+            <div className="p-3.5 rounded-xl border border-emerald-300 bg-emerald-50/40 relative">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-emerald-200/80 text-emerald-900 font-mono">
+                  5. The Close: Demo with Founder Emil (30s)
+                </span>
+                <button
+                  onClick={() => copyToClipboard(`Our founder, Emil, has been in the BPO BDM trenches for over 17 years. He put together a 20-minute screen share showing how we build private Claude-enriched lists and let reps spar with AI before live calls. Would you be open to taking a look with Emil this Thursday at 2:00 PM, or does Friday morning work better for your calendar?`, 'c5')}
+                  className="text-slate-400 hover:text-slate-700 p-1 rounded"
+                >
+                  {copiedKey === 'c5' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                </button>
+              </div>
+              <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
+                "Our founder, Emil, has been in the BPO BDM trenches for over 17 years. He put together a 20-minute screen share showing how we build private Claude-enriched lists and let reps spar with AI before live calls. Would you be open to taking a look with Emil this Thursday at 2:00 PM, or does Friday morning work better for your calendar?"
               </p>
             </div>
 

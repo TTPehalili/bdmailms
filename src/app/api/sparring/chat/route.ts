@@ -36,7 +36,54 @@ function generateContextualFallback(
   let sentiment = 'skeptical';
   let armObservation = 'Prospect raised cold-call friction.';
 
-  if (persona.id === 'incumbent-loyalist') {
+  if (persona.id === 'bpo-directory-buyer') {
+    // Julian Vance (BPO Directory Buyer / Outsource Accelerator user)
+    const mentionsOA = lower.includes('outsource accelerator') || lower.includes('directory') || lower.includes('broker') || lower.includes('lead vendor') || lower.includes('oa');
+    const mentionsSharedTrap = lower.includes('shared') || lower.includes('price war') || lower.includes('3 to 5') || lower.includes('margin') || lower.includes('cheaper') || lower.includes('8');
+    const mentionsEmil = lower.includes('emil') || lower.includes('17 years') || lower.includes('claude') || lower.includes('sparring');
+
+    if (turnCount >= 2 && (mentionsEmil || (hasEmpathy && hasValue)) && hasClose) {
+      candidateReplies = [
+        "If Emil has 17 years in the BPO space and can show us private lists that aren't shared on directories, I'll take a look Thursday at 2:00 PM.",
+        "Alright, if it's strictly a 20-minute screen share with Emil to see how the sparring simulator works on our floor, put Friday morning on my calendar."
+      ];
+      completedIds = persona.objectives.map(o => o.id);
+      sentiment = 'agreed';
+      armObservation = 'Rep executed BPO playbook and locked 20-min demo with Founder Emil.';
+    } else if (isAskingQuestion) {
+      candidateReplies = [
+        "Why are you asking about our internal SDR floor? We buy our lists from directories and hit quota. What are you actually selling?",
+        "I don't share internal operational headcounts with cold callers. What makes your model different from Outsource Accelerator?"
+      ];
+      completedIds = [];
+      sentiment = 'hostile';
+      armObservation = 'Prospect challenged unsolicited qualification.';
+    } else if (mentionsSharedTrap || lower.includes('price') || lower.includes('competing')) {
+      candidateReplies = [
+        "Yeah, that is a headache. We pay top dollar for directory lists and our reps are in a dogfight against four other BPOs pitching the same client. How do you stop that?",
+        "It's true—clients on shared lists always try to grind us down to eight dollars an hour. But our senior reps know how to close. What's your alternative?"
+      ];
+      completedIds = [persona.objectives[0].id, persona.objectives[1].id];
+      sentiment = 'softened';
+      armObservation = 'Prospect confirmed shared-lead price war trap.';
+    } else if (mentionsOA || hasEmpathy) {
+      candidateReplies = [
+        "Yeah, we know Outsource Accelerator—we buy from them every month. Our senior reps don't need roleplay practice. Why are you calling me?",
+        "Yes, we use directories. But my team has years of experience in the BPO space. Why would we need an AI simulator?"
+      ];
+      completedIds = [persona.objectives[0].id];
+      sentiment = 'neutral';
+      armObservation = 'Prospect acknowledged directory lead sourcing but defended veteran reps.';
+    } else {
+      candidateReplies = [
+        "Look, we already buy all our leads from Outsource Accelerator and our senior reps don't need roleplay. What is this regarding?",
+        "I'm heading into an operational review with our Manila floor. Give me the headline—what does this actually solve?"
+      ];
+      completedIds = [];
+      sentiment = 'skeptical';
+      armObservation = 'Prospect raised initial BPO directory defense.';
+    }
+  } else if (persona.id === 'incumbent-loyalist') {
     // David Reynolds (Incumbent Loyalist)
     if (turnCount >= 2 && hasEmpathy && hasValue && hasClose) {
       candidateReplies = [
@@ -205,15 +252,71 @@ function deriveDynamicScriptAssist(
   const lower = buyerReply.toLowerCase();
   const firstName = persona.name.split(' ')[0];
 
-  if (sentiment === 'agreed' || lower.includes('invite') || lower.includes('calendar') || lower.includes('put') || lower.includes('thursday') || lower.includes('tuesday')) {
+  if (sentiment === 'agreed' || lower.includes('invite') || lower.includes('calendar') || lower.includes('put') || lower.includes('thursday') || lower.includes('tuesday') || lower.includes('friday')) {
     return {
-      objectionType: 'Agreement Reached (Lock down time & logistics)',
-      recommendedScript: `Perfect, ${firstName}. I have Thursday at 10 AM slotted on my calendar. I'll send through the invite with a 1-page benchmark prep doc. Who else on your team should be included?`,
-      tacticalRationale: 'Confirm time immediately, commit to a zero-lift 1-page doc, and expand meeting stakeholders without overselling.',
+      objectionType: 'Agreement Reached (Lock down 20-min demo with Founder Emil)',
+      recommendedScript: `Fantastic, ${firstName}. I'll lock in Thursday at 2:00 PM for the screen share with our founder, Emil. What is the best direct email address to send the calendar invite and the 1-page sample list preview?`,
+      tacticalRationale: 'Confirm demo timeslot cleanly, mention Founder Emil, and secure direct email for calendar invite and private sample list.',
       arm: {
         acknowledge: 'Acknowledge agreed timeslot cleanly',
-        respond: 'Promise lightweight 1-page benchmark prep doc',
-        move: 'Ask who else from ops/sales leadership should join'
+        respond: 'Promise calendar invite and 1-page sample list preview with Emil',
+        move: 'Ask for direct email address to lock in the calendar invite'
+      }
+    };
+  }
+
+  // BPO Core Objection 1: "Our reps have years of experience, they don't need practice"
+  if (lower.includes('experience') || lower.includes('senior') || lower.includes('veteran') || lower.includes('practice') || lower.includes('roleplay') || lower.includes('years')) {
+    return {
+      objectionType: 'Senior Rep Experience Defense ("Reps don\'t need practice")',
+      recommendedScript: `Makes total sense, ${firstName}—having seasoned reps who know the BPO space inside and out is a massive advantage. The reason teams work with Emil is that when you're paying top dollar for leads, you can't afford to let even senior reps use the first 5 dials of the day as warm-up swings. Our AI gets them in the zone before they touch a single live contact. Would you be open to a 20-minute look with Emil this Thursday afternoon?`,
+      tacticalRationale: 'Validate veteran rep experience. Contrast burning expensive leads as warm-up swings with pre-dial AI sparring, and propose 20 minutes with Founder Emil.',
+      arm: {
+        acknowledge: 'Validate seasoned rep experience and industry tenure',
+        respond: 'Explain how expensive leads should not be wasted as warm-up practice swings',
+        move: 'Propose a 20-minute screen share with Founder Emil this Thursday at 2:00 PM'
+      }
+    };
+  }
+
+  // BPO Core Objection 2: "We already buy our leads from Outsource Accelerator / brokers"
+  if (lower.includes('outsource accelerator') || lower.includes('oa') || lower.includes('buy our leads') || lower.includes('directory') || lower.includes('lead vendor') || lower.includes('broker')) {
+    return {
+      objectionType: 'Directory Lead Status Quo ("We buy from Outsource Accelerator")',
+      recommendedScript: `That's great, ${firstName}—it means you have active budget and a dedicated sales team ready to close deals. The only catch is that directory leads get pitched by 3 to 5 rival BPOs simultaneously, cutting your margins in half. We generate private, Claude-enriched lists that zero competitors have seen, paired with pre-dial AI training. Could we show you a private sample list for your vertical this Thursday?`,
+      tacticalRationale: 'Praise their active lead budget. Expose the shared-lead price trap (3-5 rival BPOs) and offer a private Claude sample list preview with Emil.',
+      arm: {
+        acknowledge: 'Validate active lead budget and sales team readiness',
+        respond: 'Expose the shared-lead price trap: 3-5 rival BPOs fighting over the same leads',
+        move: 'Offer a private sample list walkthrough for their vertical with Emil on Thursday'
+      }
+    };
+  }
+
+  // BPO Core Objection 3: "Just email me your pricing / send some info"
+  if (lower.includes('pricing') || lower.includes('price') || lower.includes('quote') || lower.includes('cost') || lower.includes('how much') || lower.includes('rate')) {
+    return {
+      objectionType: 'Pricing Brush-Off ("Just email me your pricing")',
+      recommendedScript: `Gladly, ${firstName}—I'll get a full overview sent over so you have it in writing. Because pricing is tied to your specific BPO vertical and how many reps are sparring on the platform, Emil tailors the numbers directly on a brief screen share. Are you free for 20 minutes with Emil on Thursday at 2:00 PM, or is Friday morning better?`,
+      tacticalRationale: 'Agree pleasantly to send information, explain pricing depends on vertical and sparring seats, and pivot to a 20-minute custom quote with Emil.',
+      arm: {
+        acknowledge: 'Agree to send documentation and pricing in writing',
+        respond: 'Explain pricing is customized based on vertical and sparring seats',
+        move: 'Propose a 20-minute screen share with Emil on Thursday 2 PM or Friday'
+      }
+    };
+  }
+
+  // BPO Core Objection 4: "We train our reps internally"
+  if (lower.includes('internally') || lower.includes('internal') || lower.includes('team lead') || lower.includes('train our') || lower.includes('coaching')) {
+    return {
+      objectionType: 'Internal Training Defense ("We train our reps internally")',
+      recommendedScript: `That's awesome, ${firstName}—internal coaching is how you maintain quality and culture. The challenge team leaders tell us is they don't have hours each morning to roleplay 1-on-1 with every rep. Our AI sparring tool gives each rep 5 realistic objection rounds in 5 minutes before their shift even starts. Would you be opposed to seeing how Emil sets up the sparring bots this Thursday at 2:00 PM?`,
+      tacticalRationale: 'Compliment internal training. Reframe team leader time constraints vs. 5 automated AI sparring rounds, and invite to see setup with Emil.',
+      arm: {
+        acknowledge: 'Compliment internal coaching and team culture',
+        respond: 'Highlight team leader bandwidth constraints vs. automated 5-minute pre-shift AI sparring',
+        move: 'Invite them to see how Emil sets up the sparring bots this Thursday at 2:00 PM'
       }
     };
   }

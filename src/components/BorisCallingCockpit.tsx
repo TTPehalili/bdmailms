@@ -28,7 +28,7 @@ import GlobalTopHeader from '@/components/GlobalTopHeader';
 
 interface ARMRebuttal {
   id: string;
-  category: 'Timing' | 'Incumbent' | 'Budget' | 'Privacy' | 'Authenticity' | 'Burned';
+  category: 'Timing' | 'Incumbent' | 'Budget' | 'Privacy' | 'Authenticity' | 'Burned' | 'Experience' | 'Training';
   categoryColor: string;
   trigger: string;
   listenFor: string;
@@ -48,14 +48,19 @@ export default function BorisCallingCockpit() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Customer / Lead state for B2B Outbound SDR
-  const [customerName, setCustomerName] = useState('Jonathan Duarte');
-  const [partnerName, setPartnerName] = useState('OmniCloud Technologies');
+  const [customerName, setCustomerName] = useState('Julian Vance');
+  const [partnerName, setPartnerName] = useState('Apex Global BPO');
   const [phone, setPhone] = useState('+1 (415) 890-1284');
-  const [territory, setTerritory] = useState('US Enterprise • Tech Stack: HubSpot & Apollo');
-  const [leadNotes, setLeadNotes] = useState('Current Outsourcer: Titan BPO Solutions\nTech Stack: HubSpot & Apollo\nPain: Outbound hold rate & rep objection hesitation');
+  const [territory, setTerritory] = useState('250 Seats • Customer Support & Outbound Sales');
+  const [leadNotes, setLeadNotes] = useState('Lead Sourcing: Outsource Accelerator / Directory Brokers\nPain: Shared-lead price wars ($8/hr race) & senior reps burning expensive leads\nFounder Meeting: 20-min demo with Emil (17+ yrs BPO BDM)');
+
+  // Interactive BPO Playbook State
+  const [recognizedOA, setRecognizedOA] = useState<boolean | null>(null);
+  const [confirmedPriceTrap, setConfirmedPriceTrap] = useState(false);
+  const [selectedVertical, setSelectedVertical] = useState<'customer-service' | 'bookkeeping' | 'outbound-sales'>('customer-service');
 
   // Call Notes & Dispositions
-  const [notesDraft, setNotesDraft] = useState('Prospect confirmed 6-person SDR team running Apollo. Experiencing high drop-off on cold discovery conversions.');
+  const [notesDraft, setNotesDraft] = useState('Julian Vance (Apex Global BPO) - 250 seats. Buys from Outsource Accelerator. Confirmed shared-lead price war pain. Booking 20-min demo with Founder Emil.');
   const [disposition, setDisposition] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState<string | null>(null);
 
@@ -78,131 +83,115 @@ export default function BorisCallingCockpit() {
     }
   };
 
-  // 100% Pure B2B Cold Outbound Sales Script (Zero solar / zero roof)
+  // Official BPO Client Acquisition Playbook: Claude ICP Enrichment & AI Sparring Engine
   const steps = [
     { 
       num: 1, 
-      title: 'Opener', 
+      title: 'Opener & Directory Check', 
       time: '20 SEC',
-      purpose: 'Pattern interrupt, identity verification, and permission-based value hook.',
-      line1: `"Hi ${customerName.split(' ')[0] || 'there'} ... Emil from Appointmentlyy, just reaching out in regards to the outbound sales intelligence and appointment setting workflow for ${partnerName || 'your company'}."`,
-      line2: `"I have a few notes here regarding your outbound demand gen pipeline."`,
-      footnote: `If tech stack is provided: "I noticed your team is currently running Apollo & HubSpot."`
+      purpose: 'Pattern interrupt & establish shared frame: check if they buy from directories like Outsource Accelerator.',
+      line1: `"Hi ${customerName.split(' ')[0] || 'there'}, I know you weren't expecting my call—do you have 30 seconds?"`,
+      line2: `"A lot of BPO leaders we talk to buy leads from directories like Outsource Accelerator... does that name ring a bell?"`,
+      footnote: `If YES: "Got it, so you're familiar with how that model works." | If NO: "No worries at all—they're essentially an outsourcing directory where BPOs buy client lead lists."`
     },
     { 
       num: 2, 
-      title: 'Q1: Tech Stack & Incumbent', 
+      title: 'Confirm Core Bottleneck', 
       time: '30 SEC',
-      purpose: 'Identify existing CRM, dialer stack, and whether outbound is in-house or outsourced.',
-      line1: `"Are you currently running your cold outreach internally through an SDR team, or are you utilizing an agency partner for booking qualified discovery calls?"`,
-      line2: `"Understood—and what softphone or dialer stack is the floor primarily running today?"`,
-      footnote: `Listen for: Apollo, Salesloft, Outreach, ZoomInfo, or incumbent agency retainer.`
+      purpose: 'Expose the Shared-Lead Price Trap (3-5 BPOs pitching the same lead). Stop talking and let them vent.',
+      line1: `"The biggest headache BPO bosses share with us is that lead vendors sell those exact same names to 3 to 5 other BPOs at the exact same time."`,
+      line2: `"Are you guys noticing that too, where your sales team is constantly fighting off cheaper prices on those shared leads?"`,
+      footnote: `CRITICAL: Stop talking. Let them vent about price wars. Once validated: "Exactly. It forces you into a margin-killing price race to the bottom."`
     },
     { 
       num: 3, 
-      title: 'The Assessment', 
+      title: 'Problem vs. Solution', 
       time: '45 SEC',
-      purpose: 'Surface the core bottleneck: rep ramp latency, objection hesitation, or hold rate loss.',
-      line1: `"Typically, VPs of Demand Generation we talk to mention that rep hesitation when prospects push back causes over 40% of warm pipeline drop-off."`,
-      line2: `"When your reps run into buyer resistance on cold dials, what is your standard framework for keeping them on the phone?"`,
-      footnote: `Identify if they have a structured ARM (Acknowledge, Respond, Move) playbook in place.`
+      purpose: 'Contrast burning expensive leads as warm-up swings vs. Private Claude-enriched lists + Pre-dial AI Sparring.',
+      line1: `"When you pay top dollar for leads, you can't afford to let reps use live prospects as warm-up swings. We generate private, Claude-enriched lists that zero competitors have seen..."`,
+      line2: `"...and our pre-dial AI simulator gives your reps 5 practice rounds to warm up before they touch a single live contact."`,
+      footnote: `Diagnostic transition: "Which verticals bring in the most money for you guys—Customer Service, Bookkeeping, or Outbound Sales?"`
     },
     { 
       num: 4, 
-      title: 'Qualifying Block', 
-      time: '60 SEC',
-      purpose: 'Validate qualification criteria: active dialing reps, monthly quota target, decision maker.',
-      line1: `"To see if this even makes sense for a test run—how many full-time reps are actively making dials on your campaigns right now?"`,
-      line2: `"And outside of yourself, who else evaluates sales enablement tools before deploying them to the calling floor?"`,
-      footnote: `Minimum requirement: 2+ active SDRs and authority to test sales assist copilot.`
+      title: 'Vertical Diagnostic Pivot', 
+      time: '45 SEC',
+      purpose: 'Tailor the pitch to their primary vertical: CS ($8/hr price race), Bookkeeping (accounting software trust), or Sales (impatient gatekeepers).',
+      line1: selectedVertical === 'customer-service'
+        ? `"For customer support, our AI trains your reps against clients demanding an $8/hour offshore rate by anchoring CSAT and first-contact resolution."`
+        : selectedVertical === 'bookkeeping'
+        ? `"For bookkeeping and back-office, our AI trains reps on QuickBooks, Xero, and data trust so they sound like experienced financial pros."`
+        : `"For outbound sales, our AI trains reps against impatient execs trying to hang up within 10 seconds, doubling live conversion rates."`,
+      line2: `"Which of those bottlenecks is hitting your floor hardest right now?"`,
+      footnote: `Select their primary profit center (Customer Service, Bookkeeping, or Sales) to adapt the live pitch.`
     },
     { 
       num: 5, 
-      title: 'Value Reframe', 
-      time: '40 SEC',
-      purpose: 'Anchor the AI Boris solution: sub-second audio interception with zero rep disruption.',
-      line1: `"We don't ask you to replace your current CRM or agency. We plug an audio stream directly into your calls to feed reps instant ARM talk tracks in 140ms."`,
-      line2: `"It completely eliminates rep panic on objections and doubles qualified meeting bookings."`,
-      footnote: `Reframe competitor objections: "We act as the tactical execution layer on top of your stack."`
-    },
-    { 
-      num: 6, 
-      title: 'Diagnostic Close', 
+      title: 'The Close: Demo with Emil', 
       time: '30 SEC',
-      purpose: 'Lock a low-friction 10-minute diagnostic session with calendar commitment.',
-      line1: `"If we could eliminate rep hesitation on cold calls without disrupting your existing reps, would you be opposed to looking at a 10-minute diagnostic run next Tuesday morning?"`,
-      line2: `"I can lock 10:30 AM or 2:00 PM EDT on the calendar—which time slot works better for you?"`,
-      footnote: `Confirm email and send calendar invite immediately before wrapping up.`
+      purpose: 'Anchor Founder Emil (17+ yrs BPO veteran) and lock a 20-min screen share demo for Thursday at 2:00 PM or Friday morning.',
+      line1: `"Our founder, Emil, has been in the BPO BDM trenches for over 17 years. He put together a 20-minute screen share showing how we build private Claude-enriched lists and let reps spar with AI before live calls."`,
+      line2: `"Would you be open to taking a look with Emil this Thursday at 2:00 PM, or does Friday morning work better for your calendar?"`,
+      footnote: `Lock in Thursday 2:00 PM or Friday morning, confirm direct email, and send calendar invite.`
     },
   ];
 
-  // 100% Pure B2B ARM Rebuttals (Acknowledge, Respond, Move)
+  // Official BPO Client Acquisition ARM Rebuttals (Acknowledge, Respond, Move)
   const rebuttals: ARMRebuttal[] = [
     {
-      id: 'reb_email',
-      category: 'Timing',
+      id: 'reb_veteran_reps',
+      category: 'Experience',
       categoryColor: 'bg-blue-50 text-blue-800 border-blue-200',
-      trigger: 'Just send me an email / send some information',
-      listenFor: 'Polite brush-off to get off the phone without reading.',
-      acknowledge: 'Totally understand, happy to send a 1-page breakdown over so you have it in writing.',
-      respond: 'The reason I reached out directly is that most VPs tell us marketing decks get lost in 400 unread emails without context on rep objection hold rates.',
-      move: 'Before I shoot that over, what dialer or softphone stack is your SDR team running right now so I include the exact integration specs?',
-      fullSpoken: 'Totally understand, happy to send a 1-page breakdown so you have it in writing. The reason I reached out directly is that most VPs tell us marketing decks get lost in unread emails without context on rep objection hold rates. Before I shoot that over, what dialer or CRM is your SDR team running right now so I include the exact integration specs?'
+      trigger: 'Our reps have years of experience, they don\'t need practice',
+      listenFor: 'Pride in veteran senior sales team.',
+      acknowledge: 'Makes total sense—having seasoned reps who know the BPO space inside and out is a massive advantage.',
+      respond: 'The reason teams work with Emil is that when you\'re paying top dollar for leads, you can\'t afford to let even senior reps use the first 5 dials of the day as warm-up swings. Our AI gets them in the zone before they touch a single live contact.',
+      move: 'Would you be open to a 20-minute look with Emil this Thursday afternoon?',
+      fullSpoken: 'Makes total sense—having seasoned reps who know the BPO space inside and out is a massive advantage. The reason teams work with Emil is that when you\'re paying top dollar for leads, you can\'t afford to let even senior reps use the first 5 dials of the day as warm-up swings. Our AI gets them in the zone before they touch a single live contact. Would you be open to a 20-minute look with Emil this Thursday afternoon?'
     },
     {
-      id: 'reb_agency',
+      id: 'reb_oa_directory',
       category: 'Incumbent',
       categoryColor: 'bg-purple-50 text-purple-800 border-purple-200',
-      trigger: 'We already use an agency / outsource partner',
-      listenFor: 'They have a contracted agency managing outbound.',
-      acknowledge: 'That makes complete sense—most high-growth teams we work with partner with an agency for top-of-funnel discovery.',
-      respond: 'We actually don\'t replace your agency. We provide the real-time AI audio assist layer that plugs into their reps\' headsets to cut objection drop-off by 40%.',
-      move: 'Are you satisfied with the volume of qualified meetings they\'re putting on your calendar this month, or would a 10-minute diagnostic run be worth a quick look?',
-      fullSpoken: 'That makes complete sense—most teams partner with an agency for top-of-funnel discovery. We actually don\'t replace your agency. We provide the real-time AI audio assist layer that plugs into their reps\' headsets to cut objection drop-off by 40%. Are you satisfied with the volume of qualified meetings they\'re putting on your calendar this month?'
+      trigger: 'We already buy our leads from Outsource Accelerator / brokers',
+      listenFor: 'Active lead budget with directories.',
+      acknowledge: 'That\'s great—it means you have active budget and a dedicated sales team ready to close deals.',
+      respond: 'The only catch is that directory leads get pitched by 3 to 5 rival BPOs simultaneously, cutting your margins in half. We generate private, Claude-enriched lists that zero competitors have seen, paired with pre-dial AI training.',
+      move: 'Could we show you a private sample list for your vertical this Thursday with Emil?',
+      fullSpoken: 'That\'s great—it means you have active budget and a dedicated sales team ready to close deals. The only catch is that directory leads get pitched by 3 to 5 rival BPOs simultaneously, cutting your margins in half. We generate private, Claude-enriched lists that zero competitors have seen, paired with pre-dial AI training. Could we show you a private sample list for your vertical this Thursday with Emil?'
     },
     {
-      id: 'reb_inhouse',
-      category: 'Incumbent',
-      categoryColor: 'bg-purple-50 text-purple-800 border-purple-200',
-      trigger: 'We handle all outbound in-house with internal SDRs',
-      listenFor: 'Pride in internal sales team culture.',
-      acknowledge: 'Makes complete sense—having internal reps who deeply understand your core product domain is a huge advantage.',
-      respond: 'Appointmentlyy is built specifically to superpower in-house teams. Boris intercepts prospect friction in 140ms and surfaces battle-tested ARM talk tracks right before reps drop the ball.',
-      move: 'How many full-time SDRs do you currently have making dials on your floor?',
-      fullSpoken: 'Makes complete sense—having internal reps who deeply understand your core product domain is a huge advantage. Appointmentlyy is built specifically to superpower in-house teams. Boris intercepts prospect friction in 140ms and surfaces battle-tested ARM talk tracks right before reps drop the ball. How many full-time SDRs do you currently have making dials today?'
-    },
-    {
-      id: 'reb_budget',
+      id: 'reb_email_pricing',
       category: 'Budget',
       categoryColor: 'bg-amber-50 text-amber-800 border-amber-200',
-      trigger: 'Not interested / We don\'t have budget for this',
-      listenFor: 'Premature budget defense before understanding the ROI.',
-      acknowledge: 'Completely fair—I wouldn\'t expect you to have budget allocated for something you haven\'t seen in action yet.',
-      respond: 'This isn\'t an enterprise budget commitment. We run a low-friction diagnostic test on live dials so you can measure the booked meeting lift before spending a dollar.',
-      move: 'Would you be totally opposed to taking a 7-minute peek next Tuesday morning?',
-      fullSpoken: 'Completely fair—I wouldn\'t expect you to have budget allocated for something you haven\'t seen in action yet. This isn\'t an enterprise budget commitment. We run a low-friction diagnostic test on live dials so you can measure the booked meeting lift before spending a dollar. Would you be totally opposed to taking a 7-minute peek next Tuesday morning?'
+      trigger: 'Just email me your pricing / send some info',
+      listenFor: 'Pricing brush-off without understanding value.',
+      acknowledge: 'Gladly—I\'ll get a full overview sent over so you have it in writing.',
+      respond: 'Because pricing is tied to your specific BPO vertical and how many reps are sparring on the platform, Emil tailors the numbers directly on a brief screen share.',
+      move: 'Are you free for 20 minutes with Emil on Thursday at 2:00 PM, or is Friday morning better?',
+      fullSpoken: 'Gladly—I\'ll get a full overview sent over so you have it in writing. Because pricing is tied to your specific BPO vertical and how many reps are sparring on the platform, Emil tailors the numbers directly on a brief screen share. Are you free for 20 minutes with Emil on Thursday at 2:00 PM, or is Friday morning better?'
     },
     {
-      id: 'reb_swamped',
+      id: 'reb_too_busy',
       category: 'Timing',
       categoryColor: 'bg-blue-50 text-blue-800 border-blue-200',
-      trigger: 'I\'m swamped right now / bad timing / call back next month',
-      listenFor: 'Operational overload, fires, calendar fatigue.',
-      acknowledge: 'Completely understand, I hear the background noise and know you\'re jumping between meetings.',
-      respond: 'I definitely don\'t want to disrupt your day. The reason for the call is that teams use this to eliminate rep ramp management overhead completely.',
-      move: 'What does your calendar look like for a brief 5-minute catch-up next Thursday at 10:30 AM EDT?',
-      fullSpoken: 'Completely understand, I hear the background noise and know you\'re jumping between meetings. I definitely don\'t want to disrupt your day. The reason for the call is that teams use this to eliminate rep ramp management overhead completely. What does your calendar look like for a brief 5-minute catch-up next Thursday at 10:30 AM EDT?'
+      trigger: 'We are too busy for a demo right now',
+      listenFor: 'Operational floor overload.',
+      acknowledge: 'Completely understand—running a high-volume BPO operation takes every ounce of bandwidth.',
+      respond: 'That\'s exactly why Emil built this: to stop your reps from burning hours fighting price wars on shared leads that competitors are already closing.',
+      move: 'Could we carve out just 20 minutes before your floor gets crazy—say Thursday at 8:30 AM or Friday morning?',
+      fullSpoken: 'Completely understand—running a high-volume BPO operation takes every ounce of bandwidth. That\'s exactly why Emil built this: to stop your reps from burning hours fighting price wars on shared leads that competitors are already closing. Could we carve out just 20 minutes before your floor gets crazy—say Thursday at 8:30 AM or Friday morning?'
     },
     {
-      id: 'reb_privacy',
-      category: 'Privacy',
-      categoryColor: 'bg-rose-50 text-rose-800 border-rose-200',
-      trigger: 'How did you get my direct phone number?',
-      listenFor: 'Privacy resistance or suspicion of unsolicited contact.',
-      acknowledge: 'Fair question! I always want to be 100% transparent.',
-      respond: 'We use compliant B2B intelligence platforms like Apollo and ZoomInfo to identify demand generation leaders whose teams are actively scaling outbound pipeline.',
-      move: 'Since I have you for just 20 seconds, is outbound conversion rate something your sales floor is actively looking to improve this quarter?',
-      fullSpoken: 'Fair question! I always want to be 100% transparent. We use compliant B2B intelligence platforms like Apollo and ZoomInfo to identify demand generation leaders whose teams are actively scaling outbound pipeline. Since I have you for just 20 seconds, is outbound conversion rate something your sales floor is actively looking to improve this quarter?'
+      id: 'reb_internal_training',
+      category: 'Incumbent',
+      categoryColor: 'bg-purple-50 text-purple-800 border-purple-200',
+      trigger: 'We train our reps internally',
+      listenFor: 'Internal team leader coaching pride.',
+      acknowledge: 'That\'s awesome—internal coaching is how you maintain quality and culture.',
+      respond: 'The challenge team leaders tell us is they don\'t have hours each morning to roleplay 1-on-1 with every rep. Our AI sparring tool gives each rep 5 realistic objection rounds in 5 minutes before their shift even starts.',
+      move: 'Would you be opposed to seeing how Emil sets up the sparring bots this Thursday at 2:00 PM?',
+      fullSpoken: 'That\'s awesome—internal coaching is how you maintain quality and culture. The challenge team leaders tell us is they don\'t have hours each morning to roleplay 1-on-1 with every rep. Our AI sparring tool gives each rep 5 realistic objection rounds in 5 minutes before their shift even starts. Would you be opposed to seeing how Emil sets up the sparring bots this Thursday at 2:00 PM?'
     },
     {
       id: 'reb_authenticity',
@@ -211,9 +200,9 @@ export default function BorisCallingCockpit() {
       trigger: 'Is this an AI robot or automated dialer voice?',
       listenFor: 'Prospect checking for robotic or synthetic presence.',
       acknowledge: 'Haha, nope! I\'m an actual live human being dialing you from our team right now.',
-      respond: 'We do develop real-time AI copilot technology that assists live reps during calls, but every conversation is 100% authentic human-to-human.',
-      move: 'Curious—have you explored deploying live AI audio assist tools on your SDR calling floor yet?',
-      fullSpoken: 'Haha, nope! I\'m an actual live human being dialing you from our team right now. We do develop real-time AI copilot technology that assists live reps during calls, but every conversation is 100% authentic human-to-human. Curious—have you explored deploying live AI audio assist tools on your SDR calling floor yet?'
+      respond: 'We develop real-time AI sparring technology for BPOs, but every conversation on our line is 100% authentic human-to-human.',
+      move: 'Curious—have you explored deploying live AI sparring simulation for your appointment setters yet?',
+      fullSpoken: 'Haha, nope! I\'m an actual live human being dialing you from our team right now. We develop real-time AI sparring technology for BPOs, but every conversation on our line is 100% authentic human-to-human. Curious—have you explored deploying live AI sparring simulation for your appointment setters yet?'
     },
     {
       id: 'reb_burned',
@@ -221,10 +210,21 @@ export default function BorisCallingCockpit() {
       categoryColor: 'bg-red-50 text-red-800 border-red-200',
       trigger: 'We tried an outbound service before and it burned our domain',
       listenFor: 'Trauma from low-quality spam or poor agency execution.',
-      acknowledge: 'I hear that all the time, and frankly a lot of fly-by-night agencies blast spam emails and ruin company reputation.',
-      respond: 'We don\'t do spam outreach. We run live acoustic hold verification, sub-second objection assistance, and targeted account qualification so your brand equity is protected.',
-      move: 'Would you be open to reviewing our live audio QA scorecard to see how we guarantee conversational compliance?',
-      fullSpoken: 'I hear that all the time, and frankly a lot of fly-by-night agencies blast spam emails and ruin company reputation. We don\'t do spam outreach. We run live acoustic hold verification, sub-second objection assistance, and targeted account qualification so your brand equity is protected. Would you be open to reviewing our live audio QA scorecard to see how we guarantee conversational compliance?'
+      acknowledge: 'I don\'t blame you for being skeptical—most offshore teams spam generic lists and ruin deliverability.',
+      respond: 'We don\'t spam. We use Claude to build exclusive, verified ICP lists and enforce live Boris acoustic QA to guarantee 100% brand safety.',
+      move: 'Can I show you our live acoustic verification on the screen share with Emil this Thursday?',
+      fullSpoken: 'I don\'t blame you for being skeptical—most offshore teams spam generic lists and ruin deliverability. We don\'t spam. We use Claude to build exclusive, verified ICP lists and enforce live Boris acoustic QA to guarantee 100% brand safety. Can I show you our live acoustic verification on the screen share with Emil this Thursday?'
+    },
+    {
+      id: 'reb_privacy',
+      category: 'Privacy',
+      categoryColor: 'bg-rose-50 text-rose-800 border-rose-200',
+      trigger: 'How did you get my direct phone number?',
+      listenFor: 'Privacy resistance or suspicion of unsolicited contact.',
+      acknowledge: 'Fair question! I always want to be 100% transparent.',
+      respond: 'We use Claude-powered ICP enrichment to identify BPO founders and managing directors who are actively competing in the outsourcing market.',
+      move: 'Since I have you for just 20 seconds, are shared-lead price wars something impacting your sales floor right now?',
+      fullSpoken: 'Fair question! I always want to be 100% transparent. We use Claude-powered ICP enrichment to identify BPO founders and managing directors who are actively competing in the outsourcing market. Since I have you for just 20 seconds, are shared-lead price wars something impacting your sales floor right now?'
     }
   ];
 
@@ -494,6 +494,159 @@ export default function BorisCallingCockpit() {
                       {currentStepData.purpose}
                     </p>
                   </div>
+
+                  {/* Step 1 Interactive OA Check */}
+                  {currentStep === 1 && (
+                    <div className="bg-[#F2F0EF] p-3 rounded-xl border border-[#222021]/10 space-y-2">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968] block">
+                        OUTSOURCE ACCELERATOR DIRECTORY CHECK:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setRecognizedOA(true)}
+                          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all border ${
+                            recognizedOA === true
+                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                              : 'bg-white border-[#222021]/15 text-[#222021] hover:border-emerald-600'
+                          }`}
+                        >
+                          ✓ Yes, Recognizes OA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRecognizedOA(false)}
+                          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all border ${
+                            recognizedOA === false
+                              ? 'bg-zinc-800 border-zinc-800 text-white shadow-xs'
+                              : 'bg-white border-[#222021]/15 text-[#222021] hover:border-zinc-800'
+                          }`}
+                        >
+                          ✕ No, Never Heard
+                        </button>
+                      </div>
+                      {recognizedOA === true && (
+                        <p className="text-xs text-emerald-800 font-semibold bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                          🎯 Speak Branch: "Got it, so you're familiar with how that model works." (Proceed to Step 2)
+                        </p>
+                      )}
+                      {recognizedOA === false && (
+                        <p className="text-xs text-zinc-800 font-medium bg-zinc-100 p-2 rounded-lg border border-zinc-200">
+                          ℹ️ Speak Branch: "No worries at all—they're essentially an outsourcing directory where BPOs buy client lead lists." (Proceed to Step 2)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Step 2 Interactive Shared-Lead Pain Check */}
+                  {currentStep === 2 && (
+                    <div className="bg-[#F2F0EF] p-3 rounded-xl border border-[#222021]/10 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmedPriceTrap(!confirmedPriceTrap)}
+                        className={`w-full p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition-all ${
+                          confirmedPriceTrap
+                            ? 'bg-amber-50 border-amber-300 text-amber-950 font-bold shadow-2xs'
+                            : 'bg-white border-[#222021]/15 text-[#222021]'
+                        }`}
+                      >
+                        <span className={`h-4 w-4 rounded flex items-center justify-center border shrink-0 ${confirmedPriceTrap ? 'bg-amber-600 border-amber-600 text-white' : 'border-zinc-400 bg-white'}`}>
+                          {confirmedPriceTrap ? '✓' : ''}
+                        </span>
+                        <span className="text-xs leading-snug">
+                          Prospect Confirmed: Shared-Lead Price Trap (3-5 rival BPOs pitching same lead)
+                        </span>
+                      </button>
+                      {confirmedPriceTrap && (
+                        <p className="text-xs text-amber-900 bg-amber-100/70 p-2 rounded-lg border border-amber-200 font-medium">
+                          💡 Tactical Pivot: "Exactly. It forces you into a margin-killing price race to the bottom where clients demand $8/hr."
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Step 4 Interactive Vertical Selector */}
+                  {currentStep === 4 && (
+                    <div className="bg-[#F2F0EF] p-3 rounded-xl border border-[#222021]/10 space-y-2">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968] block">
+                        SELECT PROSPECT'S PRIMARY VERTICAL PROFIT CENTER:
+                      </span>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVertical('customer-service')}
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all border text-center ${
+                            selectedVertical === 'customer-service'
+                              ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
+                              : 'bg-white border-[#222021]/15 text-[#222021]'
+                          }`}
+                        >
+                          🎧 Support ($8/hr)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVertical('bookkeeping')}
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all border text-center ${
+                            selectedVertical === 'bookkeeping'
+                              ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
+                              : 'bg-white border-[#222021]/15 text-[#222021]'
+                          }`}
+                        >
+                          📊 Bookkeeping
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVertical('outbound-sales')}
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all border text-center ${
+                            selectedVertical === 'outbound-sales'
+                              ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
+                              : 'bg-white border-[#222021]/15 text-[#222021]'
+                          }`}
+                        >
+                          📞 Outbound Sales
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 5 Interactive Booking Banner */}
+                  {currentStep === 5 && (
+                    <div className="bg-gradient-to-r from-zinc-900 to-black text-white p-3.5 rounded-xl border border-zinc-800 space-y-2 shadow-inner">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold flex items-center gap-1.5">
+                          <span>📅 FOUNDER DEMO CALENDAR</span>
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                          17+ Yrs BDM Veteran
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-200">
+                        Targeting 20-minute screen share with Emil to preview private Claude list & AI sparring agents.
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotesDraft(prev => prev + '\n[MEETING BOOKED] 20-min demo with Founder Emil confirmed for Thursday 2:00 PM.');
+                            setDisposition('Meeting Booked');
+                          }}
+                          className="flex-1 py-1.5 px-2 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <span>Thursday 2:00 PM</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotesDraft(prev => prev + '\n[MEETING BOOKED] 20-min demo with Founder Emil confirmed for Friday 10:00 AM.');
+                            setDisposition('Meeting Booked');
+                          }}
+                          className="flex-1 py-1.5 px-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <span>Friday 10:00 AM</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Spoken Script Quotation 1 */}
                   <div className="space-y-2 pt-2 border-t border-[#222021]/10">
