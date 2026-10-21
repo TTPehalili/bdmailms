@@ -14,7 +14,7 @@ function extractJson(text: string) {
   }
 }
 
-// Persona-specific contextual fallback logic that dynamically responds and never repeats
+// Persona-specific contextual fallback logic that acts as an authentic adversarial sparring partner
 function generateContextualFallback(
   persona: SparringPersona,
   repMessage: string,
@@ -24,43 +24,60 @@ function generateContextualFallback(
   const pastReplies = history
     .filter(t => t.role === 'prospect')
     .map(t => t.content.toLowerCase());
+  const turnCount = history.filter(t => t.role === 'rep').length;
 
   const hasEmpathy = lower.includes('understand') || lower.includes('hear you') || lower.includes('fair') || lower.includes('appreciate') || lower.includes('makes sense');
   const hasValue = lower.includes('benchmark') || lower.includes('diagnostic') || lower.includes('sla') || lower.includes('rate') || lower.includes('conversion') || lower.includes('drop-off') || lower.includes('percent') || lower.includes('%') || lower.includes('save') || lower.includes('pipeline');
   const hasClose = (lower.includes('?') || lower.includes('open to') || lower.includes('calendar')) && (lower.includes('tuesday') || lower.includes('thursday') || lower.includes('minute') || lower.includes('review') || lower.includes('compare') || lower.includes('diagnostic'));
+  const isAskingQuestion = lower.includes('?') && (lower.includes('how do you') || lower.includes('what is') || lower.includes('who') || lower.includes('tell me') || lower.includes('why'));
 
   let candidateReplies: string[] = [];
   let completedIds: string[] = [];
   let sentiment = 'skeptical';
-  let armObservation = 'Rep engaged prospect.';
+  let armObservation = 'Prospect raised cold-call friction.';
 
   if (persona.id === 'incumbent-loyalist') {
-    // David Reynolds
-    if (hasClose) {
+    // David Reynolds (Incumbent Loyalist)
+    if (turnCount >= 2 && hasEmpathy && hasValue && hasClose) {
       candidateReplies = [
-        "Alright, fair enough. If it's literally just a 10-minute SLA benchmark comparison and not a hard sales pitch, put 10:30 AM Thursday on my calendar.",
-        "Look, if you can actually show where our incumbent has conversion blindspots in 10 minutes, I'll take a look on Thursday."
+        "Look, if it's strictly a 10-minute SLA benchmark comparison and not a pitch to fire my agency, send an invite for Thursday at 10:30 AM.",
+        "Fair enough. If you can actually show where our incumbent has conversion blindspots in 10 minutes without disrupting our team, put Thursday on my calendar."
       ];
       completedIds = persona.objectives.map(o => o.id);
       sentiment = 'agreed';
-      armObservation = 'Rep closed with low-friction SLA benchmark comparison.';
-    } else if (hasValue || lower.includes('happy') || lower.includes('team') || lower.includes('partner') || lower.includes('agency')) {
+      armObservation = 'Rep executed full ARM framework and earned 10-minute benchmark.';
+    } else if (isAskingQuestion) {
       candidateReplies = [
-        "Yes, our agency partner has been consistent for three years. So what makes your model any different from what they already do?",
-        "We're completely satisfied with our current vendors. Unless you can pinpoint a specific leak in our SDR hold rate, why would we switch?",
-        "I'm not looking to fire an agency that hits quota. What exact gap in our outbound pipeline are you proposing to fix?"
+        "Why are you asking about our internal SDR workflow? We have an established partner who manages that. What are you actually offering?",
+        "I don't share our internal metrics with cold callers. If you know our space, tell me what specific bottleneck you think we have."
+      ];
+      completedIds = [];
+      sentiment = 'hostile';
+      armObservation = 'Prospect resisted qualification questioning.';
+    } else if (hasClose && turnCount < 2) {
+      candidateReplies = [
+        "I'm not putting anything on my calendar. We've worked with our current agency for 3 years and we are completely satisfied. Why would we switch?",
+        "Hold on, you haven't even told me why I'd spend 10 minutes with you. What makes your team any different from everyone else?"
+      ];
+      completedIds = [];
+      sentiment = 'skeptical';
+      armObservation = 'Prospect pushed back against premature close.';
+    } else if (hasValue) {
+      candidateReplies = [
+        "Those metrics sound great on a slide, but our agency is deeply embedded in our CRM. Why would I risk disrupting an established partner that hits quota?",
+        "We're completely satisfied with our current vendors. Unless you can pinpoint a specific leak in our SDR hold rate, why would we switch?"
       ];
       completedIds = [persona.objectives[0].id, persona.objectives[1].id];
       sentiment = 'softened';
-      armObservation = 'Rep probed current vendor relationship with value focus.';
+      armObservation = 'Rep probed vendor relationship with value focus; prospect demanded proof.';
     } else if (hasEmpathy) {
       candidateReplies = [
         "I appreciate you acknowledging that. We value our partners. What makes you think our current team has any performance gaps?",
-        "Glad you understand. Most reps just bash our existing agency. What specifically prompted your outreach to my team today?"
+        "Glad you understand. Most reps just bash our existing agency. But why should we spend any time evaluating another tool?"
       ];
       completedIds = [persona.objectives[0].id];
       sentiment = 'neutral';
-      armObservation = 'Rep demonstrated tactical empathy toward existing vendor relationship.';
+      armObservation = 'Rep demonstrated tactical empathy; prospect maintained defensive posture.';
     } else {
       candidateReplies = [
         "Like I said, we have an established vendor handling this. Why are you reaching out to us right now?",
@@ -72,34 +89,50 @@ function generateContextualFallback(
       armObservation = 'Prospect defended incumbent vendor.';
     }
   } else if (persona.id === 'rushed-vp') {
-    // Marcus Vance
-    if (hasClose) {
+    // Marcus Vance (Rushed VP)
+    if (turnCount >= 2 && hasEmpathy && hasValue && hasClose) {
       candidateReplies = [
-        "20% lift? Fine, send an invite for Thursday at 8:00 AM sharp before my standup. I'm stepping into the boardroom right now.",
-        "Alright, if it's literally 10 minutes to review that hold rate diagnostic, put Thursday morning on my calendar."
+        "Alright, fair enough on the 10-minute diagnostic. Send an invite for Thursday at 8:00 AM sharp before my standup. I'm stepping into the boardroom right now.",
+        "Fine, if it's strictly 10 minutes to review that hold rate diagnostic, put Thursday morning on my calendar. Now let me go."
       ];
       completedIds = persona.objectives.map(o => o.id);
       sentiment = 'agreed';
-      armObservation = 'Rep secured 10-minute diagnostic commitment.';
+      armObservation = 'Rep executed ARM under pressure and secured diagnostic commitment.';
+    } else if (isAskingQuestion) {
+      candidateReplies = [
+        "I don't have time to answer survey questions. If you have a specific value proposition, give me the headline in 10 seconds or I'm hanging up.",
+        "Look, I'm walking into an executive meeting. Don't grill me on our pipeline—tell me why you called."
+      ];
+      completedIds = [];
+      sentiment = 'hostile';
+      armObservation = 'Prospect rejected survey questions under time crunch.';
+    } else if (hasClose && turnCount < 2) {
+      candidateReplies = [
+        "I'm not putting anything on my calendar. I have literally 20 seconds before my board meeting—what is the bottom line?",
+        "Thursday for what? You haven't even told me what you do. Give me the headline."
+      ];
+      completedIds = [];
+      sentiment = 'hostile';
+      armObservation = 'Prospect pushed back against premature close.';
     } else if (hasValue) {
       candidateReplies = [
-        "You mention conversion metrics, but how does your team actually integrate without adding more management burden?",
+        "Every vendor claims double-digit hold rates. How does your model actually integrate without burning my team's bandwidth?",
         "What kind of SDR hold rate can you realistically commit to for high-growth fintech?"
       ];
       completedIds = [persona.objectives[0].id, persona.objectives[1].id];
       sentiment = 'softened';
-      armObservation = 'Rep cited ROI metric; prospect leaned in.';
+      armObservation = 'Rep cited ROI metric; prospect challenged feasibility.';
     } else if (hasEmpathy) {
       candidateReplies = [
-        "I appreciate you being brief. You've got 15 seconds—what is the headline?",
-        "Fair enough on the time crunch. What exactly is the metric you're calling about?"
+        "I appreciate you being brief. You've got 15 seconds—what is the metric?",
+        "Fair enough on the time crunch. What exactly is the headline?"
       ];
       completedIds = [persona.objectives[0].id];
       sentiment = 'neutral';
       armObservation = 'Rep acknowledged time constraint under 5 seconds.';
     } else {
       candidateReplies = [
-        "Look, I have 15 seconds before my meeting starts. Give me the bottom line.",
+        "Look, I have 15 seconds before my meeting starts. Give me the bottom line or let me go.",
         "I don't have time for fluff right now. What is this regarding?"
       ];
       completedIds = [];
@@ -107,31 +140,39 @@ function generateContextualFallback(
       armObservation = 'Prospect pressed for brevity.';
     }
   } else {
-    // General persona dynamic replies
-    if (hasClose) {
+    // General adversarial persona dynamic replies
+    if (turnCount >= 2 && hasEmpathy && hasValue && hasClose) {
       candidateReplies = [
-        `If it's literally just a 10-minute diagnostic without high pressure, send an invite for Thursday morning.`,
-        `Fair enough. Send through a tentative 10-minute hold for Thursday and I'll review the numbers.`
+        `Look, I'm still skeptical, but if it's literally just a 10-minute diagnostic without high pressure, send an invite for Thursday morning.`,
+        `Fair enough. Send through a tentative 10-minute hold for Thursday and I'll review the diagnostic data.`
       ];
       completedIds = persona.objectives.map(o => o.id);
       sentiment = 'agreed';
-      armObservation = 'Rep secured low-friction next step.';
+      armObservation = 'Rep executed ARM and earned diagnostic meeting.';
+    } else if (isAskingQuestion) {
+      candidateReplies = [
+        `Why are you asking about our internal process? I don't share internal operational details with cold callers.`,
+        `I didn't ask for a consultation. What is the reason you called my direct line today?`
+      ];
+      completedIds = [];
+      sentiment = 'skeptical';
+      armObservation = 'Prospect pushed back on unsolicited qualification.';
     } else if (hasValue) {
       candidateReplies = [
-        `You mention those numbers, but how does that actually work in practice for our department?`,
-        `That sounds fine in theory, but what kind of turnaround time and hold rate do you guarantee?`
+        `Those numbers sound fine on paper, but every vendor makes big promises. How do you actually prove that?`,
+        `That sounds good in theory, but what kind of turnaround time and hold rate do you guarantee in writing?`
       ];
       completedIds = [persona.objectives[0]?.id, persona.objectives[1]?.id].filter(Boolean);
       sentiment = 'softened';
-      armObservation = 'Rep introduced value metrics.';
+      armObservation = 'Rep cited value metrics; prospect demanded proof.';
     } else if (hasEmpathy) {
       candidateReplies = [
-        `I appreciate you hearing me out. Most cold callers just plow through their script.`,
-        `Fair point. But why should we prioritize this over our current initiatives?`
+        `I appreciate you hearing me out, but that doesn't change our situation. Why should we prioritize this over our current initiatives?`,
+        `Fair point. But what makes you think we have any problems we can't solve ourselves?`
       ];
       completedIds = [persona.objectives[0]?.id].filter(Boolean);
       sentiment = 'neutral';
-      armObservation = 'Rep used tactical empathy.';
+      armObservation = 'Rep used tactical empathy; prospect maintained skepticism.';
     } else {
       candidateReplies = [
         `Look, what specifically does this solve for my team right now?`,
@@ -177,6 +218,19 @@ function deriveDynamicScriptAssist(
     };
   }
 
+  if (lower.includes('why are you asking') || lower.includes('internal') || lower.includes('survey') || lower.includes('consultation') || lower.includes('grill')) {
+    return {
+      objectionType: 'Pushback on Qualification Questions ("Why are you asking about my team?")',
+      recommendedScript: `Fair pushback, ${firstName}—I'm not here to interrogate your team. The only reason I called is we helped a similar peer team double SDR hold rates from 42% to 68%. If you're open to a 10-minute diagnostic benchmark on Thursday, when works?`,
+      tacticalRationale: 'Validate their friction immediately, withdraw the intrusive questioning, and pivot back to hard peer metrics and a low-friction diagnostic.',
+      arm: {
+        acknowledge: 'Validate that uninvited qualification questions feel intrusive',
+        respond: 'Deliver quantified peer hold rate metric (42% to 68% lift)',
+        move: 'Propose a 10-minute diagnostic benchmark on Thursday'
+      }
+    };
+  }
+
   if (lower.includes('partner') || lower.includes('agency') || lower.includes('vendor') || lower.includes('satisfied')) {
     return {
       objectionType: 'Incumbent Partner Loyalty',
@@ -186,6 +240,19 @@ function deriveDynamicScriptAssist(
         acknowledge: 'Validate partner relationship with tactical empathy',
         respond: 'Frame as complementary overflow bottleneck solver',
         move: 'Propose a 10-minute SLA benchmark diagnostic'
+      }
+    };
+  }
+
+  if (lower.includes('proof') || lower.includes('hype') || lower.includes('everyone says') || lower.includes('buzzword') || lower.includes('guarantee')) {
+    return {
+      objectionType: 'Vendor Skepticism / Proof Request ("Sounds like buzzwords")',
+      recommendedScript: `I don't blame you for being skeptical, ${firstName}—every vendor makes big promises. That's why I'm not asking you to buy anything. I'm suggesting a 10-minute side-by-side diagnostic benchmark so you can see the hard data yourself. How is Thursday morning?`,
+      tacticalRationale: 'Embrace their skepticism with complete poise. Remove the sales pressure, frame the diagnostic as an objective data comparison, and close.',
+      arm: {
+        acknowledge: 'Validate that cold call vendor promises usually sound like hype',
+        respond: 'Clarify this is a zero-commitment data diagnostic, not a sales pitch',
+        move: 'Propose a 10-minute benchmark review on Thursday'
       }
     };
   }
@@ -246,40 +313,62 @@ export async function POST(req: NextRequest) {
       .map((t: any) => `${t.role === 'rep' ? 'Sales Rep' : persona.name}: "${t.content}"`)
       .join('\n');
 
-    const prompt = `You are roleplaying as ${persona.name}, ${persona.title} at ${persona.companyType}.
-Scenario: ${persona.scenario}
-Core Pushback / Default Stance: ${persona.coreObjection}
-Persona Behavioral Rules: ${persona.systemPrompt}
+    const prompt = `YOU ARE AN ADVERSARIAL B2B BUYER IN AN INTENSE AI SALES SPARRING SIMULATION.
+You are roleplaying as ${persona.name}, ${persona.title} at ${persona.companyType}.
+Your Scenario: ${persona.scenario}
+Your Core Pushback: "${persona.coreObjection}"
+Your Behavioral Rules & Personality:
+${persona.systemPrompt}
 
-Current Objectives Rep Must Achieve:
+Current Objectives the Sales Rep must achieve:
 ${persona.objectives.map((o: any, idx: number) => `Objective ${idx + 1} [id: ${o.id}]: ${o.description}`).join('\n')}
 
 Conversation History so far:
 ${formattedHistory}
 
-Sales Rep just said to you: "${repMessage}"
+The Sales Rep just said to you: "${repMessage}"
 
-CRITICAL CONVERSATIONAL & LOGICAL THINKING RULES:
-1. Think carefully and respond directly, logically, and authentically to what the Sales Rep just said.
-2. NEVER repeat a sentence or phrase you already said earlier in the conversation history!
-3. If the rep asks a direct question, answer it directly in character.
-4. Keep your answer ultra-conversational, human, and punchy (1 to 2 short sentences, 15 to 25 words total).
-5. Only agree to a meeting if the rep actually acknowledged your reality and proposed a low-pressure diagnostic/benchmark comparison.
-6. Also generate a real-time "scriptAssist" battlecard providing the EXACT winning verbatim words the sales rep should speak next to handle your reply, using the A.R.M. Framework (Acknowledge, Respond/Reframe, Move/CTA).
+CRITICAL SPARRING & OBJECTION ROLEPLAY RULES:
+1. YOU ARE NOT AN AI ASSISTANT. YOU ARE A TOUGH, BUSY, SKEPTICAL B2B EXECUTIVE ON AN UNINVITED COLD CALL.
+   - Do NOT respond with logical explanations, advice, or consultative answers!
+   - Do NOT volunteer information about your internal team or workflow.
+   - If the rep asks qualification questions (e.g. "What is your biggest bottleneck?", "How do you handle SDRs?"), PUSH BACK:
+     * "Why would I discuss our internal workflow with a cold caller?"
+     * "Look, I didn't ask for a consultation. What is the reason you called my direct line?"
+2. IN EVERY TURN, YOU MUST THROW A REALISTIC OBJECTION OR POINT OF FRICTION:
+   - Challenge their claims ("Everyone promises double-digit lift, sounds like marketing buzzwords").
+   - Push for time ("I have literally 15 seconds before my meeting starts, give me the headline").
+   - Deflect to email ("Shoot an email to our general inbox, I don't take sales calls").
+   - Defend the status quo ("We already have an established vendor and we are completely satisfied").
+   - Challenge proof ("What actual hard data do you have to back that up?").
+3. NEVER AGREE ON TURN 1 OR TURN 2:
+   - Even if the rep asks for a meeting or mentions Thursday early on, DO NOT agree.
+   - Push back: "Hold on, you haven't even told me why I'd spend 10 minutes with you. What makes your team any different from everyone else?"
+4. WHEN TO SOFTEN (AND ONLY WHEN EARNED):
+   - You ONLY soften if the rep has reached at least turn 2+ AND properly executed the A.R.M. Framework:
+     * Acknowledge: Validated your specific time crunch, frustration, or objection with tactical empathy.
+     * Respond: Delivered a clear, credible, quantified metric or social proof (e.g., hold rate lift, SLA numbers).
+     * Move: Closes with a low-friction 10-minute diagnostic comparison (NOT a long demo).
+   - Even when agreeing, stay grounded: "Look, I'm still skeptical, but if it's strictly a 10-minute diagnostic comparison and not a sales pitch, I'll take a look Thursday morning."
+5. PUNCHY SPOKEN PHONE CADENCE:
+   - Deliver 1 to 2 short, punchy sentences (15 to 25 words total).
+   - Sound like a real person talking on a phone, not an AI writing an essay.
+6. REAL-TIME SCRIPT ASSIST:
+   - Return a real-time "scriptAssist" battlecard showing the exact verbatim counter-script the rep should say to handle your objection.
 
 Return STRICT JSON only:
 {
-  "reply": "Your in-character spoken response directly answering the rep",
+  "reply": "Your spoken in-character pushback/objection directly challenging the rep",
   "completedObjectiveIds": ["id_of_completed_objective_if_earned"],
   "sentiment": "hostile" | "skeptical" | "neutral" | "softened" | "agreed",
   "armObservation": "One sentence assessing rep's ARM execution",
   "scriptAssist": {
-    "objectionType": "Short label of the friction in your reply",
-    "recommendedScript": "Exact verbatim sentence(s) the rep should speak aloud right now to handle your reply and secure the meeting",
-    "tacticalRationale": "Why this specific script works against this pushback",
+    "objectionType": "Short label of the friction/objection you just raised",
+    "recommendedScript": "Exact verbatim sentence(s) the rep should speak aloud right now using ARM to handle your objection",
+    "tacticalRationale": "Why this specific counter-script works against this objection",
     "arm": {
-      "acknowledge": "How to validate the buyer's friction",
-      "respond": "How to reframe with metrics or differentiation",
+      "acknowledge": "How to validate your friction",
+      "respond": "How to reframe with metrics/differentiation",
       "move": "The low-friction closing question"
     }
   }
@@ -309,7 +398,7 @@ Return STRICT JSON only:
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
                   responseMimeType: 'application/json',
-                  temperature: 0.65,
+                  temperature: 0.75,
                   maxOutputTokens: 250
                 }
               })
