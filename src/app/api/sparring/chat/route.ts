@@ -218,6 +218,32 @@ function deriveDynamicScriptAssist(
     };
   }
 
+  if (lower.includes('specifically') || lower.includes('solve') || lower.includes('offering') || lower.includes('concrete') || lower.includes('pitch') || lower.includes('why should i spend my time')) {
+    return {
+      objectionType: 'Value Clarity & Specificity Demand ("What specifically does this solve?")',
+      recommendedScript: `Fair question, ${firstName}. Specifically: we eliminate unqualified SDR meetings by inserting Boris live audio QA before leads hit AE calendars, lifting hold rates from 42% to 68%. If you're open to a 10-minute diagnostic benchmark on Thursday, when works?`,
+      tacticalRationale: 'Answer the specificity demand immediately with the exact acoustic QA mechanism and concrete hold rate metric, then close with a low-friction diagnostic.',
+      arm: {
+        acknowledge: 'Validate her demand for specifics instead of marketing fluff',
+        respond: 'Detail exact Boris acoustic QA mechanism and hold rate metric (42% to 68%)',
+        move: 'Propose a 10-minute diagnostic benchmark on Thursday'
+      }
+    };
+  }
+
+  if (lower.includes('burned') || lower.includes('disaster') || lower.includes('spam') || lower.includes('domain') || lower.includes('reputation')) {
+    return {
+      objectionType: 'Burned by Past Agency (Spam Leads & Domain Blacklist)',
+      recommendedScript: `I don't blame you at all, ${firstName}—most offshore teams spam generic lists and ruin deliverability. We enforce live audio QA and Boris acoustic monitoring to guarantee zero domain risk. Can I share a 2-minute sample call audit on Thursday?`,
+      tacticalRationale: 'Validate her past agency trauma. Detail acoustic QA safety guards and offer a concrete call audit preview rather than a pitch.',
+      arm: {
+        acknowledge: 'Validate previous bad agency disaster with tactical empathy',
+        respond: 'Detail live audio interception and domain safety controls',
+        move: 'Offer a 2-minute sample call listening preview on Thursday'
+      }
+    };
+  }
+
   if (lower.includes('why are you asking') || lower.includes('internal') || lower.includes('survey') || lower.includes('consultation') || lower.includes('grill')) {
     return {
       objectionType: 'Pushback on Qualification Questions ("Why are you asking about my team?")',
@@ -270,9 +296,9 @@ function deriveDynamicScriptAssist(
     };
   }
 
-  if (lower.includes('email') || lower.includes('send') || lower.includes('deck') || lower.includes('info')) {
+  if (lower.includes('email') || lower.includes('send') || lower.includes('deck') || lower.includes('info') || lower.includes('general inbox') || lower.includes('not available')) {
     return {
-      objectionType: 'Email Brush-Off / Information Request',
+      objectionType: 'Email Brush-Off / Gatekeeper Deflection',
       recommendedScript: `Gladly sending info, ${firstName}! To make sure I only send what's actually relevant to your team: are you currently focused more on rep ramp time or lead hold rate?`,
       tacticalRationale: 'Agree pleasantly to send information, but use the request to anchor a binary qualifying diagnostic question.',
       arm: {
@@ -283,15 +309,28 @@ function deriveDynamicScriptAssist(
     };
   }
 
-  if (lower.includes('busy') || lower.includes('meeting') || lower.includes('seconds') || lower.includes('swamped') || lower.includes('time')) {
+  if (lower.includes('busy') || lower.includes('meeting') || lower.includes('seconds') || lower.includes('swamped') || lower.includes('time') || lower.includes('breathe')) {
     return {
-      objectionType: 'Time Constraint / Impatience',
+      objectionType: 'Time Constraint / Operational Burnout',
       recommendedScript: `${firstName}, completely understand you're pressed for time. In 15 seconds: we helped a peer team double SDR hold rates from 42% to 68%. If you're open to a 10-minute diagnostic benchmark on Thursday, when works?`,
       tacticalRationale: 'Acknowledge time urgency instantly, deliver the quantified 15-second metric, and propose a 10-min slot.',
       arm: {
         acknowledge: 'Acknowledge time urgency under 5 seconds',
         respond: 'Deliver concise quantified metric headline',
         move: 'Propose low-friction 10-minute diagnostic on Thursday'
+      }
+    };
+  }
+
+  if (lower.includes('soc') || lower.includes('latency') || lower.includes('security') || lower.includes('api') || lower.includes('compliance')) {
+    return {
+      objectionType: 'Technical Architecture & Compliance Scrutiny',
+      recommendedScript: `We maintain full SOC2 Type II compliance with on-premise PII tokenization and sub-second Web Audio inference. Can I share our architectural security brief on Thursday?`,
+      tacticalRationale: 'Respect technical diligence, cite concrete SOC2 and sub-second latency specs, and offer an engineer-to-engineer review.',
+      arm: {
+        acknowledge: 'Respect technical diligence and security standards',
+        respond: 'Cite sub-second STT latency and SOC2 Type II PII tokenization',
+        move: 'Offer a 10-minute architectural walkthrough on Thursday'
       }
     };
   }
@@ -399,7 +438,7 @@ Return STRICT JSON only:
                 generationConfig: {
                   responseMimeType: 'application/json',
                   temperature: 0.75,
-                  maxOutputTokens: 250
+                  maxOutputTokens: 800
                 }
               })
             }
