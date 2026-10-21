@@ -372,41 +372,53 @@ function SparringRoomContent() {
     // TIER 1: Native Web Audio API decodeAudioData (zero autoplay restriction once context is active)
     try {
       const ctx = await getOrCreateAudioContext();
-      if (ctx && ctx.state === 'running' && audioUrl.startsWith('data:audio/')) {
-        const cleaned = audioUrl.replace(/^data:audio\/[^;]+;base64,/, '');
-        const binaryString = window.atob(cleaned);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+      if (ctx) {
+        if (ctx.state === 'suspended') {
+          await ctx.resume().catch(() => {});
         }
+        if (audioUrl.startsWith('data:audio/')) {
+          const cleaned = audioUrl.replace(/^data:audio\/[^;]+;base64,/, '');
+          const binaryString = window.atob(cleaned);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
 
-        const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
+          const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+          const source = ctx.createBufferSource();
+          source.buffer = audioBuffer;
 
-        if (!analyserNodeRef.current) {
-          analyserNodeRef.current = ctx.createAnalyser();
-          analyserNodeRef.current.fftSize = 64;
+          // Connect DIRECTLY to ctx.destination for 100% guaranteed speaker output
+          source.connect(ctx.destination);
+
+          if (!analyserNodeRef.current) {
+            try {
+              const analyser = ctx.createAnalyser();
+              analyser.fftSize = 64;
+              analyserNodeRef.current = analyser;
+            } catch {}
+          }
+          if (analyserNodeRef.current) {
+            try { source.connect(analyserNodeRef.current); } catch {}
+          }
+          audioSourceNodeRef.current = source;
+
+          return new Promise<void>((resolve) => {
+            source.onended = () => {
+              setIsPlayingAudio(false);
+              setActiveAudioTurn(null);
+              setAudioBlocked(false);
+              audioSourceNodeRef.current = null;
+              resolve();
+              if (isCallActiveRef.current && !isAiRespondingRef.current) {
+                startHandsFreeListening();
+              }
+            };
+
+            source.start(0);
+          });
         }
-        source.connect(analyserNodeRef.current);
-        analyserNodeRef.current.connect(ctx.destination);
-        audioSourceNodeRef.current = source;
-
-        return new Promise<void>((resolve) => {
-          source.onended = () => {
-            setIsPlayingAudio(false);
-            setActiveAudioTurn(null);
-            setAudioBlocked(false);
-            audioSourceNodeRef.current = null;
-            resolve();
-            if (isCallActiveRef.current && !isAiRespondingRef.current) {
-              startHandsFreeListening();
-            }
-          };
-
-          source.start(0);
-        });
       }
     } catch (webAudioErr) {
       console.warn('Web Audio decoding note, falling back to HTML5 Audio element:', webAudioErr);
@@ -414,10 +426,9 @@ function SparringRoomContent() {
 
     // TIER 2: Persistent DOM HTML5 Audio element
     try {
-      const playableSrc = audioUrl.startsWith('data:') ? getBlobUrlFromBase64(audioUrl) : audioUrl;
       const audio = audioElementRef.current || new Audio();
       audioElementRef.current = audio;
-      audio.src = playableSrc;
+      audio.src = audioUrl;
       audio.volume = 1.0;
 
       return new Promise<void>((resolve) => {
