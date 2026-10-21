@@ -43,6 +43,11 @@ import {
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
+import ByokVaultManager from './admin/ByokVaultManager';
+import UniversalCrmStudio from './admin/UniversalCrmStudio';
+import WorkflowAutomationStudio from './admin/WorkflowAutomationStudio';
+import BillingInvoiceManager from './admin/BillingInvoiceManager';
+import McpDeveloperGateway from './admin/McpDeveloperGateway';
 
 interface UserRecord {
   id: string;
@@ -90,7 +95,7 @@ interface TenantRecord {
 }
 
 export default function AdminControlCentre() {
-  const [activeTab, setActiveTab] = useState<'tenants' | 'people' | 'modules' | 'access' | 'leads' | 'reps' | 'feedback' | 'audit'>('tenants');
+  const [activeTab, setActiveTab] = useState<'tenants' | 'byok' | 'crm' | 'workflows' | 'invoicing' | 'mcp' | 'people' | 'modules' | 'access' | 'leads' | 'reps' | 'feedback' | 'audit'>('tenants');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [tenantFilter, setTenantFilter] = useState('all');
@@ -449,6 +454,11 @@ export default function AdminControlCentre() {
           <div className="flex items-center gap-6 border-b border-[#222021]/10 text-sm font-semibold overflow-x-auto scrollbar-none">
             {[
               { id: 'tenants', label: 'Tenants & Client Access' },
+              { id: 'byok', label: 'BYOK AI Vault' },
+              { id: 'crm', label: 'Universal CRM & Mapper' },
+              { id: 'workflows', label: 'n8n Workflow Studio' },
+              { id: 'invoicing', label: 'Billing & Invoicing' },
+              { id: 'mcp', label: 'MCP & Ingress' },
               { id: 'people', label: 'People & Seats' },
               { id: 'modules', label: 'Training Modules' },
               { id: 'access', label: 'Module Access' },
@@ -1274,6 +1284,31 @@ export default function AdminControlCentre() {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* TAB 8: BYOK AI VAULT */}
+          {activeTab === 'byok' && (
+            <ByokVaultManager />
+          )}
+
+          {/* TAB 9: UNIVERSAL CRM STUDIO */}
+          {activeTab === 'crm' && (
+            <UniversalCrmStudio />
+          )}
+
+          {/* TAB 10: WORKFLOW AUTOMATION STUDIO */}
+          {activeTab === 'workflows' && (
+            <WorkflowAutomationStudio />
+          )}
+
+          {/* TAB 11: BILLING & INVOICING */}
+          {activeTab === 'invoicing' && (
+            <BillingInvoiceManager />
+          )}
+
+          {/* TAB 12: MCP & DEVELOPER INGRESS */}
+          {activeTab === 'mcp' && (
+            <McpDeveloperGateway />
           )}
         </main>
       </div>
