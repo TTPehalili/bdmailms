@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
               text: greetingText,
               model_id: 'eleven_turbo_v2_5',
-              voice_settings: {
-                stability: 0.52,
-                similarity_boost: 0.78,
-                style: 0.15,
+              voice_settings: persona.voiceSettings || {
+                stability: 0.48,
+                similarity_boost: 0.75,
+                style: 0.08,
                 use_speaker_boost: true
               }
             })

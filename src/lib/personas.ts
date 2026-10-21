@@ -1,6 +1,7 @@
 /**
  * 10 AI Sparring Personas Configuration
  * Central registry configuring voice profiles, scenario rules, objection triggers, and objectives.
+ * Configured strictly with ElevenLabs 'conversational' use-case voices with low-style phone acoustic tuning.
  */
 
 export interface SparringObjective {
@@ -17,6 +18,12 @@ export interface SparringPersona {
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced' | 'Nightmare';
   accent: string;
   voiceId: string;
+  voiceSettings?: {
+    stability: number;
+    similarity_boost: number;
+    style: number;
+    use_speaker_boost?: boolean;
+  };
   avatarBg: string;
   scenario: string;
   coreObjection: string;
@@ -31,8 +38,9 @@ export const SPARRING_PERSONAS: SparringPersona[] = [
     title: 'VP of Sales Development',
     companyType: 'High-Growth Fintech ($80M ARR)',
     difficulty: 'Intermediate',
-    accent: 'Fast-paced US Executive',
-    voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam - Dominant, Firm Executive Male
+    accent: 'Fast-paced Executive US Male',
+    voiceId: 'cjVigY5qzO86Huf0OWal', // Eric - Smooth, Pragmatic, Conversational Male
+    voiceSettings: { stability: 0.46, similarity_boost: 0.75, style: 0.08, use_speaker_boost: true },
     avatarBg: 'from-amber-500 to-orange-700',
     scenario: 'Walking into a board meeting in 45 seconds. High impatience. Zero tolerance for fluff.',
     coreObjection: 'I have literally 30 seconds before a board meeting. Why are you calling me?',
@@ -53,8 +61,9 @@ Only agree to a meeting if they propose a low-friction 10-minute diagnostic.`,
     title: 'Executive Assistant to the CEO',
     companyType: 'Enterprise Healthcare Systems',
     difficulty: 'Intermediate',
-    accent: 'Crisp Professional US',
-    voiceId: 'EXAVITQu4vr4xnSDxMaL', // Bella
+    accent: 'Crisp Professional US Female',
+    voiceId: 'XrExE9yKIg1WjnnlVkGX', // Matilda - Knowledgeable, Grounded, Professional Female
+    voiceSettings: { stability: 0.50, similarity_boost: 0.78, style: 0.06, use_speaker_boost: true },
     avatarBg: 'from-slate-600 to-slate-900',
     scenario: 'Trained to intercept 50+ cold callers daily. Polite but firm brick wall.',
     coreObjection: 'He is not available. Please send an email to info@company.com and we will review it.',
@@ -75,8 +84,9 @@ If the rep acknowledges your role, clarifies they don't want to waste the CEO's 
     title: 'Director of Business Development',
     companyType: 'B2B SaaS Cloud Provider',
     difficulty: 'Advanced',
-    accent: 'Confident Mid-Atlantic',
-    voiceId: 'ErXwobaYiN019PkySvjV', // Antoni
+    accent: 'Grounded Conversational US Male',
+    voiceId: 'CwhRBWXzGAHq8TQ4Fs17', // Roger - Resonant, Casual Conversational Male
+    voiceSettings: { stability: 0.48, similarity_boost: 0.75, style: 0.06, use_speaker_boost: true },
     avatarBg: 'from-blue-600 to-indigo-800',
     scenario: 'Has worked with an incumbent outbound agency for 3 years. Emotionally invested.',
     coreObjection: 'We already have an agency partner handling this and we are completely satisfied.',
@@ -96,8 +106,9 @@ If the rep validates your relationship with tactical empathy, explains how other
     title: 'Chief Financial Officer',
     companyType: 'Manufacturing & Logistics ($120M)',
     difficulty: 'Advanced',
-    accent: 'Analytical Midwestern US',
-    voiceId: 'VR6AewLTigWG4xSOukaG', // Josh
+    accent: 'Pragmatic Conversational US Male',
+    voiceId: 'iP95p4xoKVk53GoZ742B', // Chris - Down-to-Earth, Natural Conversationalist
+    voiceSettings: { stability: 0.50, similarity_boost: 0.75, style: 0.05, use_speaker_boost: true },
     avatarBg: 'from-emerald-700 to-teal-900',
     scenario: 'Mandated a 15% across-the-board budget cut this quarter. Scrutinizes every penny.',
     coreObjection: 'We are on a strict cost-cutting mandate. We have zero budget for new software or services.',
@@ -117,8 +128,9 @@ If the rep acknowledges P&L sensitivity, highlights performance-based discovery 
     title: 'Director of Demand Generation',
     companyType: 'Cybersecurity Scaleup',
     difficulty: 'Advanced',
-    accent: 'Direct West Coast US',
-    voiceId: 'MF3mGyEYCl7XYWbV9V6O', // Elli
+    accent: 'Direct Confident US Female',
+    voiceId: 'EXAVITQu4vr4xnSDxMaL', // Sarah - Mature, Reassuring, Direct Conversational Female
+    voiceSettings: { stability: 0.48, similarity_boost: 0.78, style: 0.08, use_speaker_boost: true },
     avatarBg: 'from-rose-600 to-red-900',
     scenario: 'Hired an offshore SDR team 6 months ago that burned their domain reputation and generated spam leads.',
     coreObjection: 'We tried an outbound service before and it was a complete disaster. It burned our domain and yielded zero revenue.',
@@ -138,8 +150,9 @@ If the rep acknowledges the trauma of burned domains, details quality assurance 
     title: 'Marketing & Sales Operations Manager',
     companyType: 'E-commerce Infrastructure',
     difficulty: 'Beginner',
-    accent: 'Upbeat Friendly US',
-    voiceId: 'AZnzlk1XvdvUeBnXmlld', // Domi
+    accent: 'Conversational Friendly US Female',
+    voiceId: 'cgSgspJ2msm6clMCkdW9', // Jessica - Spontaneous, Warm, Conversational Female
+    voiceSettings: { stability: 0.46, similarity_boost: 0.75, style: 0.08, use_speaker_boost: true },
     avatarBg: 'from-purple-600 to-violet-800',
     scenario: 'Very polite, agrees with everything, but uses "send me an email" as a gentle brush-off.',
     coreObjection: 'That sounds really interesting! Why don\'t you email me some info and I\'ll take a look?',
@@ -159,8 +172,9 @@ If the rep says "Happy to send info, but usually decks get buried in 400 emailsâ
     title: 'Head of Business Operations',
     companyType: 'Logistics Tech ($50M)',
     difficulty: 'Intermediate',
-    accent: 'Fatigued US Southern',
-    voiceId: 'TX3LPaxmHKxFdv7VOQHJ', // Liam
+    accent: 'Relaxed Natural US Male',
+    voiceId: 'bIHbv24MWmeRgasZH58o', // Will - Relaxed Optimist, Real Human Tone
+    voiceSettings: { stability: 0.48, similarity_boost: 0.75, style: 0.06, use_speaker_boost: true },
     avatarBg: 'from-amber-600 to-stone-800',
     scenario: 'Working 60 hours a week, back-to-back Slack notifications, fire-fighting.',
     coreObjection: 'I am totally swamped today. I literally don\'t have 5 minutes to breathe.',
@@ -180,8 +194,9 @@ If the rep respects your bandwidth in one sentence, clarifies this eliminates SD
     title: 'Head of Sales Engineering & IT',
     companyType: 'DevOps & Cloud Security',
     difficulty: 'Nightmare',
-    accent: 'Methodical Technical',
-    voiceId: 'ODq5zmih8GrVes37Dizd', // Patrick
+    accent: 'Methodical Confident Male',
+    voiceId: 'IKne3meq5aSn9XLyUdCD', // Charlie - Confident, Analytical, Conversational Male
+    voiceSettings: { stability: 0.52, similarity_boost: 0.78, style: 0.05, use_speaker_boost: true },
     avatarBg: 'from-cyan-700 to-slate-900',
     scenario: 'Grills reps on API latency, SOC-2 compliance, CRM bi-directional sync, and dialer integration.',
     coreObjection: 'Does your solution support bi-directional webhook sync with sub-100ms latency and SOC-2 Type II certification?',
@@ -201,8 +216,9 @@ If the rep acknowledges technical boundaries, confirms the 16kHz Web Audio pipel
     title: 'Inside Sales Manager',
     companyType: 'Staffing & HR Solutions',
     difficulty: 'Beginner',
-    accent: 'Hesitant Canadian',
-    voiceId: 'pFZP5JQG7iQjIQuC4Bku', // Lily
+    accent: 'Natural Conversational Female',
+    voiceId: '0QT4OrDTvpDlUPmFsUWN', // Lily 40s - Natural, Non-Broadcast Female
+    voiceSettings: { stability: 0.48, similarity_boost: 0.75, style: 0.06, use_speaker_boost: true },
     avatarBg: 'from-teal-600 to-emerald-900',
     scenario: 'Wants to improve team metrics but terrified of making a wrong decision or angering upper management.',
     coreObjection: 'I need to check with 4 other team leads and our VP before we could ever evaluate something like this.',
@@ -222,8 +238,9 @@ If the rep reassures you, frames the call as creating a risk-free internal busin
     title: 'Managing Partner',
     companyType: 'Commercial Real Estate Capital',
     difficulty: 'Nightmare',
-    accent: 'Intense Aggressive New York',
-    voiceId: 'onwK4e9ZLuTAKqWW03F9', // Daniel
+    accent: 'Deep Gritty Conversational Male',
+    voiceId: '9B2Vd5yQ7rKaqNmzGdy1', // Steve Hogan - Deep Tone, Blunt, Conversational Male
+    voiceSettings: { stability: 0.50, similarity_boost: 0.80, style: 0.08, use_speaker_boost: true },
     avatarBg: 'from-red-700 to-black',
     scenario: 'Hostile, confrontational, attacks cold callers on principle.',
     coreObjection: 'How the hell did you get my direct line? Remove me from your database right now.',
