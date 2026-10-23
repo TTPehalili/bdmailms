@@ -47,20 +47,20 @@ export default function ByokVaultManager() {
       tenantId: 'ten_1',
       tenantName: 'Apex Global BPO',
       isUnlocked: true,
-      openaiKey: 'sk-proj-99a8b776c54e3210fe9876543210fedcba9876543210',
-      claudeKey: 'sk-ant-api03-abcdef1234567890abcdef1234567890abcdef',
-      geminiKey: 'AIzaSyA1b2C3d4E5f6G7h8I9j0K1L2M3N4O5P6Q',
-      elevenlabsKey: 'xi-99887766554433221100aabbccddeeff',
+      openaiKey: '',
+      claudeKey: '',
+      geminiKey: '',
+      elevenlabsKey: '',
       fallbackStrategy: 'system_pool'
     },
     'ten_2': {
       tenantId: 'ten_2',
       tenantName: 'Outsource Accelerator Partner A',
       isUnlocked: true,
-      openaiKey: 'sk-proj-4433221100aabbccddeeff998877665544332211',
+      openaiKey: '',
       claudeKey: '',
       geminiKey: '',
-      elevenlabsKey: 'xi-aabbccddeeff00112233445566778899',
+      elevenlabsKey: '',
       fallbackStrategy: 'system_pool'
     },
     'ten_3': {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SPARRING_PERSONAS, SparringPersona, getPersonaVoiceByCountry, SparringCountry } from '@/lib/personas';
+import { applyRateLimit, validateTextPayload } from '@/lib/security';
 
 function extractJson(text: string) {
   try {
@@ -47,7 +48,7 @@ function generateContextualFallback(
         "If Emil has 17 years in the BPO space and can show us private lists that aren't shared on directories, I'll take a look Thursday at 2:00 PM.",
         "Alright, if it's strictly a 20-minute screen share with Emil to see how the sparring simulator works on our floor, put Friday morning on my calendar."
       ];
-      completedIds = persona.objectives.map((o: any) => o.id);
+      completedIds = persona.objectives.map(o => o.id);
       sentiment = 'agreed';
       armObservation = 'Rep executed BPO playbook and locked 20-min demo with Founder Emil.';
     } else if (isAskingQuestion) {
@@ -438,17 +439,27 @@ function deriveDynamicScriptAssist(
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = applyRateLimit(req, { maxRequests: 30, windowMs: 60000 });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { personaId, transcript = [], repMessage = '', objectives = [], country = 'USA' } = await req.json();
+
+    if (repMessage) {
+      const validation = validateTextPayload(repMessage, 2000);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+    }
 
     const persona = SPARRING_PERSONAS.find(p => p.id === personaId) || SPARRING_PERSONAS[0];
     const voiceConfig = getPersonaVoiceByCountry(persona, (country as SparringCountry) || 'USA');
     const googleApiKey = process.env.GOOGLE_API_KEY;
-    const elevenApiKey = (process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '').trim();
+    const elevenApiKey = (process.env.ELEVENLABS_API_KEY || '').trim();
 
     // Format transcript turns for the prompt
     const formattedHistory = transcript
       .slice(-6)
-      .map((t: any) => `${t.role === 'rep' ? 'Sales Rep' : persona.name}: "${t.content}"`)
+      .map((t: { role: string; content: string }) => `${t.role === 'rep' ? 'Sales Rep' : persona.name}: "${t.content}"`)
       .join('\n');
 
     const prompt = `YOU ARE AN ADVERSARIAL B2B BUYER IN AN INTENSE AI SALES SPARRING SIMULATION.

@@ -2,16 +2,9 @@
 
 import React, { useState } from 'react';
 import { 
-  Radio, 
   Sparkles, 
-  Zap, 
   Copy, 
-  Check, 
-  ShieldAlert, 
-  Volume2, 
-  RefreshCw,
-  Flame,
-  ChevronRight
+  Check 
 } from 'lucide-react';
 import { ArmRebuttalResponse, TranscriptEntry } from '@/types';
 import LiveTranscript from '@/components/cockpit/LiveTranscript';
@@ -119,7 +112,7 @@ export default function BorisHUD({
             [A]
           </span>
           <span className="font-medium italic">
-            "{rebuttal.acknowledge || 'I completely understand—you have an established rhythm with them and they know your brand.'}"
+            &quot;{rebuttal.acknowledge || 'I completely understand—you have an established rhythm with them and they know your brand.'}&quot;
           </span>
           <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {copiedSection === 'a' ? <Check className="h-3 w-3 text-emerald-700" /> : <Copy className="h-3 w-3 text-amber-700" />}
@@ -135,7 +128,7 @@ export default function BorisHUD({
             [R]
           </span>
           <span className="font-medium">
-            "{rebuttal.respond || 'We don’t ask you to fire them. We act as an overflow layer that handles objection friction before it burns qualified pipeline.'}"
+            &quot;{rebuttal.respond || 'We don’t ask you to fire them. We act as an overflow layer that handles objection friction before it burns qualified pipeline.'}&quot;
           </span>
           <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {copiedSection === 'r' ? <Check className="h-3 w-3 text-emerald-700" /> : <Copy className="h-3 w-3 text-[#ED1C24]" />}
@@ -151,7 +144,7 @@ export default function BorisHUD({
             [M]
           </span>
           <span className="font-medium">
-            "{rebuttal.move || 'Are you opposed to a 10-minute side-by-side run next Tuesday to benchmark your hold rate?'}"
+            &quot;{rebuttal.move || 'Are you opposed to a 10-minute side-by-side run next Tuesday to benchmark your hold rate?'}&quot;
           </span>
           <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {copiedSection === 'm' ? <Check className="h-3 w-3 text-emerald-700" /> : <Copy className="h-3 w-3 text-emerald-700" />}

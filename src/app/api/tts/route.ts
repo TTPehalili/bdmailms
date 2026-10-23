@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { applyRateLimit, validateTextPayload } from '@/lib/security';
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Enforce rate limiting (20 requests/minute per client IP)
+    const rateLimitResponse = applyRateLimit(req, { maxRequests: 20, windowMs: 60000 });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { text, voiceId, voiceSettings } = await req.json();
 
-    if (!text || typeof text !== 'string') {
-      return NextResponse.json({ error: 'Text parameter is required' }, { status: 400 });
+    // 2. Validate payload size to prevent quota drainage
+    const validation = validateTextPayload(text, 1200);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const apiKey = (process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '').trim();
+    const apiKey = (process.env.ELEVENLABS_API_KEY || '').trim();
 
     if (!apiKey) {
       return NextResponse.json(

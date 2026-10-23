@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Clock, Building, User, CheckCircle, PhoneCall, ChevronRight } from 'lucide-react';
+import { Search, Clock } from 'lucide-react';
 
 export interface CockpitLead {
   id: string;

@@ -103,8 +103,25 @@ Evaluate the rep's performance and return a STRICT JSON response:
 Only rep turns should be annotated in turnAnnotations. 'armTag' should be 'A', 'R', 'M', or null.
 Return valid JSON only.`;
 
+        interface TurnAnnotation {
+          turnIndex: number;
+          armTag?: 'A' | 'R' | 'M' | null;
+          feedback?: string;
+        }
+
+        interface ParsedQaOutput {
+          overallScore?: number;
+          overallGrade?: 'A' | 'B' | 'C' | 'D' | 'F';
+          armExecutionScore?: number;
+          scriptAdherenceScore?: number;
+          strengths?: string[];
+          weaknesses?: string[];
+          coachingActionItems?: string[];
+          turnAnnotations?: TurnAnnotation[];
+        }
+
         const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
-        let parsed: any = null;
+        let parsed: ParsedQaOutput | null = null;
 
         for (const model of candidateModels) {
           try {
@@ -124,7 +141,7 @@ Return valid JSON only.`;
               const data = await res.json();
               const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
               if (candidate) {
-                parsed = JSON.parse(candidate);
+                parsed = JSON.parse(candidate) as ParsedQaOutput;
                 break;
               }
             }
@@ -136,7 +153,7 @@ Return valid JSON only.`;
         if (parsed) {
           // Merge turn annotations into transcript
           const annotated = transcript.map((turn, idx) => {
-              const ann = (parsed.turnAnnotations || []).find((a: any) => a.turnIndex === idx + 1);
+              const ann = (parsed.turnAnnotations || []).find((a: TurnAnnotation) => a.turnIndex === idx + 1);
               return {
                 ...turn,
                 armTag: ann?.armTag || null,

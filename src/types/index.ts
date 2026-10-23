@@ -90,7 +90,7 @@ export interface Lead {
   company: string;
   title: string;
   status: 'new' | 'contacted' | 'replied' | 'booked' | 'unqualified';
-  custom_variables?: Record<string, any>;
+  custom_variables?: Record<string, string | number | boolean | null | undefined>;
   created_at: string;
   updated_at?: string;
 }

@@ -4,21 +4,10 @@ import React, { useState } from 'react';
 import { 
   Phone, 
   Mail, 
-  Share2, 
   Copy, 
   Check, 
   CheckSquare, 
-  Square, 
-  Sparkles, 
-  Building, 
-  Briefcase, 
-  Layers, 
-  AlertCircle,
-  Clock,
-  PhoneCall,
-  User,
-  Flame,
-  ArrowRight
+  Square 
 } from 'lucide-react';
 import { CockpitLead } from './LeadQueue';
 
@@ -202,7 +191,7 @@ export default function ScriptViewer({
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "Hey <span className="bg-[#ED1C24]/15 text-[#222021] px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.name.split(' ')[0]}</span>, quick question—are you guys currently buying any of your outbound leads from Outsource Accelerator or similar BPO directories?"
+                &quot;Hey <span className="bg-[#ED1C24]/15 text-[#222021] px-1.5 py-0.5 rounded font-bold font-mono text-xs">{lead.name.split(' ')[0]}</span>, quick question—are you guys currently buying any of your outbound leads from Outsource Accelerator or similar BPO directories?&quot;
               </p>
             </div>
 
@@ -220,7 +209,7 @@ export default function ScriptViewer({
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "The reason I ask is most BPO owners tell us those directories sell the exact same lead list to 3 to 5 competing agencies at the exact same time. It forces you into an $8/hour price-war race to the bottom. Is that hitting your margins too?"
+                &quot;The reason I ask is most BPO owners tell us those directories sell the exact same lead list to 3 to 5 competing agencies at the exact same time. It forces you into an $8/hour price-war race to the bottom. Is that hitting your margins too?&quot;
               </p>
             </div>
 
@@ -238,7 +227,7 @@ export default function ScriptViewer({
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "What we do differently is twofold: First, we generate private, Claude-enriched ICP lists that zero competitors touch. Second, before your reps ever dial those leads, our AI Boris runs them through 5 realistic objection sparring rounds so they never burn expensive contacts on warm-up swings."
+                &quot;What we do differently is twofold: First, we generate private, Claude-enriched ICP lists that zero competitors touch. Second, before your reps ever dial those leads, our AI Boris runs them through 5 realistic objection sparring rounds so they never burn expensive contacts on warm-up swings.&quot;
               </p>
             </div>
 
@@ -256,7 +245,7 @@ export default function ScriptViewer({
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "Are you guys currently placing more customer service reps, specialized bookkeeping, or outbound sales seats?"
+                &quot;Are you guys currently placing more customer service reps, specialized bookkeeping, or outbound sales seats?&quot;
               </p>
             </div>
 
@@ -274,7 +263,7 @@ export default function ScriptViewer({
                 </button>
               </div>
               <p className="text-[13px] leading-relaxed text-slate-800 font-medium">
-                "Our founder, Emil, has been in the BPO BDM trenches for over 17 years. He put together a 20-minute screen share showing how we build private Claude-enriched lists and let reps spar with AI before live calls. Would you be open to taking a look with Emil this Thursday at 2:00 PM, or does Friday morning work better for your calendar?"
+                &quot;Our founder, Emil, has been in the BPO BDM trenches for over 17 years. He put together a 20-minute screen share showing how we build private Claude-enriched lists and let reps spar with AI before live calls. Would you be open to taking a look with Emil this Thursday at 2:00 PM, or does Friday morning work better for your calendar?&quot;
               </p>
             </div>
 
@@ -367,7 +356,7 @@ export default function ScriptViewer({
               </button>
             </div>
             <div className="text-[13px] leading-relaxed text-slate-800 font-mono bg-white p-3 rounded-lg border border-slate-200">
-              "Hi {lead.name.split(' ')[0]}, noticed your work leading sales development at {lead.company}. We track B2B outbound benchmarks around {lead.painPoint} across {lead.headcount} companies. Would love to connect and share notes!"
+              &quot;Hi {lead.name.split(' ')[0]}, noticed your work leading sales development at {lead.company}. We track B2B outbound benchmarks around {lead.painPoint} across {lead.headcount} companies. Would love to connect and share notes!&quot;
             </div>
           </div>
         )}

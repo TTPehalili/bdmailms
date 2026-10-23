@@ -145,7 +145,7 @@ Return only valid JSON, no markdown code fence wrapping.`;
     return this.fallbackHeuristicExtraction(rawText);
   }
 
-  private static async fallbackHeuristicExtraction(text: string): Promise<ExtractedArmEntry[]> {
+  private static async fallbackHeuristicExtraction(_text: string): Promise<ExtractedArmEntry[]> {
     const entries: ExtractedArmEntry[] = [
       {
         objection_category: 'Incumbent Vendor',

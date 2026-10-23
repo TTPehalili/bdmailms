@@ -21,9 +21,11 @@ export default function McpDeveloperGateway() {
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [selectedTenant, setSelectedTenant] = useState('Apex Global BPO');
 
-  const mcpToken = 'mcp_tok_apex-global_e8910b2f9014a678c432d';
-  const apiKey = 'lms_live_sk_899201a4e7c3b29910d554';
-  const webhookUrl = 'https://appointmentlyy-sdr.up.railway.app/api/webhooks/inbound/apex-global/universal';
+  const mcpToken = 'mcp_tok_demo_tenant_sample';
+  const apiKey = 'lms_demo_key_example';
+  const webhookUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/api/webhooks/inbound/demo`
+    : 'https://api.yourdomain.com/api/webhooks/inbound/demo';
 
   const copyText = (text: string, id: string) => {
     navigator.clipboard.writeText(text);

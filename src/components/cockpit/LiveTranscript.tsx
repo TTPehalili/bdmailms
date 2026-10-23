@@ -2,12 +2,12 @@
 
 import React, { useEffect, useRef } from 'react';
 import { TranscriptEntry } from '@/types';
-import { Volume2, Radio } from 'lucide-react';
+import { Radio } from 'lucide-react';
 
 interface LiveTranscriptProps {
   transcript: TranscriptEntry[];
   interimText: string;
-  isListening: boolean;
+  isListening?: boolean;
 }
 
 export default function LiveTranscript({
@@ -29,7 +29,8 @@ export default function LiveTranscript({
         <span className="text-[10px] font-bold text-slate-600 tracking-wider uppercase font-mono">
           DIARIZED STREAM (SCRIBE V2)
         </span>
-        <span className="text-[10px] font-mono text-slate-400">
+        <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1.5">
+          {isListening && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
           PCM 16kHz
         </span>
       </div>
@@ -82,7 +83,7 @@ export default function LiveTranscript({
               [Live...]
             </span>
             <span className="text-slate-700 italic animate-pulse">
-              "{interimText}"
+              &quot;{interimText}&quot;
             </span>
           </div>
         )}

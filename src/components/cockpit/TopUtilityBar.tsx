@@ -8,7 +8,6 @@ import {
   Swords, 
   Award, 
   ExternalLink,
-  ChevronDown,
   Radio
 } from 'lucide-react';
 

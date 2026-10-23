@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { ArmRebuttalResponse } from '@/types';
+import { applyRateLimit, validateTextPayload } from '@/lib/security';
 
 // Preset high-converting BPO objection playbook
 const PRESET_OBJECTIONS = [
@@ -42,12 +43,22 @@ const PRESET_OBJECTIONS = [
 ];
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = applyRateLimit(req, { maxRequests: 60, windowMs: 60000 });
+  if (rateLimitResponse) return rateLimitResponse;
+
   const startTime = Date.now();
 
   try {
     const body = await req.json();
     const text: string = (body.text || '').trim();
     const campaignId: string | undefined = body.campaignId;
+
+    if (text) {
+      const validation = validateTextPayload(text, 1500);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+    }
 
     if (!text || text.length < 3) {
       return NextResponse.json<ArmRebuttalResponse>({
