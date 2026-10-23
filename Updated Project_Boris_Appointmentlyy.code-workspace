@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../AI LMS"
+		},
+		{
+			"path": "../Appointmentlyy Web"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"powershell.cwd": "Appointmentlyy SDR"
+	}
+}
