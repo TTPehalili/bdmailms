@@ -1,10 +1,20 @@
 import { WorkflowItem } from '../engine/item-pipeline';
 import { encryptSecret, decryptSecret } from './crypto';
 
+export interface ProjectFolderRecord {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface WorkflowRecord {
   id: string;
   name: string;
   description?: string;
+  folderId?: string; // ID of ProjectFolderRecord
   active: boolean;
   nodes: any[];
   edges: any[];
@@ -51,6 +61,7 @@ export interface EphemeralWebhookListener {
 
 // In-Memory and persistent storage store
 class WorkflowDatabase {
+  private projects: Map<string, ProjectFolderRecord> = new Map();
   private workflows: Map<string, WorkflowRecord> = new Map();
   private executions: Map<string, ExecutionRecord> = new Map();
   private credentials: Map<string, CredentialRecord> = new Map();
@@ -60,11 +71,57 @@ class WorkflowDatabase {
     this.seedDefaults();
   }
 
+  // --- Project Folders ---
+  async listProjects(): Promise<ProjectFolderRecord[]> {
+    return Array.from(this.projects.values()).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }
+
+  async getProject(id: string): Promise<ProjectFolderRecord | null> {
+    return this.projects.get(id) || null;
+  }
+
+  async saveProject(data: Partial<ProjectFolderRecord> & { name: string }): Promise<ProjectFolderRecord> {
+    const id = data.id || `proj-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const now = new Date().toISOString();
+    const existing = this.projects.get(id);
+
+    const record: ProjectFolderRecord = {
+      id,
+      name: data.name,
+      description: data.description || existing?.description || '',
+      color: data.color || existing?.color || '#ED1C24',
+      createdAt: existing ? existing.createdAt : now,
+      updatedAt: now
+    };
+
+    this.projects.set(id, record);
+    return record;
+  }
+
+  async deleteProject(id: string): Promise<boolean> {
+    const deleted = this.projects.delete(id);
+    if (deleted) {
+      // Unlink workflows from deleted folder
+      for (const [wId, wf] of this.workflows.entries()) {
+        if (wf.folderId === id) {
+          this.workflows.set(wId, { ...wf, folderId: undefined, updatedAt: new Date().toISOString() });
+        }
+      }
+    }
+    return deleted;
+  }
+
   // --- Workflows ---
-  async listWorkflows(): Promise<WorkflowRecord[]> {
-    return Array.from(this.workflows.values()).sort(
+  async listWorkflows(folderId?: string): Promise<WorkflowRecord[]> {
+    const all = Array.from(this.workflows.values()).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
+    if (folderId !== undefined) {
+      return all.filter((w) => w.folderId === folderId);
+    }
+    return all;
   }
 
   async getWorkflow(id: string): Promise<WorkflowRecord | null> {
@@ -74,7 +131,6 @@ class WorkflowDatabase {
   async findWorkflowByWebhookPath(path: string): Promise<WorkflowRecord | null> {
     for (const wf of this.workflows.values()) {
       if (wf.webhookPath === path) return wf;
-      // Also check inside nodes for webhook nodes
       const webhookNode = wf.nodes.find(
         (n) => n.data?.nodeType === 'webhookTrigger' || n.type === 'webhookTrigger' || n.category === 'trigger'
       );
@@ -94,6 +150,7 @@ class WorkflowDatabase {
       id,
       name: data.name,
       description: data.description || '',
+      folderId: data.folderId !== undefined ? data.folderId : existing?.folderId,
       active: data.active ?? existing?.active ?? true,
       nodes: data.nodes,
       edges: data.edges,
@@ -108,6 +165,48 @@ class WorkflowDatabase {
 
   async deleteWorkflow(id: string): Promise<boolean> {
     return this.workflows.delete(id);
+  }
+
+  async duplicateWorkflow(id: string, newName?: string, targetFolderId?: string): Promise<WorkflowRecord | null> {
+    const source = this.workflows.get(id);
+    if (!source) return null;
+
+    const newId = `wf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const now = new Date().toISOString();
+
+    // Deep clone nodes and edges
+    const clonedNodes = JSON.parse(JSON.stringify(source.nodes));
+    const clonedEdges = JSON.parse(JSON.stringify(source.edges));
+
+    const duplicate: WorkflowRecord = {
+      id: newId,
+      name: newName || `${source.name} (Copy)`,
+      description: source.description,
+      folderId: targetFolderId !== undefined ? targetFolderId : source.folderId,
+      active: false, // Start duplicate as draft/inactive
+      nodes: clonedNodes,
+      edges: clonedEdges,
+      webhookPath: source.webhookPath ? `${source.webhookPath}-copy` : undefined,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    this.workflows.set(newId, duplicate);
+    return duplicate;
+  }
+
+  async moveWorkflow(id: string, targetFolderId?: string): Promise<WorkflowRecord | null> {
+    const wf = this.workflows.get(id);
+    if (!wf) return null;
+
+    const updated: WorkflowRecord = {
+      ...wf,
+      folderId: targetFolderId,
+      updatedAt: new Date().toISOString()
+    };
+
+    this.workflows.set(id, updated);
+    return updated;
   }
 
   // --- Executions ---
@@ -205,11 +304,40 @@ class WorkflowDatabase {
 
   // Seed default presets
   private seedDefaults() {
+    // Seed default Project Folders
+    this.projects.set('proj-qa', {
+      id: 'proj-qa',
+      name: '🎯 QA & Sparring Automation',
+      description: 'ARM framework rubric evaluation, supervisor Slack alerts, and CRM certificate auto-tagging',
+      color: '#ED1C24',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    this.projects.set('proj-telephony', {
+      id: 'proj-telephony',
+      name: '📞 Telephony & Inbound Dialers',
+      description: 'Hot lead ingest webhooks, automated phone number normalization, and Boris dial-downs',
+      color: '#2563EB',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    this.projects.set('proj-mcp', {
+      id: 'proj-mcp',
+      name: '🤖 Model Context Protocol (MCP) Hub',
+      description: 'Workflows exposed as MCP tools for Claude, Gemini, and external autonomous AI agents',
+      color: '#059669',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
     // 1. Sparring ARM Rubric -> GHL Auto-Tag & Supervisor Slack Escalation
     this.workflows.set('wf-arm-rubric', {
       id: 'wf-arm-rubric',
       name: '⚡ Sparring ARM Rubric ➔ GHL Auto-Tag & Supervisor Escalation',
       description: 'Listens for completed 3-minute AI sparring rounds, evaluates Boris ARM benchmark >= 80%, tags GoHighLevel contact, and alerts Slack.',
+      folderId: 'proj-qa',
       active: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -291,6 +419,7 @@ class WorkflowDatabase {
       id: 'wf-hot-transfer',
       name: '📞 Hot Lead Ingest ➔ Boris Telephony Dial & CRM Enrich',
       description: 'Instant lead qualification via Webhook, AI enrichment via GPT-4o, and automated softphone ring-down.',
+      folderId: 'proj-telephony',
       active: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

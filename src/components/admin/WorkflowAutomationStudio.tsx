@@ -27,27 +27,58 @@ import {
   RefreshCw,
   Sliders,
   ChevronDown,
+  ChevronRight,
+  Folder,
+  FolderPlus,
+  FolderOpen,
+  MoreVertical,
+  Copy,
+  FolderInput,
+  Edit,
+  Trash2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  FileCode2,
   Layers,
-  ArrowRight
+  Settings2,
+  Check
 } from 'lucide-react';
 
 import { WorkflowCanvasNode } from '../canvas/WorkflowCanvasNode';
 import AddNodeModal from '../palette/AddNodeModal';
 import NodeConfigDrawer from '../panels/NodeConfigDrawer';
 import ExecutionHistoryDrawer from '../panels/ExecutionHistoryDrawer';
+import ProjectModal from '../panels/ProjectManagerModal';
+import {
+  MoveWorkflowModal,
+  DuplicateWorkflowModal,
+  WorkflowSettingsModal
+} from '../panels/WorkflowActionModals';
 import { INodeDefinition } from '@/registry';
+import { ProjectFolderRecord, WorkflowRecord } from '@/lib/db';
 
 const nodeTypes = {
   customNode: WorkflowCanvasNode
 };
 
 export default function WorkflowAutomationStudio() {
-  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectFolderRecord[]>([]);
+  const [workflows, setWorkflows] = useState<WorkflowRecord[]>([]);
   const [activeWorkflowId, setActiveWorkflowId] = useState<string>('wf-arm-rubric');
-  const [currentWorkflow, setCurrentWorkflow] = useState<any>(null);
+  const [currentWorkflow, setCurrentWorkflow] = useState<WorkflowRecord | null>(null);
 
+  // React Flow state - STATIC connecting lines (animated: false)
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  // UI Drawer & Modal States
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
+    'proj-qa': true,
+    'proj-telephony': true,
+    'proj-mcp': true,
+    ungrouped: true
+  });
 
   const [isAddNodeOpen, setIsAddNodeOpen] = useState(false);
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
@@ -56,32 +87,57 @@ export default function WorkflowAutomationStudio() {
   const [runSuccess, setRunSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Fetch workflows from backend API
-  const loadWorkflows = useCallback(async () => {
+  // Project modal states
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectFolderRecord | null>(null);
+
+  // Workflow Action modals
+  const [movingWorkflow, setMovingWorkflow] = useState<WorkflowRecord | null>(null);
+  const [duplicatingWorkflow, setDuplicatingWorkflow] = useState<WorkflowRecord | null>(null);
+  const [settingsWorkflow, setSettingsWorkflow] = useState<WorkflowRecord | null>(null);
+
+  // Load Projects & Workflows from API
+  const refreshData = useCallback(async () => {
     try {
-      const res = await fetch('/api/workflows');
-      const data = await res.json();
-      if (data.success && data.data.length > 0) {
-        setWorkflows(data.data);
-        const active = data.data.find((w: any) => w.id === activeWorkflowId) || data.data[0];
-        setActiveWorkflowId(active.id);
-        setCurrentWorkflow(active);
-        setNodes(active.nodes || []);
-        setEdges(active.edges || []);
+      const [projRes, wfRes] = await Promise.all([
+        fetch('/api/projects'),
+        fetch('/api/workflows')
+      ]);
+      const projData = await projRes.json();
+      const wfData = await wfRes.json();
+
+      if (projData.success) {
+        setProjects(projData.data);
+      }
+      if (wfData.success && wfData.data.length > 0) {
+        setWorkflows(wfData.data);
+
+        // Find active or default to first
+        const matched = wfData.data.find((w: WorkflowRecord) => w.id === activeWorkflowId) || wfData.data[0];
+        setActiveWorkflowId(matched.id);
+        setCurrentWorkflow(matched);
+        setNodes(matched.nodes || []);
+        // Ensure static lines (animated: false) on all edges
+        setEdges(
+          (matched.edges || []).map((e: Edge) => ({
+            ...e,
+            animated: false,
+            style: { stroke: '#ED1C24', strokeWidth: 2 }
+          }))
+        );
       }
     } catch (err) {
-      console.error('Failed to load workflows:', err);
+      console.error('Failed to load project/workflow data:', err);
     }
   }, [activeWorkflowId, setNodes, setEdges]);
 
   useEffect(() => {
-    loadWorkflows();
-  }, [loadWorkflows]);
+    refreshData();
+  }, [refreshData]);
 
   // Keyboard shortcut: '/' opens the Add Node modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only when not focused on an input/textarea
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
 
@@ -94,14 +150,14 @@ export default function WorkflowAutomationStudio() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Handle edge connection
+  // Connect edges statically (no animation)
   const onConnect = useCallback(
     (connection: Connection) => {
       setEdges((eds) =>
         addEdge(
           {
             ...connection,
-            animated: true,
+            animated: false,
             style: { stroke: '#ED1C24', strokeWidth: 2 }
           },
           eds
@@ -138,22 +194,25 @@ export default function WorkflowAutomationStudio() {
     }));
   }, [nodes, handleOpenConfig, handleDeleteNode]);
 
-  // Switch active workflow preset
-  const handleSelectWorkflow = (wfId: string) => {
-    const wf = workflows.find((w) => w.id === wfId);
-    if (wf) {
-      setActiveWorkflowId(wf.id);
-      setCurrentWorkflow(wf);
-      setNodes(wf.nodes || []);
-      setEdges(wf.edges || []);
-      setConfigNodeId(null);
-    }
+  // Select workflow
+  const handleSelectWorkflow = (wf: WorkflowRecord) => {
+    setActiveWorkflowId(wf.id);
+    setCurrentWorkflow(wf);
+    setNodes(wf.nodes || []);
+    // Ensure all connecting lines are static
+    setEdges(
+      (wf.edges || []).map((e: Edge) => ({
+        ...e,
+        animated: false,
+        style: { stroke: '#ED1C24', strokeWidth: 2 }
+      }))
+    );
+    setConfigNodeId(null);
   };
 
   // Add new node from palette
   const handleAddNode = (def: INodeDefinition) => {
     const newId = `node-${Date.now().toString().slice(-4)}`;
-    // Position node nicely on canvas
     const x = 200 + (nodes.length % 4) * 280;
     const y = 140 + Math.floor(nodes.length / 4) * 160;
 
@@ -185,12 +244,15 @@ export default function WorkflowAutomationStudio() {
         body: JSON.stringify({
           ...currentWorkflow,
           nodes,
-          edges
+          edges: edges.map((e) => ({ ...e, animated: false }))
         })
       });
       const data = await res.json();
       if (data.success) {
         setIsSaving(false);
+        // Refresh local cache
+        setWorkflows((prev) => prev.map((w) => (w.id === currentWorkflow.id ? data.data : w)));
+        setCurrentWorkflow(data.data);
       }
     } catch (err) {
       console.error('Failed to save workflow:', err);
@@ -204,7 +266,6 @@ export default function WorkflowAutomationStudio() {
     setIsRunning(true);
     setRunSuccess(false);
 
-    // Set all nodes to running state visually
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -213,18 +274,16 @@ export default function WorkflowAutomationStudio() {
     );
 
     try {
-      // Save latest state first
       await fetch(`/api/workflows/${currentWorkflow.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...currentWorkflow,
           nodes,
-          edges
+          edges: edges.map((e) => ({ ...e, animated: false }))
         })
       });
 
-      // Call execution endpoint
       const res = await fetch(`/api/workflows/${currentWorkflow.id}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,7 +293,6 @@ export default function WorkflowAutomationStudio() {
       const data = await res.json();
       if (data.success) {
         setRunSuccess(true);
-        // Update nodes with success status and timings
         const traces = data.data.nodeOutputs || {};
         setNodes((nds) =>
           nds.map((n) => {
@@ -244,7 +302,7 @@ export default function WorkflowAutomationStudio() {
               data: {
                 ...n.data,
                 status: trace?.status || 'success',
-                executionTimeMs: trace?.executionTimeMs || 42
+                executionTimeMs: trace?.executionTimeMs || 35
               }
             };
           })
@@ -258,35 +316,172 @@ export default function WorkflowAutomationStudio() {
     }
   };
 
+  // Project Folder Operations
+  const handleSaveProject = async (projectData: { id?: string; name: string; description?: string; color: string }) => {
+    if (projectData.id) {
+      // Edit
+      const res = await fetch(`/api/projects/${projectData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) => prev.map((p) => (p.id === projectData.id ? data.data : p)));
+      }
+    } else {
+      // Create
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) => [...prev, data.data]);
+        setExpandedFolders((prev) => ({ ...prev, [data.data.id]: true }));
+      }
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    if (window.confirm(`Delete project folder "${projectName}"? Workflows will be moved to Ungrouped.`)) {
+      const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) => prev.filter((p) => p.id !== projectId));
+        setWorkflows((prev) =>
+          prev.map((w) => (w.folderId === projectId ? { ...w, folderId: undefined } : w))
+        );
+      }
+    }
+  };
+
+  // Create new blank workflow inside project folder
+  const handleCreateNewWorkflow = async (targetFolderId?: string) => {
+    const newName = `New Workflow ${workflows.length + 1}`;
+    const res = await fetch('/api/workflows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newName,
+        folderId: targetFolderId,
+        nodes: [
+          {
+            id: 'node-1',
+            type: 'customNode',
+            position: { x: 100, y: 160 },
+            data: {
+              nodeType: 'manualTrigger',
+              label: 'Manual Trigger',
+              category: 'Triggers',
+              icon: 'PlayCircle',
+              config: { mockPayload: '{"status": "test"}' }
+            }
+          }
+        ],
+        edges: []
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setWorkflows((prev) => [data.data, ...prev]);
+      handleSelectWorkflow(data.data);
+    }
+  };
+
+  // Duplicate Workflow
+  const handleDuplicateWorkflow = async (workflowId: string, newName: string, folderId?: string) => {
+    const res = await fetch(`/api/workflows/${workflowId}/duplicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName, folderId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setWorkflows((prev) => [data.data, ...prev]);
+      handleSelectWorkflow(data.data);
+    }
+  };
+
+  // Move Workflow
+  const handleMoveWorkflow = async (workflowId: string, targetFolderId?: string) => {
+    const res = await fetch(`/api/workflows/${workflowId}/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderId: targetFolderId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setWorkflows((prev) =>
+        prev.map((w) => (w.id === workflowId ? { ...w, folderId: targetFolderId } : w))
+      );
+      if (currentWorkflow?.id === workflowId) {
+        setCurrentWorkflow({ ...currentWorkflow, folderId: targetFolderId });
+      }
+    }
+  };
+
+  // Delete Workflow
+  const handleDeleteWorkflow = async (workflowId: string) => {
+    const res = await fetch(`/api/workflows/${workflowId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      const remaining = workflows.filter((w) => w.id !== workflowId);
+      setWorkflows(remaining);
+      if (activeWorkflowId === workflowId && remaining.length > 0) {
+        handleSelectWorkflow(remaining[0]);
+      }
+    }
+  };
+
+  // Toggle folder expansion
+  const toggleFolder = (folderKey: string) => {
+    setExpandedFolders((prev) => ({ ...prev, [folderKey]: !prev[folderKey] }));
+  };
+
   const selectedNode = nodes.find((n) => n.id === configNodeId);
+  const currentProject = projects.find((p) => p.id === currentWorkflow?.folderId);
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] w-full bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm">
       {/* Top Studio Action Bar */}
       <div className="p-3.5 border-b border-stone-200 bg-white flex flex-wrap items-center justify-between gap-3">
-        {/* Left: Workflow Selector & Name */}
+        {/* Left: Sidebar Toggle, Project Folder Badge & Workflow Name */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-rose-50 text-[#ED1C24] flex items-center justify-center font-bold">
-            <Workflow className="h-5 w-5" />
-          </div>
+          <button
+            onClick={() => setIsSidebarOpen((v) => !v)}
+            className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors cursor-pointer"
+            title={isSidebarOpen ? 'Hide Projects Sidebar' : 'Show Projects Sidebar'}
+          >
+            {isSidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          </button>
 
-          <div className="relative">
-            <select
-              value={activeWorkflowId}
-              onChange={(e) => handleSelectWorkflow(e.target.value)}
-              className="appearance-none pr-8 pl-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200/80 border border-stone-200 text-xs font-bold text-stone-900 focus:outline-none cursor-pointer"
+          {currentProject && (
+            <span
+              className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white flex items-center gap-1.5"
+              style={{ backgroundColor: currentProject.color || '#ED1C24' }}
             >
-              {workflows.map((wf) => (
-                <option key={wf.id} value={wf.id}>
-                  {wf.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-500 pointer-events-none" />
+              <Folder className="h-3 w-3" />
+              <span>{currentProject.name}</span>
+            </span>
+          )}
+
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-black text-stone-900 tracking-tight">
+              {currentWorkflow?.name || 'Untitled Workflow'}
+            </h2>
+            <button
+              onClick={() => setSettingsWorkflow(currentWorkflow)}
+              className="p-1 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+              title="Workflow Settings & Rename"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+            </button>
           </div>
 
-          <span className="hidden sm:inline-block text-[11px] text-stone-400 font-mono">
-            {nodes.length} nodes • {edges.length} connections
+          <span className="hidden md:inline-block text-[11px] text-stone-400 font-mono">
+            {nodes.length} nodes • {edges.length} static lines
           </span>
         </div>
 
@@ -337,7 +532,7 @@ export default function WorkflowAutomationStudio() {
             ) : runSuccess ? (
               <>
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Workflow Succeeded!</span>
+                <span>Succeeded!</span>
               </>
             ) : (
               <>
@@ -349,37 +544,298 @@ export default function WorkflowAutomationStudio() {
         </div>
       </div>
 
-      {/* React Flow Canvas */}
-      <div className="flex-1 w-full h-full relative">
-        <ReactFlow
-          nodes={processedNodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          fitView
-          attributionPosition="bottom-left"
-          defaultEdgeOptions={{
-            animated: true,
-            style: { stroke: '#ED1C24', strokeWidth: 2 }
-          }}
-        >
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1.2} color="#e5e5e5" />
-          <Controls position="bottom-left" />
-          <MiniMap
-            position="bottom-right"
-            nodeColor={(n) => {
-              if (n.data?.category === 'Triggers') return '#fbbf24';
-              if (n.data?.category === 'Logic & Flow') return '#60a5fa';
-              if (n.data?.category === 'App Integrations') return '#c084fc';
-              if (n.data?.category === 'AI & LLMs') return '#e879f9';
-              if (n.data?.category === 'Model Context Protocol (MCP)') return '#22d3ee';
-              return '#34d399';
+      {/* Main Workspace Area (Sidebar + Canvas) */}
+      <div className="flex-1 w-full h-full relative flex overflow-hidden">
+        {/* Left Project & Folder Navigator Sidebar */}
+        {isSidebarOpen && (
+          <aside className="w-72 border-r border-stone-200 bg-stone-50/70 flex flex-col shrink-0 overflow-hidden animate-in slide-in-from-left duration-200">
+            {/* Sidebar Header */}
+            <div className="p-3 border-b border-stone-200 bg-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Folder className="h-4 w-4 text-stone-600" />
+                <span className="text-xs font-bold text-stone-800">Automation Projects</span>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingProject(null);
+                  setIsProjectModalOpen(true);
+                }}
+                className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-[#ED1C24] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                title="Create New Project Folder"
+              >
+                <FolderPlus className="h-3.5 w-3.5" />
+                <span>+ Folder</span>
+              </button>
+            </div>
+
+            {/* Folder Tree Scroll Area */}
+            <div className="flex-1 overflow-y-auto p-2.5 space-y-3">
+              {/* Projects List */}
+              {projects.map((proj) => {
+                const isExpanded = expandedFolders[proj.id] ?? true;
+                const folderWorkflows = workflows.filter((w) => w.folderId === proj.id);
+
+                return (
+                  <div key={proj.id} className="rounded-2xl border border-stone-200 bg-white overflow-hidden shadow-2xs">
+                    {/* Folder Header */}
+                    <div className="p-2.5 bg-stone-100/60 hover:bg-stone-100 flex items-center justify-between gap-2 border-b border-stone-100">
+                      <div
+                        onClick={() => toggleFolder(proj.id)}
+                        className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer select-none"
+                      >
+                        <span className="text-stone-400">
+                          {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        </span>
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: proj.color || '#ED1C24' }}
+                        />
+                        <span className="text-xs font-bold text-stone-800 truncate">{proj.name}</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-stone-200 text-stone-600">
+                          {folderWorkflows.length}
+                        </span>
+                      </div>
+
+                      {/* Folder Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleCreateNewWorkflow(proj.id)}
+                          className="p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-white transition-colors"
+                          title="New Workflow in this folder"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingProject(proj);
+                            setIsProjectModalOpen(true);
+                          }}
+                          className="p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-white transition-colors"
+                          title="Edit Folder Name / Color"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProject(proj.id, proj.name)}
+                          className="p-1 rounded text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Delete Folder"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Workflows inside this folder */}
+                    {isExpanded && (
+                      <div className="p-1 space-y-0.5">
+                        {folderWorkflows.length === 0 ? (
+                          <div className="p-2 text-center text-[11px] text-stone-400">
+                            No workflows yet. Click &ldquo;+&rdquo; above.
+                          </div>
+                        ) : (
+                          folderWorkflows.map((wf) => {
+                            const isSelected = activeWorkflowId === wf.id;
+                            return (
+                              <div
+                                key={wf.id}
+                                className={`group p-2 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-rose-50 text-[#ED1C24] font-bold'
+                                    : 'hover:bg-stone-50 text-stone-700 font-medium'
+                                }`}
+                              >
+                                <div
+                                  onClick={() => handleSelectWorkflow(wf)}
+                                  className="flex items-center gap-2 min-w-0 flex-1 truncate"
+                                >
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                      wf.active ? 'bg-emerald-500' : 'bg-stone-300'
+                                    }`}
+                                  />
+                                  <span className="truncate">{wf.name}</span>
+                                </div>
+
+                                {/* Workflow Item Quick Actions */}
+                                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDuplicatingWorkflow(wf);
+                                    }}
+                                    className="p-1 hover:bg-white rounded text-stone-400 hover:text-stone-700"
+                                    title="Duplicate Workflow"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setMovingWorkflow(wf);
+                                    }}
+                                    className="p-1 hover:bg-white rounded text-stone-400 hover:text-stone-700"
+                                    title="Move to another Folder"
+                                  >
+                                    <FolderInput className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSettingsWorkflow(wf);
+                                    }}
+                                    className="p-1 hover:bg-white rounded text-stone-400 hover:text-stone-700"
+                                    title="Settings"
+                                  >
+                                    <Settings2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Ungrouped Workflows */}
+              {(() => {
+                const ungrouped = workflows.filter((w) => !w.folderId);
+                const isExpanded = expandedFolders['ungrouped'] ?? true;
+
+                return (
+                  <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden shadow-2xs">
+                    <div
+                      onClick={() => toggleFolder('ungrouped')}
+                      className="p-2.5 bg-stone-100/60 hover:bg-stone-100 flex items-center justify-between cursor-pointer select-none"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-stone-400">
+                          {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        </span>
+                        <span className="text-xs font-bold text-stone-700">Ungrouped Workflows</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-stone-200 text-stone-600">
+                          {ungrouped.length}
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCreateNewWorkflow(undefined);
+                        }}
+                        className="p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-white"
+                        title="New Ungrouped Workflow"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="p-1 space-y-0.5">
+                        {ungrouped.length === 0 ? (
+                          <div className="p-2 text-center text-[11px] text-stone-400">No ungrouped workflows</div>
+                        ) : (
+                          ungrouped.map((wf) => {
+                            const isSelected = activeWorkflowId === wf.id;
+                            return (
+                              <div
+                                key={wf.id}
+                                className={`group p-2 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-rose-50 text-[#ED1C24] font-bold'
+                                    : 'hover:bg-stone-50 text-stone-700 font-medium'
+                                }`}
+                              >
+                                <div
+                                  onClick={() => handleSelectWorkflow(wf)}
+                                  className="flex items-center gap-2 min-w-0 flex-1 truncate"
+                                >
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                      wf.active ? 'bg-emerald-500' : 'bg-stone-300'
+                                    }`}
+                                  />
+                                  <span className="truncate">{wf.name}</span>
+                                </div>
+
+                                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDuplicatingWorkflow(wf);
+                                    }}
+                                    className="p-1 hover:bg-white rounded text-stone-400 hover:text-stone-700"
+                                    title="Duplicate Workflow"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setMovingWorkflow(wf);
+                                    }}
+                                    className="p-1 hover:bg-white rounded text-stone-400 hover:text-stone-700"
+                                    title="Move to Folder"
+                                  >
+                                    <FolderInput className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSettingsWorkflow(wf);
+                                    }}
+                                    className="p-1 hover:bg-white rounded text-stone-400 hover:text-stone-700"
+                                    title="Settings"
+                                  >
+                                    <Settings2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </aside>
+        )}
+
+        {/* React Flow Canvas: STATIC connecting lines (animated: false) */}
+        <div className="flex-1 w-full h-full relative">
+          <ReactFlow
+            nodes={processedNodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            fitView
+            attributionPosition="bottom-left"
+            defaultEdgeOptions={{
+              animated: false,
+              style: { stroke: '#ED1C24', strokeWidth: 2 }
             }}
-            className="!rounded-2xl !border !border-stone-200 !shadow-sm overflow-hidden"
-          />
-        </ReactFlow>
+          >
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1.2} color="#e5e5e5" />
+            <Controls position="bottom-left" />
+            <MiniMap
+              position="bottom-right"
+              nodeColor={(n) => {
+                if (n.data?.category === 'Triggers') return '#fbbf24';
+                if (n.data?.category === 'Logic & Flow') return '#60a5fa';
+                if (n.data?.category === 'App Integrations') return '#c084fc';
+                if (n.data?.category === 'AI & LLMs') return '#e879f9';
+                if (n.data?.category === 'Model Context Protocol (MCP)') return '#22d3ee';
+                return '#34d399';
+              }}
+              className="!rounded-2xl !border !border-stone-200 !shadow-sm overflow-hidden"
+            />
+          </ReactFlow>
+        </div>
       </div>
 
       {/* Add Node Palette Modal */}
@@ -419,6 +875,48 @@ export default function WorkflowAutomationStudio() {
         isOpen={isHistoryOpen}
         workflowId={activeWorkflowId}
         onClose={() => setIsHistoryOpen(false)}
+      />
+
+      {/* Add / Edit Project Folder Modal */}
+      <ProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        initialProject={editingProject}
+        onSave={handleSaveProject}
+      />
+
+      {/* Move Workflow Modal */}
+      <MoveWorkflowModal
+        isOpen={Boolean(movingWorkflow)}
+        onClose={() => setMovingWorkflow(null)}
+        workflow={movingWorkflow}
+        projects={projects}
+        onMove={handleMoveWorkflow}
+      />
+
+      {/* Duplicate Workflow Modal */}
+      <DuplicateWorkflowModal
+        isOpen={Boolean(duplicatingWorkflow)}
+        onClose={() => setDuplicatingWorkflow(null)}
+        workflow={duplicatingWorkflow}
+        projects={projects}
+        onDuplicate={handleDuplicateWorkflow}
+      />
+
+      {/* Workflow Settings & Delete Modal */}
+      <WorkflowSettingsModal
+        isOpen={Boolean(settingsWorkflow)}
+        onClose={() => setSettingsWorkflow(null)}
+        workflow={settingsWorkflow}
+        onSave={async (id, updates) => {
+          await fetch(`/api/workflows/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+          });
+          refreshData();
+        }}
+        onDelete={handleDeleteWorkflow}
       />
     </div>
   );
