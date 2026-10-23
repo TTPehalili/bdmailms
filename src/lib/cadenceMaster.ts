@@ -11,6 +11,21 @@ export interface CadenceTouch {
   spokenOpener?: string;
 }
 
+export interface CadencePhoneCallConfig {
+  day: number;
+  phoneStepName: string;
+  priorEmail: {
+    touchName: string;
+    daySent: string;
+    subject: string;
+    coreHook: string;
+  };
+  spokenOpenerEmailInjected: string;
+  spokenVerification: string;
+  voicemailScript?: string;
+  reducedFrictionNote: string;
+}
+
 export const CADENCE_TOUCHES: CadenceTouch[] = [
   {
     day: 1,
@@ -38,8 +53,8 @@ export const CADENCE_TOUCHES: CadenceTouch[] = [
     channel: 'Phone',
     mechanism: 'Push to Boris priority dial queue.',
     timingRule: 'First cold dial. No voicemail left on Day 2.',
-    spokenOpener: `"Hi {{first_name}}, this is {{rep_name}} with Appointmentlyy. I know I'm catching you unannounced—do you have 30 seconds?"`,
-    body: `Cold Call Phone #1 (Screen 1 Opener). If no answer, intra-day redial engine queues a second attempt in 3.5 hours. No voicemail left today.`
+    spokenOpener: `"Hi {{first_name}}, this is {{rep_name}} with Appointmentlyy. I know I'm catching you unannounced—do you have 30 seconds? I sent you a quick email yesterday titled 'quick question on {{company}} ramp time' about the rookie tax—watching new reps burn through paid client leads. Did that cross your screen, or do your reps somehow hit production on Day 3 without burning leads?"`,
+    body: `Cold Call Phone #1 (Screen 1 Opener). Follow-up to Day 1 Email #1. Injects email subject to reduce cold-call friction right off the bat.`
   },
   {
     day: 3,
@@ -87,8 +102,8 @@ export const CADENCE_TOUCHES: CadenceTouch[] = [
     channel: 'Phone',
     mechanism: 'Time-shifted dial block (8:00 AM–8:45 AM or 4:30 PM–5:15 PM prospect local time).',
     timingRule: 'Catch leadership before morning huddles or after shift change. References Day 7 video.',
-    spokenOpener: `"Hi {{first_name}}, {{rep_name}} here. I know it's early/late, so I'll be brief. Sent a 90-second video on Friday showing how a 60-seat floor stopped reps from freezing mid-call. Did that cross your screen or did it get buried under client fires?"`,
-    body: `Shifted dial window to catch decision-makers during transition windows outside standard call blocks.`
+    spokenOpener: `"Hi {{first_name}}, {{rep_name}} here with Appointmentlyy. I know it's early/late, so I'll be brief. Sent an email on Friday titled '100% call QA vs 2% Excel sampling' with a 90-second video showing how a 60-seat floor stopped reps from freezing mid-call. Did that video cross your screen, or did it get buried under client fires?"`,
+    body: `Shifted dial window referencing the 90-second Loom benchmark video sent on Friday to establish instant familiarity.`
   },
   {
     day: 12,
@@ -107,8 +122,8 @@ export const CADENCE_TOUCHES: CadenceTouch[] = [
     channel: 'Phone',
     mechanism: 'Push to Boris priority dial queue.',
     timingRule: 'Quick touch; negative reverse selling; move on without voicemail.',
-    spokenOpener: `"Hi {{first_name}}, {{rep_name}} again. Usually when I haven't connected by now, it means one of two things: either your reps are already crushing their quotas with zero shared leads, or you're swamped. Which one is it?"`,
-    body: `Negative reverse selling opener. Gives prospect permission to admit whether they are swamped or already satisfied.`
+    spokenOpener: `"Hi {{first_name}}, {{rep_name}} again with Appointmentlyy. Dropped an email in your inbox last week titled 'broker margins vs direct client contracts' about BPO CROs stopping the 35% broker margin skim. Usually when I haven't connected by now, it means one of two things: either your reps are already crushing their quotas with zero shared leads, or you're swamped. Which one is it?"`,
+    body: `Negative reverse selling opener referencing the broker margin skim email sent on Day 12.`
   },
   {
     day: 19,
@@ -127,8 +142,8 @@ export const CADENCE_TOUCHES: CadenceTouch[] = [
     channel: 'Phone',
     mechanism: 'Final phone touchpoint on Boris dial queue.',
     timingRule: 'Voss Accusation Audit; gentle exit positioning.',
-    spokenOpener: `"Hi {{first_name}}, {{rep_name}} with Appointmentlyy. You're probably wondering why I haven't given up on your line yet. I promise this is my last dial—just wanted to know before I close your file: is eliminating shared leads a priority this quarter, or just bad timing?"`,
-    body: `Chris Voss Accusation Audit approach. Relieves sales pressure while unlocking honest feedback on timing.`
+    spokenOpener: `"Hi {{first_name}}, {{rep_name}} with Appointmentlyy. Sent you our 1-page 3-Day TTP Cheat Sheet last week for transitioning reps to production in 72 hours. You're probably wondering why I haven't given up on your line yet. I promise this is my last dial—just wanted to know before I close your file: is eliminating shared leads a priority this quarter, or just bad timing?"`,
+    body: `Chris Voss Accusation Audit approach referencing the 3-Day TTP framework sent on Day 19.`
   },
   {
     day: 27,
@@ -141,3 +156,72 @@ export const CADENCE_TOUCHES: CadenceTouch[] = [
     body: `Hi {{first_name}},\n\nI haven't heard back, so I'm assuming floor efficiency, ramp velocity, and direct client pipeline aren't priorities for {{company}} right now. I’m closing out your file on our end so I don't clutter your inbox.\n\nIf anything changes down the road and you'd like to see how BPOs are ramping reps in 3 days with <180ms live call assistance, you know where to find me.\n\nAll the best,\n{{rep_name}}`
   }
 ];
+
+export const CADENCE_PHONE_SCRIPTS: Record<number, CadencePhoneCallConfig> = {
+  2: {
+    day: 2,
+    phoneStepName: 'The Phone Push — Phone #1',
+    priorEmail: {
+      touchName: 'Initial Hook — Email #1',
+      daySent: 'Day 1 at Enrollment',
+      subject: 'quick question on {{company}} ramp time',
+      coreHook: 'Rookie tax: new hires burning 500 paid client leads trying to figure out what to say'
+    },
+    spokenOpenerEmailInjected: `"Hi {{first_name}}, this is {{rep_name}} with Appointmentlyy. I know I'm catching you unannounced—do you have 30 seconds? I sent you a quick email yesterday titled 'quick question on {{company}} ramp time' about the rookie tax—watching new reps burn through paid client leads. Did that cross your screen, or do your reps somehow hit production on Day 3 without burning leads?"`,
+    spokenVerification: `"My notes show you're still leading {{department}} as the {{title}} over at {{company}}—is that still accurate?"`,
+    reducedFrictionNote: 'References yesterday\'s Email #1 subject line to transform a cold dial into a warm follow-up touchpoint.'
+  },
+  3: {
+    day: 3,
+    phoneStepName: 'Voicemail Drop — Phone #2',
+    priorEmail: {
+      touchName: 'Email Synergy — Email #2',
+      daySent: 'Queued to send in 120s post-dial',
+      subject: '72-hour floor ramp / tried you just now',
+      coreHook: 'Cutting onboarding to 72 hours via voice AI sparring simulating 50+ hostile calls on Day 1'
+    },
+    spokenOpenerEmailInjected: `"Hi {{first_name}}, {{rep_name}} with Appointmentlyy. I was just about to shoot you a note titled '72-hour floor ramp' regarding how mid-market BPOs are cutting agent onboarding to 72 hours without burning client leads. Do you have 30 seconds before I send that over?"`,
+    spokenVerification: `"I'm reaching out because you're leading {{department}} as the {{title}} at {{company}}—wanted to make sure I had the right desk before pinging your inbox."`,
+    voicemailScript: `"Hey {{first_name}}, it's {{rep_name}} with Appointmentlyy. Quick heads up—dropping a short note in your inbox regarding how contact centers are cutting agent onboarding down to 72 hours without burning client leads. Check for an email titled '72-hour floor ramp'. Talk soon."`,
+    reducedFrictionNote: 'Hooks the prospect with the incoming email topic before it hits their inbox, creating instant curiosity.'
+  },
+  9: {
+    day: 9,
+    phoneStepName: 'Shifted Phone Call — Phone #3',
+    priorEmail: {
+      touchName: 'Value Add — Email #3',
+      daySent: 'Day 7 at 9:00 AM',
+      subject: '100% call QA vs 2% Excel sampling (BPO benchmark)',
+      coreHook: '90s Loom teardown video showing how a 60-seat floor stopped reps from freezing mid-call'
+    },
+    spokenOpenerEmailInjected: `"Hi {{first_name}}, {{rep_name}} here with Appointmentlyy. I know it's early/late, so I'll be brief. Sent an email on Friday titled '100% call QA vs 2% Excel sampling' with a 90-second video showing how a 60-seat floor stopped reps from freezing mid-call. Did that video cross your screen, or did it get buried under client fires?"`,
+    spokenVerification: `"Reaching out directly since you run {{department}} as the {{title}} at {{company}}—wanted to see if automated 100% call auditing is on your radar this quarter?"`,
+    reducedFrictionNote: 'References the 90-second Loom benchmark video sent on Friday to immediately separate this from commodity vendor dials.'
+  },
+  15: {
+    day: 15,
+    phoneStepName: 'Quick Dial-In — Phone #4',
+    priorEmail: {
+      touchName: 'Pivot Angle — Email #4',
+      daySent: 'Day 12 via Resend',
+      subject: 'broker margins vs direct client contracts',
+      coreHook: '35% broker margin skim vs direct US/UK client contracts at $24/hr billable rates'
+    },
+    spokenOpenerEmailInjected: `"Hi {{first_name}}, {{rep_name}} again with Appointmentlyy. Dropped an email in your inbox last week titled 'broker margins vs direct client contracts' about BPO CROs stopping the 35% broker margin skim. Usually when I haven't connected by now, it means one of two things: either your reps are already crushing their quotas with zero shared leads, or you're swamped. Which one is it?"`,
+    spokenVerification: `"As {{title}} leading {{department}} at {{company}}, curious if signing direct enterprise contracts without broker cuts is even an active priority right now?"`,
+    reducedFrictionNote: 'Uses negative reverse selling while referencing the broker margin skim email sent on Day 12.'
+  },
+  24: {
+    day: 24,
+    phoneStepName: 'Final Persistence — Phone #5',
+    priorEmail: {
+      touchName: 'Referral Touch — Email #5',
+      daySent: 'Day 19 via Resend',
+      subject: '3-Day TTP Cheat Sheet (+ quick question)',
+      coreHook: '1-page framework transitioning new hires from classroom roleplay to live dials in 72 hours'
+    },
+    spokenOpenerEmailInjected: `"Hi {{first_name}}, {{rep_name}} with Appointmentlyy. Sent you our 1-page 3-Day TTP Cheat Sheet last week for transitioning reps to production in 72 hours. You're probably wondering why I haven't given up on your line yet. I promise this is my last dial—just wanted to know before I close your file: is eliminating shared leads a priority this quarter, or just bad timing?"`,
+    spokenVerification: `"Before I archive your profile for {{company}}—are you still the right person heading {{department}}, or should I be speaking with someone else on your leadership team?"`,
+    reducedFrictionNote: 'Employs Chris Voss accusation audit referencing the 3-Day TTP Cheat Sheet email sent on Day 19.'
+  }
+};

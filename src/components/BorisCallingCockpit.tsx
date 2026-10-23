@@ -37,12 +37,14 @@ import {
   Users,
   ShieldAlert,
   Zap,
-  RefreshCw
+  RefreshCw,
+  Mail,
+  Voicemail
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
 import { CallTelemetryState, INITIAL_TELEMETRY_STATE, synthesizeCrmNotes } from '@/lib/callTelemetry';
-import { CADENCE_TOUCHES, CadenceTouch } from '@/lib/cadenceMaster';
+import { CADENCE_TOUCHES, CadenceTouch, CADENCE_PHONE_SCRIPTS, CadencePhoneCallConfig } from '@/lib/cadenceMaster';
 import ViewFullCadenceModal from '@/components/cockpit/ViewFullCadenceModal';
 
 interface ARMRebuttal {
@@ -68,7 +70,7 @@ export default function BorisCallingCockpit() {
 
   // Cadence Gating & Modal State
   const [isCadenceModalOpen, setIsCadenceModalOpen] = useState<boolean>(false);
-  const [currentCadenceDay, setCurrentCadenceDay] = useState<number>(2); // Day 2: Phone #1
+  const [currentCadenceDay, setCurrentCadenceDay] = useState<number>(2); // Default to Day 2: Phone #1
   const [isSyncingCrm, setIsSyncingCrm] = useState<boolean>(false);
   const [crmSyncSuccess, setCrmSyncSuccess] = useState<string | null>(null);
   const [isQuarantined, setIsQuarantined] = useState<boolean>(false);
@@ -120,6 +122,52 @@ export default function BorisCallingCockpit() {
 
   // Current Cadence Touch Definition
   const currentCadenceTouch = CADENCE_TOUCHES.find(t => t.day === currentCadenceDay) || CADENCE_TOUCHES[2];
+
+  // Active Phone Script Configuration with Injected Prior Email Context
+  const currentPhoneConfig: CadencePhoneCallConfig = CADENCE_PHONE_SCRIPTS[currentCadenceDay] || CADENCE_PHONE_SCRIPTS[2];
+
+  // Injected Spoken Opener (Interpolates lead variables into the exact email-context script)
+  const getInjectedOpenerText = () => {
+    return currentPhoneConfig.spokenOpenerEmailInjected
+      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
+      .replace(/\{\{rep_name\}\}/g, repName)
+      .replace(/\{\{company\}\}/g, partnerName);
+  };
+
+  const getInjectedVerificationText = () => {
+    return currentPhoneConfig.spokenVerification
+      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
+      .replace(/\{\{rep_name\}\}/g, repName)
+      .replace(/\{\{department\}\}/g, department)
+      .replace(/\{\{title\}\}/g, title)
+      .replace(/\{\{company\}\}/g, partnerName);
+  };
+
+  const getInjectedVoicemailText = () => {
+    return (currentPhoneConfig.voicemailScript || '')
+      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
+      .replace(/\{\{rep_name\}\}/g, repName)
+      .replace(/\{\{company\}\}/g, partnerName);
+  };
+
+  // Cadence Day Selection Handler (Switches Day & Updates Synthesized CRM Notes)
+  const handleSelectCadenceDay = (day: number) => {
+    setCurrentCadenceDay(day);
+    const touch = CADENCE_TOUCHES.find(t => t.day === day) || CADENCE_TOUCHES[2];
+    setNotesDraft(synthesizeCrmNotes({
+      contactName: customerName,
+      companyName: partnerName,
+      title,
+      department,
+      headcount,
+      phone,
+      cadenceDay: day,
+      stepName: touch.stepName,
+      telemetry,
+      disposition,
+      customRepNotes
+    }));
+  };
 
   // Derived Active Service Label for dynamic objection insertion
   const getActiveServiceLabel = () => {
@@ -761,6 +809,36 @@ export default function BorisCallingCockpit() {
                     </p>
                   </div>
 
+                  {/* Quick Phone Call Day Selector Pills */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wide block">
+                      Active Call Cadence Touchpoint:
+                    </span>
+                    <div className="grid grid-cols-5 gap-1 text-[10px] font-mono font-bold">
+                      {[
+                        { day: 2, label: 'D2: P#1' },
+                        { day: 3, label: 'D3: P#2' },
+                        { day: 9, label: 'D9: P#3' },
+                        { day: 15, label: 'D15: P#4' },
+                        { day: 24, label: 'D24: P#5' }
+                      ].map((item) => (
+                        <button
+                          key={item.day}
+                          type="button"
+                          onClick={() => handleSelectCadenceDay(item.day)}
+                          title={`Switch to Day ${item.day} Call Script`}
+                          className={`py-1 rounded text-center transition-all cursor-pointer ${
+                            currentCadenceDay === item.day
+                              ? 'bg-[#ED1C24] text-white shadow-xs font-black ring-1 ring-white/30'
+                              : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => setIsCadenceModalOpen(true)}
@@ -977,55 +1055,167 @@ export default function BorisCallingCockpit() {
                       =================================================================== */}
                   {currentStep === 1 && (
                     <div className="space-y-4">
+                      {/* Active Cadence Phone Touchpoint Selector */}
+                      <div className="bg-slate-900 text-white p-3 rounded-xl border border-slate-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300">
+                              Active Cadence Step: <span className="text-white font-black">{currentPhoneConfig.phoneStepName}</span> (Day {currentCadenceDay})
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            Email Context Injected
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-1">
+                          {[
+                            { day: 2, label: 'Day 2: Phone #1', desc: 'Ref: Email #1' },
+                            { day: 3, label: 'Day 3: Phone #2', desc: 'Ref: Email #2 + VM' },
+                            { day: 9, label: 'Day 9: Phone #3', desc: 'Ref: Email #3' },
+                            { day: 15, label: 'Day 15: Phone #4', desc: 'Ref: Email #4' },
+                            { day: 24, label: 'Day 24: Phone #5', desc: 'Ref: Email #5' },
+                          ].map(item => (
+                            <button
+                              key={item.day}
+                              type="button"
+                              onClick={() => handleSelectCadenceDay(item.day)}
+                              className={`px-2 py-1.5 rounded-lg text-left transition-all cursor-pointer ${
+                                currentCadenceDay === item.day
+                                  ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30'
+                                  : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300'
+                              }`}
+                            >
+                              <div className="text-[11px] font-mono font-black">{item.label}</div>
+                              <div className="text-[9px] truncate text-slate-300/80">{item.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Prior Email Sent Context Card */}
+                      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-950 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-bold text-amber-900">
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="h-4 w-4 text-amber-600" />
+                            <span>Prior Outreach Context: <strong>{currentPhoneConfig.priorEmail.touchName}</strong></span>
+                          </div>
+                          <span className="text-[10px] font-mono bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300 font-semibold">
+                            {currentPhoneConfig.priorEmail.daySent}
+                          </span>
+                        </div>
+                        <div className="text-xs text-amber-900">
+                          <span className="font-semibold text-amber-950">Email Subject Injected: </span>
+                          <span className="font-mono font-bold bg-white/90 px-2 py-0.5 rounded border border-amber-300 text-amber-900 shadow-2xs">
+                            "{currentPhoneConfig.priorEmail.subject.replace(/\{\{company\}\}/g, partnerName)}"
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-800/90 leading-tight">
+                          <strong className="text-amber-950">Tactical Friction-Reducer:</strong> {currentPhoneConfig.reducedFrictionNote}
+                        </p>
+                      </div>
+
                       {/* Spoken Lines */}
                       <div className="space-y-3">
-                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                        {/* Spoken Line 1: Email-Injected Opener */}
+                        <div className="p-4 rounded-xl bg-slate-50 border-2 border-slate-300/80 shadow-xs space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#ED1C24] flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#ED1C24]"></span>
+                              SPOKEN OPENER (EMAIL REFERENCED RIGHT OFF THE BAT):
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+                              Eliminates friction & defensiveness
+                            </span>
+                          </div>
+
                           <p className={`font-semibold text-[#222021] leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
-                            "Hi <span className="bg-[#ED1C24]/15 px-1 rounded font-bold font-mono">{customerName.split(' ')[0] || 'there'}</span>, this is <span className="bg-slate-200 px-1 rounded font-bold">{repName}</span> with <span className="font-bold text-[#ED1C24]">{companyName}</span>. I know I'm catching you unannounced—do you have 30 seconds?"
+                            {getInjectedOpenerText()}
                           </p>
-                          <div className="flex items-center gap-2 pt-2">
+
+                          <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
                             <button
-                              onClick={() => playSpeech(`Hi ${customerName.split(' ')[0] || 'there'}, this is ${repName} with ${companyName}. I know I'm catching you unannounced—do you have 30 seconds?`, 's1_l1')}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100"
+                              onClick={() => playSpeech(getInjectedOpenerText(), 's1_l1')}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
                             >
                               <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
-                              <span>Hear it</span>
+                              <span>Hear Opener</span>
                             </button>
                             <button
-                              onClick={() => copyText(`Hi ${customerName.split(' ')[0] || 'there'}, this is ${repName} with ${companyName}. I know I'm catching you unannounced—do you have 30 seconds?`, 's1_l1_cp')}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100"
+                              onClick={() => copyText(getInjectedOpenerText(), 's1_l1_cp')}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
                             >
                               {copiedKey === 's1_l1_cp' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
-                              <span>Copy</span>
+                              <span>Copy Opener</span>
                             </button>
                           </div>
                         </div>
 
-                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                        {/* Spoken Line 2: Role & Department Verification Bridge */}
+                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600 block">
+                            STEP 1B: ROLE VERIFICATION & CONVERSATION BRIDGE:
+                          </span>
                           <p className={`font-semibold text-[#222021] leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
-                            "I'm reaching out because my notes show you're still leading <span className="bg-purple-100 px-1 rounded font-bold text-purple-900">{department}</span> as the <span className="bg-purple-100 px-1 rounded font-bold text-purple-900">{title}</span> over at <span className="font-bold">{partnerName}</span>—is that still accurate?"
+                            {getInjectedVerificationText()}
                           </p>
-                          <div className="flex items-center gap-2 pt-2">
+                          <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
                             <button
-                              onClick={() => playSpeech(`I'm reaching out because my notes show you're still leading ${department} as the ${title} over at ${partnerName}—is that still accurate?`, 's1_l2')}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100"
+                              onClick={() => playSpeech(getInjectedVerificationText(), 's1_l2')}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
                             >
                               <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
-                              <span>Hear it</span>
+                              <span>Hear Line</span>
                             </button>
                             <button
-                              onClick={() => copyText(`I'm reaching out because my notes show you're still leading ${department} as the ${title} over at ${partnerName}—is that still accurate?`, 's1_l2_cp')}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100"
+                              onClick={() => copyText(getInjectedVerificationText(), 's1_l2_cp')}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
                             >
                               {copiedKey === 's1_l2_cp' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
-                              <span>Copy</span>
+                              <span>Copy Line</span>
                             </button>
                           </div>
                         </div>
+
+                        {/* Optional Voicemail Drop Audio Script (e.g. Day 3) */}
+                        {currentPhoneConfig.voicemailScript && (
+                          <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                                <Voicemail className="h-3.5 w-3.5 text-purple-700" />
+                                NO PICKUP? 15-SECOND VOICEMAIL SCRIPT (SYNERGIZES WITH EMAIL #2):
+                              </span>
+                              <span className="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-bold">
+                                15s Max
+                              </span>
+                            </div>
+                            <p className="text-xs font-semibold text-purple-950 italic leading-relaxed">
+                              {getInjectedVoicemailText()}
+                            </p>
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                onClick={() => playSpeech(getInjectedVoicemailText(), 's1_vm')}
+                                className="px-2 py-1 rounded bg-white border border-purple-200 text-[11px] font-semibold flex items-center gap-1 hover:bg-purple-100/50 text-purple-900"
+                              >
+                                <Volume2 className="h-3 w-3 text-purple-700" />
+                                <span>Hear Voicemail</span>
+                              </button>
+                              <button
+                                onClick={() => copyText(getInjectedVoicemailText(), 's1_vm_cp')}
+                                className="px-2 py-1 rounded bg-white border border-purple-200 text-[11px] font-semibold flex items-center gap-1 hover:bg-purple-100/50 text-purple-900"
+                              >
+                                {copiedKey === 's1_vm_cp' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-purple-700" />}
+                                <span>Copy Voicemail</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Role Verification Gate Buttons */}
