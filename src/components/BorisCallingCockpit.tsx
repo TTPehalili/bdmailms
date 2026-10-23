@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Swords, 
   Minus, 
@@ -135,6 +135,7 @@ export default function BorisCallingCockpit() {
   const [inviteAccepted, setInviteAccepted] = useState<boolean>(false);
   const [disposition, setDisposition] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState<string | null>(null);
+  const currentSpeechAudioRef = useRef<HTMLAudioElement | null>(null);
   const [showCalendlyModal, setShowCalendlyModal] = useState<boolean>(false);
   const [showPlaybookModal, setShowPlaybookModal] = useState<boolean>(false);
   const [calendlyLoading, setCalendlyLoading] = useState<boolean>(true);
@@ -785,17 +786,78 @@ export default function BorisCallingCockpit() {
     setTimeout(() => setCopiedKey(null), 1800);
   };
 
-  const playSpeech = (text: string, key: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05;
-      utterance.pitch = 1.0;
-      setIsPlayingAudio(key);
-      utterance.onend = () => setIsPlayingAudio(null);
-      utterance.onerror = () => setIsPlayingAudio(null);
-      window.speechSynthesis.speak(utterance);
+  const playSpeech = async (text: string, key: string) => {
+    if (isPlayingAudio === key) {
+      if (currentSpeechAudioRef.current) {
+        currentSpeechAudioRef.current.pause();
+        currentSpeechAudioRef.current = null;
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setIsPlayingAudio(null);
+      return;
     }
+
+    if (currentSpeechAudioRef.current) {
+      try {
+        currentSpeechAudioRef.current.pause();
+        currentSpeechAudioRef.current = null;
+      } catch {}
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    setIsPlayingAudio(key);
+
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          voiceId: 'CwhRBWXzGAHq8TQ4Fs17', // Roger - High-confidence Executive Male
+          voiceSettings: {
+            stability: 0.50,
+            similarity_boost: 0.78,
+            style: 0.08,
+            use_speaker_boost: true
+          }
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.audio) {
+          const cleaned = data.audio.replace(/^data:audio\/[^;]+;base64,/, '');
+          const binaryString = window.atob(cleaned);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const audioBlob = new Blob([bytes.buffer], { type: 'audio/mpeg' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          currentSpeechAudioRef.current = audio;
+          audio.onended = () => {
+            setIsPlayingAudio(null);
+            currentSpeechAudioRef.current = null;
+          };
+          audio.onerror = () => {
+            setIsPlayingAudio(null);
+            currentSpeechAudioRef.current = null;
+          };
+          await audio.play();
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('ElevenLabs speech playback notice:', e);
+    }
+
+    setIsPlayingAudio(null);
   };
 
   // 5 Step Teleprompter Navigation Models

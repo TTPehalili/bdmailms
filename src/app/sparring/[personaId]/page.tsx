@@ -322,58 +322,29 @@ function SparringRoomContent() {
     }
   }, []);
 
-  // Web Speech API fallback to ensure prospect voice matches selected country accent
-  const speakWebSpeechFallback = useCallback((text: string): Promise<void> => {
-    return new Promise((resolve) => {
-      if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-        resolve();
-        return;
+  // Client-side synthesis fallback: directly calls ElevenLabs TTS API if server didn't pre-synthesize audio
+  const synthesizeVoiceIfNeeded = useCallback(async (text: string, personaVoiceId: string): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          voiceId: personaVoiceId,
+          voiceSettings: persona.voiceSettings
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.audio || null;
       }
-      try {
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.rate = 1.05;
-        utter.pitch = 1.0;
-        
-        const voiceConfig = getPersonaVoiceByCountry(persona, selectedCountry);
-        const targetLang = voiceConfig.langCode.toLowerCase();
-        const voices = window.speechSynthesis.getVoices();
-        const countryVoice = voices.find(v => v.lang.toLowerCase().startsWith(targetLang)) ||
-                             voices.find(v => v.lang.toLowerCase().startsWith('en')) ||
-                             voices[0];
-        if (countryVoice) utter.voice = countryVoice;
+    } catch (e) {
+      console.warn('Client TTS fetch note:', e);
+    }
+    return null;
+  }, [persona.voiceSettings]);
 
-        utter.onend = () => {
-          setIsPlayingAudio(false);
-          setActiveAudioTurn(null);
-          resolve();
-          if (isCallActiveRef.current && !isAiRespondingRef.current) {
-            startHandsFreeListening();
-          }
-        };
-
-        utter.onerror = () => {
-          setIsPlayingAudio(false);
-          setActiveAudioTurn(null);
-          resolve();
-          if (isCallActiveRef.current && !isAiRespondingRef.current) {
-            startHandsFreeListening();
-          }
-        };
-
-        setIsPlayingAudio(true);
-        window.speechSynthesis.speak(utter);
-      } catch {
-        setIsPlayingAudio(false);
-        resolve();
-        if (isCallActiveRef.current && !isAiRespondingRef.current) {
-          startHandsFreeListening();
-        }
-      }
-    });
-  }, [startHandsFreeListening, persona, selectedCountry]);
-
-  // Multi-tier resilient audio playback engine
+  // Rock-solid audio playback engine using native audio Blobs (NO robotic fallback)
   const playVoiceAudio = useCallback(async (audioUrl: string, textFallback: string, turnIndex?: number): Promise<void> => {
     if (isMuted) return;
 
@@ -385,80 +356,35 @@ function SparringRoomContent() {
     setIsPlayingAudio(true);
     if (turnIndex !== undefined) setActiveAudioTurn(turnIndex);
 
-    // Stop any existing Web Audio playback
-    if (audioSourceNodeRef.current) {
-      try {
-        audioSourceNodeRef.current.stop();
-        audioSourceNodeRef.current.disconnect();
-      } catch {}
-      audioSourceNodeRef.current = null;
-    }
-
-    // Cancel any existing SpeechSynthesis
+    // Cancel any existing SpeechSynthesis so robotic voices NEVER fire
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try { window.speechSynthesis.cancel(); } catch {}
     }
 
-    // TIER 1: Native Web Audio API decodeAudioData (zero autoplay restriction once context is active)
     try {
-      const ctx = await getOrCreateAudioContext();
-      if (ctx) {
-        if (ctx.state === 'suspended') {
-          await ctx.resume().catch(() => {});
+      let playableUrl = audioUrl;
+      if (audioUrl.startsWith('data:audio/')) {
+        const cleaned = audioUrl.replace(/^data:audio\/[^;]+;base64,/, '');
+        const binaryString = window.atob(cleaned);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
         }
-        if (audioUrl.startsWith('data:audio/')) {
-          const cleaned = audioUrl.replace(/^data:audio\/[^;]+;base64,/, '');
-          const binaryString = window.atob(cleaned);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-
-          const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
-          const source = ctx.createBufferSource();
-          source.buffer = audioBuffer;
-
-          // Connect DIRECTLY to ctx.destination for 100% guaranteed speaker output
-          source.connect(ctx.destination);
-
-          if (!analyserNodeRef.current) {
-            try {
-              const analyser = ctx.createAnalyser();
-              analyser.fftSize = 64;
-              analyserNodeRef.current = analyser;
-            } catch {}
-          }
-          if (analyserNodeRef.current) {
-            try { source.connect(analyserNodeRef.current); } catch {}
-          }
-          audioSourceNodeRef.current = source;
-
-          return new Promise<void>((resolve) => {
-            source.onended = () => {
-              setIsPlayingAudio(false);
-              setActiveAudioTurn(null);
-              setAudioBlocked(false);
-              audioSourceNodeRef.current = null;
-              resolve();
-              if (isCallActiveRef.current && !isAiRespondingRef.current) {
-                startHandsFreeListening();
-              }
-            };
-
-            source.start(0);
-          });
-        }
+        const audioBlob = new Blob([bytes.buffer], { type: 'audio/mpeg' });
+        playableUrl = URL.createObjectURL(audioBlob);
       }
-    } catch (webAudioErr) {
-      console.warn('Web Audio decoding note, falling back to HTML5 Audio element:', webAudioErr);
-    }
 
-    // TIER 2: Persistent DOM HTML5 Audio element
-    try {
-      const audio = audioElementRef.current || new Audio();
+      if (audioElementRef.current) {
+        try {
+          audioElementRef.current.pause();
+          audioElementRef.current.currentTime = 0;
+          audioElementRef.current.src = '';
+        } catch {}
+      }
+
+      const audio = new Audio(playableUrl);
       audioElementRef.current = audio;
-      audio.src = audioUrl;
       audio.volume = 1.0;
 
       return new Promise<void>((resolve) => {
@@ -473,24 +399,28 @@ function SparringRoomContent() {
         };
 
         audio.onerror = (err) => {
-          console.warn('HTML5 Audio playback error, falling back to Web Speech:', err);
-          speakWebSpeechFallback(textFallback).then(resolve);
+          console.warn('Audio playback element error:', err);
+          setIsPlayingAudio(false);
+          setActiveAudioTurn(null);
+          resolve();
+          if (isCallActiveRef.current && !isAiRespondingRef.current) {
+            startHandsFreeListening();
+          }
         };
 
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((err) => {
-            console.warn('Autoplay notice, falling back to Web Speech:', err);
-            setAudioBlocked(true);
-            speakWebSpeechFallback(textFallback).then(resolve);
-          });
-        }
+        audio.play().catch((playErr) => {
+          console.warn('Audio autoplay notice:', playErr);
+          setAudioBlocked(true);
+          setIsPlayingAudio(false);
+          resolve();
+        });
       });
     } catch (err) {
-      console.warn('Audio playback error, using speech synthesis fallback:', err);
-      return speakWebSpeechFallback(textFallback);
+      console.warn('playVoiceAudio caught error:', err);
+      setIsPlayingAudio(false);
+      setActiveAudioTurn(null);
     }
-  }, [isMuted, stopListening, startHandsFreeListening, getOrCreateAudioContext, speakWebSpeechFallback]);
+  }, [isMuted, stopListening, startHandsFreeListening]);
 
   // Unblock / prime audio context synchronously
   const primeAudioContext = async () => {
@@ -531,6 +461,7 @@ function SparringRoomContent() {
       setMicPermissionDenied(true);
     }
 
+    const voiceConfig = getPersonaVoiceByCountry(persona, selectedCountry);
     setCallConnecting(true);
     setCallActive(true);
     setCallDuration(0);
@@ -561,10 +492,15 @@ function SparringRoomContent() {
             }
           ]);
 
-          if (data.audioUrl) {
-            await playVoiceAudio(data.audioUrl, data.greetingText, 0);
+          let audioToPlay = data.audioUrl;
+          if (!audioToPlay) {
+            audioToPlay = await synthesizeVoiceIfNeeded(data.greetingText, voiceConfig.voiceId);
+          }
+
+          if (audioToPlay) {
+            await playVoiceAudio(audioToPlay, data.greetingText, 0);
           } else {
-            await speakWebSpeechFallback(data.greetingText);
+            startHandsFreeListening();
           }
         }
       } else {
@@ -577,7 +513,12 @@ function SparringRoomContent() {
             timestamp: '00:01'
           }
         ]);
-        await speakWebSpeechFallback(fallbackGreeting);
+        const fallbackAudio = await synthesizeVoiceIfNeeded(fallbackGreeting, voiceConfig.voiceId);
+        if (fallbackAudio) {
+          await playVoiceAudio(fallbackAudio, fallbackGreeting, 0);
+        } else {
+          startHandsFreeListening();
+        }
       }
     } catch (err) {
       console.warn('Dial request note:', err);
@@ -590,7 +531,12 @@ function SparringRoomContent() {
           timestamp: '00:01'
         }
       ]);
-      await speakWebSpeechFallback(fallbackGreeting);
+      const fallbackAudio = await synthesizeVoiceIfNeeded(fallbackGreeting, voiceConfig.voiceId);
+      if (fallbackAudio) {
+        await playVoiceAudio(fallbackAudio, fallbackGreeting, 0);
+      } else {
+        startHandsFreeListening();
+      }
     } finally {
       setIsAiResponding(false);
     }
@@ -609,6 +555,8 @@ function SparringRoomContent() {
   const handleSendMessage = async (textOverride?: string) => {
     const message = (textOverride || repInput).trim();
     if (!message || isAiResponding) return;
+
+    const voiceConfig = getPersonaVoiceByCountry(persona, selectedCountry);
 
     // Immediately stop mic listening while AI processes
     stopListening();
@@ -666,10 +614,15 @@ function SparringRoomContent() {
           }
         ]);
 
-        if (audioUrl) {
-          await playVoiceAudio(audioUrl, aiReply, newTurnIndex);
+        let audioToPlay = audioUrl;
+        if (!audioToPlay) {
+          audioToPlay = await synthesizeVoiceIfNeeded(aiReply, voiceConfig.voiceId);
+        }
+
+        if (audioToPlay) {
+          await playVoiceAudio(audioToPlay, aiReply, newTurnIndex);
         } else {
-          await speakWebSpeechFallback(aiReply);
+          startHandsFreeListening();
         }
       } else {
         const fallbackReply = "That's an interesting approach, but what kind of turnaround time and hold rate can you commit to?";
@@ -681,7 +634,12 @@ function SparringRoomContent() {
             timestamp: formatTime(callDuration + 2)
           }
         ]);
-        await speakWebSpeechFallback(fallbackReply);
+        const fallbackAudio = await synthesizeVoiceIfNeeded(fallbackReply, voiceConfig.voiceId);
+        if (fallbackAudio) {
+          await playVoiceAudio(fallbackAudio, fallbackReply);
+        } else {
+          startHandsFreeListening();
+        }
       }
     } catch (err) {
       console.error('Turn dispatch error:', err);

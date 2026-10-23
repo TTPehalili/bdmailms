@@ -16,36 +16,43 @@ export async function POST(req: NextRequest) {
 
     let audioUrl: string | null = null;
     if (elevenApiKey) {
-      try {
-        const ttsRes = await fetch(
-          `https://api.elevenlabs.io/v1/text-to-speech/${voiceConfig.voiceId}?optimize_streaming_latency=4`,
-          {
-            method: 'POST',
-            headers: {
-              'xi-api-key': elevenApiKey,
-              'Content-Type': 'application/json',
-              Accept: 'audio/mpeg'
-            },
-            body: JSON.stringify({
-              text: greetingText,
-              model_id: 'eleven_turbo_v2_5',
-              voice_settings: persona.voiceSettings || {
-                stability: 0.48,
-                similarity_boost: 0.75,
-                style: 0.08,
-                use_speaker_boost: true
-              }
-            })
-          }
-        );
+      const candidateModels = ['eleven_turbo_v2_5', 'eleven_multilingual_v2'];
+      for (const modelId of candidateModels) {
+        try {
+          const ttsRes = await fetch(
+            `https://api.elevenlabs.io/v1/text-to-speech/${voiceConfig.voiceId}?optimize_streaming_latency=4`,
+            {
+              method: 'POST',
+              headers: {
+                'xi-api-key': elevenApiKey,
+                'Content-Type': 'application/json',
+                Accept: 'audio/mpeg'
+              },
+              body: JSON.stringify({
+                text: greetingText,
+                model_id: modelId,
+                voice_settings: persona.voiceSettings || {
+                  stability: 0.48,
+                  similarity_boost: 0.75,
+                  style: 0.08,
+                  use_speaker_boost: true
+                }
+              })
+            }
+          );
 
-        if (ttsRes.ok) {
-          const ab = await ttsRes.arrayBuffer();
-          const base64 = Buffer.from(ab).toString('base64');
-          audioUrl = `data:audio/mpeg;base64,${base64}`;
+          if (ttsRes.ok) {
+            const ab = await ttsRes.arrayBuffer();
+            const base64 = Buffer.from(ab).toString('base64');
+            audioUrl = `data:audio/mpeg;base64,${base64}`;
+            break;
+          } else {
+            const errTxt = await ttsRes.text();
+            console.warn(`[Dial Route TTS] Model ${modelId} status ${ttsRes.status}:`, errTxt);
+          }
+        } catch (err) {
+          console.warn('[Dial Route TTS Error]:', err);
         }
-      } catch (err) {
-        console.warn('[Dial Route TTS Error]:', err);
       }
     }
 
