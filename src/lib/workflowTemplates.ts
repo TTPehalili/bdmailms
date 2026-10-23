@@ -36,10 +36,10 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     estimatedSavings: '4.5 hrs / rep weekly',
     nodeCount: 11,
     cadenceTouches: [
-      'Day 1: Email #1 (<75w pain point) + LinkedIn #1 (Connection request)',
+      'Day 1: Email #1 (<75w pain point) + LinkedIn #1 (Manual Task: Connection request with pre-drafted note)',
       'Day 2: Phone #1 (Push to Boris Calling Queue)',
       'Day 3: Phone #2 (Voicemail) + Email #2 (Same-day synergy recap)',
-      'Day 5: LinkedIn #2 (Social engagement & resource touch)',
+      'Day 5: LinkedIn #2 (Manual Task: Social engagement & resource touch)',
       'Day 7: Email #3 (Value add: Case study & Loom video link)',
       'Day 9: Phone #3 (Shifted time block call: morning/evening)',
       'Day 12: Email #4 (Pivot angle: "Not sure if on radar...")',
@@ -86,8 +86,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 320, y: 280 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'Day 1: LinkedIn Connection #1',
-          subtitle: 'Zero-pitch connection',
+          label: 'Day 1: LinkedIn Task (Manual Rep Touch)',
+          subtitle: 'Auto-creates task with pre-drafted note',
           category: 'App Integrations',
           icon: 'LinkedIn',
           config: {
@@ -285,7 +285,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 720, y: 240 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'LinkedIn #1: View Profile & Zero-Pitch Invite',
+          label: 'LinkedIn Task: View Profile & Send Note',
+          subtitle: 'Manual rep task (pre-drafted)',
           category: 'App Integrations',
           icon: 'LinkedIn',
           config: { operation: 'sendConnectionInvite' }
@@ -419,7 +420,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 400, y: 240 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'LinkedIn #2: Share Tactical Insight',
+          label: 'LinkedIn Task: Engage Post & Share Insight',
+          subtitle: 'Manual rep task (safe from API bans)',
           category: 'App Integrations',
           icon: 'LinkedIn',
           config: { operation: 'sendDirectMessage' }
@@ -673,7 +675,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 740, y: 60 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'Emil LinkedIn Connection Invite',
+          label: 'LinkedIn Task: Emil Connect Invite',
+          subtitle: 'Pre-drafted invite queued for founder/rep',
           category: 'App Integrations',
           icon: 'LinkedIn',
           config: { operation: 'sendConnectionInvite' }
@@ -781,7 +784,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 1000, y: 100 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'LinkedIn Follow-up Nudge',
+          label: 'LinkedIn Task: 24h Nudge Message',
+          subtitle: 'Manual rep task (pre-drafted copy)',
           category: 'App Integrations',
           icon: 'LinkedIn',
           config: { operation: 'sendDirectMessage' }
@@ -947,7 +951,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 720, y: 240 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'Warm LinkedIn Invite to New DM',
+          label: 'LinkedIn Task: Warm Invite to New DM',
+          subtitle: 'Manual rep task (referral cited)',
           category: 'App Integrations',
           icon: 'LinkedIn',
           config: { operation: 'sendConnectionInvite' }
@@ -1088,7 +1093,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 400, y: 90 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'LinkedIn: Soft Network Invite',
+          label: 'LinkedIn Task: Soft Network Invite',
+          subtitle: 'Manual rep task (pre-drafted note)',
           category: 'App Integrations',
           icon: 'LinkedIn',
           config: { operation: 'sendConnectionInvite' }
@@ -1213,7 +1219,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 740, y: 480 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'Not Interested: Polite Soft Connect',
+          label: 'LinkedIn Task: Polite Soft Connect',
+          subtitle: 'Manual rep task (pre-drafted)',
           category: 'App Integrations',
           icon: 'LinkedIn'
         }
@@ -1388,7 +1395,8 @@ export const PRELOADED_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         position: { x: 740, y: 240 },
         data: {
           nodeType: 'linkedInNode',
-          label: 'Draft Tailored LinkedIn Connection Note',
+          label: 'LinkedIn Task: Queue Pre-Drafted Note for Rep',
+          subtitle: '1-click manual copy in CRM',
           category: 'App Integrations',
           icon: 'LinkedIn'
         }

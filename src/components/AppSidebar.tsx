@@ -64,7 +64,7 @@ export default function AppSidebar() {
       tag: 'ABOUT' 
     },
     { 
-      label: 'AI Boris Calling Cockpit', 
+      label: 'AI Boris', 
       href: '/cockpit', 
       icon: Swords, 
       isActive: isDojo, 

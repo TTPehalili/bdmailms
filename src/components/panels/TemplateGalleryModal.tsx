@@ -248,7 +248,7 @@ export default function TemplateGalleryModal({
                           {ch === 'ai' && <Bot className="h-3 w-3 text-amber-600" />}
                           {ch === 'slack' && <Hash className="h-3 w-3 text-rose-600" />}
                           {ch === 'crm' && <Server className="h-3 w-3 text-stone-600" />}
-                          <span>{ch}</span>
+                          <span>{ch === 'linkedin' ? 'LinkedIn (Manual Task)' : ch}</span>
                         </span>
                       ))}
                     </div>

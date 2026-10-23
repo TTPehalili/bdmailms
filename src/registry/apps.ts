@@ -422,8 +422,9 @@ export const twilioSmsNode: INodeDefinition = {
 
 export const linkedInNode: INodeDefinition = {
   name: 'linkedInNode',
-  displayName: 'LinkedIn Outreach',
-  description: 'Send connection invites, direct messages, or InMails via LinkedIn Sales Navigator',
+  displayName: 'LinkedIn Task (Manual Rep Touch)',
+  description:
+    'Auto-creates a manual task for the sales rep with pre-drafted copy and 1-click LinkedIn profile link (safe, compliant; prevents API bans)',
   icon: 'LinkedIn',
   category: 'App Integrations',
   group: ['action'],
@@ -432,28 +433,35 @@ export const linkedInNode: INodeDefinition = {
   properties: [
     {
       name: 'operation',
-      displayName: 'Action Type',
+      displayName: 'Task Type for Rep',
       type: 'options',
       default: 'sendConnectionInvite',
       options: [
-        { name: 'Send Connection Request + Note', value: 'sendConnectionInvite' },
-        { name: 'Send Direct Message', value: 'sendDirectMessage' },
-        { name: 'Send InMail', value: 'sendInMail' }
+        { name: 'Manual Connection Request Task (Pre-Drafted Note)', value: 'sendConnectionInvite' },
+        { name: 'Manual Direct Message / InMail Task', value: 'sendDirectMessage' },
+        { name: 'Social Post Engagement & Comment Task', value: 'engagePost' }
       ]
     },
     {
       name: 'profileUrl',
-      displayName: 'LinkedIn Profile URL',
+      displayName: 'Prospect LinkedIn Profile URL',
       type: 'string',
       default: '{{ $json.linkedInUrl || "https://linkedin.com/in/prospect" }}',
       required: true
     },
     {
       name: 'message',
-      displayName: 'Message / Invite Note',
+      displayName: 'Pre-Drafted Note for Rep (1-Click Copy)',
       type: 'string',
-      default: 'Hi {{ $json.leadName }} - great speaking with your team today! Looking forward to our demo with Emil. Let’s connect here.',
+      default:
+        'Hi {{ $json.leadName }} - great speaking with your team today! Looking forward to our demo with Emil. Let’s connect here.',
       required: true
+    },
+    {
+      name: 'assignedRep',
+      displayName: 'Assigned Sales Rep',
+      type: 'string',
+      default: '{{ $json.repName || "Current Rep" }}'
     }
   ],
   execute: async (context: NodeExecutionContext): Promise<WorkflowItem[][]> => {
@@ -461,16 +469,25 @@ export const linkedInNode: INodeDefinition = {
       context.inputItems.map((item) => {
         const profileUrl = context.context.resolve(context.config.profileUrl, item);
         const message = context.context.resolve(context.config.message, item);
+        const assignedRep = context.context.resolve(context.config.assignedRep || 'Current Rep', item);
+        const taskId = `task_li_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
         return {
           ...item,
           json: {
             ...item.json,
-            linkedIn: {
-              status: 'queued',
+            linkedInTask: {
+              taskId,
+              type: 'manual_rep_touch',
               action: context.config.operation || 'sendConnectionInvite',
+              status: 'pending_rep_action',
+              requiresManualAction: true,
               profileUrl,
-              message,
-              sentAt: new Date().toISOString()
+              preDraftedMessage: message,
+              assignedRep,
+              instructions:
+                '1-Click open profile in browser, paste pre-drafted note, send manually, and complete task.',
+              queuedAt: new Date().toISOString()
             }
           }
         };

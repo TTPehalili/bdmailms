@@ -1923,12 +1923,12 @@ export default function BorisCallingCockpit() {
                           </span>
                         </div>
                         <p className="text-[11px] text-stone-300 leading-relaxed">
-                          {disposition === 'Meeting Booked' && 'VIP Multi-Channel Cadence: Instant SMS confirmation to prospect mobile, founder calendar invite email with executive briefing, Emil LinkedIn connection invite, and Slack #deal-closing alert.'}
-                          {disposition === 'Follow-up Required' && '1-Click Booking Cadence: Instant SMS booking link to Emil’s calendar, 1-pager pitch deck email, and 24h LinkedIn nudge.'}
+                          {disposition === 'Meeting Booked' && 'VIP Multi-Channel Cadence: Instant SMS confirmation to prospect mobile, founder calendar invite email with executive briefing, queues 1-click LinkedIn connection note task for Emil / rep, and alerts Slack #deal-closing.'}
+                          {disposition === 'Follow-up Required' && '1-Click Booking Cadence: Instant SMS booking link to Emil’s calendar, 1-pager pitch deck email, and queues 24h LinkedIn nudge task with pre-drafted copy.'}
                           {disposition === 'No answer' && '3-Touch Synergy Cadence: Waits 2m, drops subtle voicemail alert SMS, emails recap summary, and re-queues in Cockpit for Day 2 redial.'}
-                          {disposition === 'Referral / Update Contact' && 'AI Referral Engine: Parses referee from notes, emails thank-you to referrer, and drafts warm outreach to new decision maker.'}
+                          {disposition === 'Referral / Update Contact' && 'AI Referral Engine: Parses referee from notes, emails thank-you to referrer, and drafts warm LinkedIn invite task for the new decision maker.'}
                           {disposition === 'Call back' && 'Callback Handler: Sends SMS window confirmation and creates high-priority alert for SDR floor.'}
-                          {disposition === 'Not interested' && 'Soft Turnaround: Sends polite LinkedIn connection invite and enrolls in 60-day thought leadership newsletter.'}
+                          {disposition === 'Not interested' && 'Soft Turnaround: Queues manual LinkedIn soft-network invite task with pre-drafted note and enrolls in 60-day newsletter nurture.'}
                           {!['Meeting Booked', 'Follow-up Required', 'No answer', 'Referral / Update Contact', 'Call back', 'Not interested'].includes(disposition) && 'Omnichannel Switch Router: Logs disposition outcome and triggers post-call CRM audit flow.'}
                         </p>
                         <div className="pt-1 border-t border-stone-800 flex items-center justify-between text-[10px] font-semibold text-stone-400">
