@@ -52,33 +52,106 @@ export interface CountryVoiceConfig {
   langCode: string;
 }
 
+export interface PersonaVoiceConfig {
+  voiceId: string;
+  label: string;
+}
+
+export const PERSONA_VOICE_MAP: Record<string, {
+  isFemale: boolean;
+  USA: PersonaVoiceConfig;
+  Australia: PersonaVoiceConfig;
+  UK: PersonaVoiceConfig;
+}> = {
+  'bpo-directory-buyer': {
+    isFemale: false,
+    USA: { voiceId: 'cjVigY5qzO86Huf0OWal', label: 'American Executive Male (Eric)' },
+    Australia: { voiceId: '0zgVQzF8uy6TauIra2W1', label: 'Australian Executive Male (Joel)' },
+    UK: { voiceId: 'JBFqnCBsd6RMkjVDRZzb', label: 'British Executive Male (George)' }
+  },
+  'rushed-vp': {
+    isFemale: false,
+    USA: { voiceId: 'iP95p4xoKVk53GoZ742B', label: 'American Fast-Paced Male (Chris)' },
+    Australia: { voiceId: 'IKne3meq5aSn9XLyUdCD', label: 'Australian Energetic Male (Charlie)' },
+    UK: { voiceId: 'onwK4e9ZLuTAKqWW03F9', label: 'British Sharp Broadcaster (Daniel)' }
+  },
+  'iron-gatekeeper': {
+    isFemale: true,
+    USA: { voiceId: 'XrExE9yKIg1WjnnlVkGX', label: 'American Knowledgeable Female (Matilda)' },
+    Australia: { voiceId: '5TZtQYDIn8M40udRnoVI', label: 'Australian Professional Female (Dee)' },
+    UK: { voiceId: 'Xb7hH8MSUJpSbSDYk0k2', label: 'British Professional Female (Alice)' }
+  },
+  'incumbent-loyalist': {
+    isFemale: false,
+    USA: { voiceId: 'bIHbv24MWmeRgasZH58o', label: 'American Conversational Male (Will)' },
+    Australia: { voiceId: '0zgVQzF8uy6TauIra2W1', label: 'Australian Grounded Male (Joel)' },
+    UK: { voiceId: 'JBFqnCBsd6RMkjVDRZzb', label: 'British Grounded Male (George)' }
+  },
+  'frugal-cfo': {
+    isFemale: false,
+    USA: { voiceId: 'pqHfZKP75CvOlQylNhV4', label: 'American Executive Male (Bill)' },
+    Australia: { voiceId: '9B2Vd5yQ7rKaqNmzGdy1', label: 'Australian Deep-Tone Male (Steve Hogan)' },
+    UK: { voiceId: 'onwK4e9ZLuTAKqWW03F9', label: 'British Formal CFO (Daniel)' }
+  },
+  'burned-director': {
+    isFemale: true,
+    USA: { voiceId: 'EXAVITQu4vr4xnSDxMaL', label: 'American Direct Female (Sarah)' },
+    Australia: { voiceId: '0QT4OrDTvpDlUPmFsUWN', label: 'Australian Confident Female (Lily 40s)' },
+    UK: { voiceId: 'pFZP5JQG7iQjIQuC4Bku', label: 'British Direct Female (Lily)' }
+  },
+  'polite-ghoster': {
+    isFemale: true,
+    USA: { voiceId: 'cgSgspJ2msm6clMCkdW9', label: 'American Warm Friendly Female (Jessica)' },
+    Australia: { voiceId: '5TZtQYDIn8M40udRnoVI', label: 'Australian Friendly Female (Dee)' },
+    UK: { voiceId: 'Xb7hH8MSUJpSbSDYk0k2', label: 'British Polite Female (Alice)' }
+  },
+  'overwhelmed-ops': {
+    isFemale: false,
+    USA: { voiceId: 'nPczCjzI2devNBz1zQrb', label: 'American Deep Resonant Male (Brian)' },
+    Australia: { voiceId: '0zgVQzF8uy6TauIra2W1', label: 'Australian Casual Male (Joel)' },
+    UK: { voiceId: 'JBFqnCBsd6RMkjVDRZzb', label: 'British Conversational Male (George)' }
+  },
+  'technical-gatekeeper': {
+    isFemale: false,
+    USA: { voiceId: 'cjVigY5qzO86Huf0OWal', label: 'American Analytical Male (Eric)' },
+    Australia: { voiceId: 'IKne3meq5aSn9XLyUdCD', label: 'Australian Confident Male (Charlie)' },
+    UK: { voiceId: 'onwK4e9ZLuTAKqWW03F9', label: 'British Technical Broadcaster (Daniel)' }
+  },
+  'indecisive-manager': {
+    isFemale: true,
+    USA: { voiceId: 'hpp4J3VqNfWAUOO0d1Us', label: 'American Bright Warm Female (Bella)' },
+    Australia: { voiceId: '0QT4OrDTvpDlUPmFsUWN', label: 'Australian Hesitant Female (Lily 40s)' },
+    UK: { voiceId: 'pFZP5JQG7iQjIQuC4Bku', label: 'British Hesitant Female (Lily)' }
+  },
+  'aggressive-skeptic': {
+    isFemale: false,
+    USA: { voiceId: 'SOYHLrjzK2X1ezoPC6cr', label: 'American Fierce Gritty Male (Harry)' },
+    Australia: { voiceId: '9B2Vd5yQ7rKaqNmzGdy1', label: 'Australian Deep Gritty Male (Steve Hogan)' },
+    UK: { voiceId: 'JBFqnCBsd6RMkjVDRZzb', label: 'British Blunt Male (George)' }
+  }
+};
+
 export function getPersonaVoiceByCountry(
   persona: SparringPersona,
   country: SparringCountry = 'USA'
 ): CountryVoiceConfig {
-  const isFemale = ['enterprise-gatekeeper', 'burned-agency-owner', 'procurement-shark', 'bpo-talent-director-linda'].includes(persona.id);
-
-  if (country === 'Australia') {
+  const targetCountry = (country === 'Australia' || country === 'UK') ? country : 'USA';
+  const mapping = PERSONA_VOICE_MAP[persona.id];
+  if (mapping) {
+    const config = mapping[targetCountry];
     return {
-      voiceId: isFemale ? 'XrExE9yKIg1WjnnlVkGX' : 'pNInz6obpgDQGcFmaJgB',
-      accentLabel: isFemale ? 'Australian Executive Female' : 'Australian Executive Male',
-      langCode: 'en-AU'
+      voiceId: config.voiceId,
+      accentLabel: config.label,
+      langCode: targetCountry === 'Australia' ? 'en-AU' : targetCountry === 'UK' ? 'en-GB' : 'en-US'
     };
   }
 
-  if (country === 'UK') {
-    return {
-      voiceId: isFemale ? 'XB0fDUnXU5powFXDhCwa' : 'SOYHLrjzK2X1ezoPC6cr',
-      accentLabel: isFemale ? 'British Professional Female' : 'British Articulate Male',
-      langCode: 'en-GB'
-    };
-  }
-
-  // Default: USA
+  // Fallback to safe persona default
+  const isFemale = ['iron-gatekeeper', 'burned-director', 'polite-ghoster', 'indecisive-manager'].includes(persona.id);
   return {
-    voiceId: persona.voiceId || (isFemale ? 'EXAVITQu4vr4xnSDxMaL' : 'CwhRBWXzGAHq8TQ4Fs17'),
-    accentLabel: isFemale ? 'American Conversational Female' : 'American Conversational Male',
-    langCode: 'en-US'
+    voiceId: isFemale ? 'EXAVITQu4vr4xnSDxMaL' : 'cjVigY5qzO86Huf0OWal',
+    accentLabel: `${targetCountry} ${isFemale ? 'Female' : 'Male'} Voice`,
+    langCode: targetCountry === 'Australia' ? 'en-AU' : targetCountry === 'UK' ? 'en-GB' : 'en-US'
   };
 }
 
@@ -90,7 +163,7 @@ export const SPARRING_PERSONAS: SparringPersona[] = [
     companyType: 'Mid-Market BPO (250 Seats, Manila & Cebu)',
     difficulty: 'Intermediate',
     accent: 'Confident Grounded BPO Executive Male',
-    voiceId: 'CwhRBWXzGAHq8TQ4Fs17', // Roger - Confident, Conversational Male
+    voiceId: 'cjVigY5qzO86Huf0OWal', // Eric - Smooth, Trustworthy Executive Male
     voiceSettings: { stability: 0.48, similarity_boost: 0.75, style: 0.06, use_speaker_boost: true },
     avatarBg: 'from-blue-600 to-indigo-900',
     scenario: 'Skeptical, time-poor BPO Managing Director who buys shared leads from Outsource Accelerator. Defends veteran reps and pushes price objections ($7-$8/hr).',

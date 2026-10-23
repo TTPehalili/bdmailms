@@ -132,43 +132,43 @@ export default function LiveMonitoringCenter() {
       recentTranscript: [
         {
           id: 'turn-1-1',
-          speaker: 'Julian Vance (Buyer Persona)',
+          speaker: 'Julian Vance (AI Customer)',
           role: 'prospect',
           text: 'We already buy shared lead packs from Outsource Accelerator, Alex. Why on earth would I pay for additional software?',
           time: '03:15',
-          voiceId: 'pNInz6obpgDQGcFmaJgB' // Julian Vance (Australian Male Executive)
+          voiceId: '0zgVQzF8uy6TauIra2W1' // Joel (Calm & Friendly Australian Male)
         },
         {
           id: 'turn-1-2',
-          speaker: 'Alex Mercer (Rep)',
+          speaker: 'Alex Mercer (AI Rep)',
           role: 'rep',
           text: 'Totally fair, Julian. But OA sells those identical leads to 3 to 5 other BPOs simultaneously, so you end up in eight dollar per hour price wars.',
           time: '03:26',
-          voiceId: 'CwhRBWXzGAHq8TQ4Fs17' // Roger (Confident Male SDR)
+          voiceId: 'cjVigY5qzO86Huf0OWal' // Eric (Smooth Trustworthy Executive Male SDR)
         },
         {
           id: 'turn-1-3',
-          speaker: 'Julian Vance (Buyer Persona)',
+          speaker: 'Julian Vance (AI Customer)',
           role: 'prospect',
           text: 'That is actually true. Our margins have taken a beating on those directory accounts. What are you doing differently?',
           time: '03:38',
-          voiceId: 'pNInz6obpgDQGcFmaJgB'
+          voiceId: '0zgVQzF8uy6TauIra2W1'
         },
         {
           id: 'turn-1-4',
-          speaker: 'Alex Mercer (Rep)',
+          speaker: 'Alex Mercer (AI Rep)',
           role: 'rep',
           text: 'We give you exclusive, verified tech-founder triggers before OA even lists them. Can I show you three live accounts right now?',
           time: '03:49',
-          voiceId: 'CwhRBWXzGAHq8TQ4Fs17'
+          voiceId: 'cjVigY5qzO86Huf0OWal'
         },
         {
           id: 'turn-1-5',
-          speaker: 'Julian Vance (Buyer Persona)',
+          speaker: 'Julian Vance (AI Customer)',
           role: 'prospect',
           text: 'Alright Alex, pull them up on screen. If they are genuinely exclusive, you have got my attention.',
           time: '04:01',
-          voiceId: 'pNInz6obpgDQGcFmaJgB'
+          voiceId: '0zgVQzF8uy6TauIra2W1'
         }
       ]
     },
@@ -193,15 +193,15 @@ export default function LiveMonitoringCenter() {
       recentTranscript: [
         {
           id: 'turn-2-1',
-          speaker: 'David M. (Buyer Persona)',
+          speaker: 'David M. (AI Customer)',
           role: 'prospect',
           text: 'We already have an internal enablement manager, Elena. Our reps ramp fine without extra tools.',
           time: '01:55',
-          voiceId: 'cjVigY5qzO86Huf0OWal' // Eric (Senior Executive Male)
+          voiceId: 'iP95p4xoKVk53GoZ742B' // Chris (Fast-Paced US Executive Male)
         },
         {
           id: 'turn-2-2',
-          speaker: 'Elena Rostova (Rep)',
+          speaker: 'Elena Rostova (AI Rep)',
           role: 'rep',
           text: 'Understood, David. But does your enablement team drill 40 unscripted voice objection scenarios before their first live dial?',
           time: '02:08',
@@ -209,15 +209,15 @@ export default function LiveMonitoringCenter() {
         },
         {
           id: 'turn-2-3',
-          speaker: 'David M. (Buyer Persona)',
+          speaker: 'David M. (AI Customer)',
           role: 'prospect',
           text: 'No, they mostly read slide decks and shadow top performers on Gong.',
           time: '02:18',
-          voiceId: 'cjVigY5qzO86Huf0OWal'
+          voiceId: 'iP95p4xoKVk53GoZ742B'
         },
         {
           id: 'turn-2-4',
-          speaker: 'Elena Rostova (Rep)',
+          speaker: 'Elena Rostova (AI Rep)',
           role: 'rep',
           text: 'Shadowing is passive. When reps spar daily against our AI buyer personas, they hit quota in 12 days instead of 4 weeks.',
           time: '02:29',
@@ -225,11 +225,11 @@ export default function LiveMonitoringCenter() {
         },
         {
           id: 'turn-2-5',
-          speaker: 'David M. (Buyer Persona)',
+          speaker: 'David M. (AI Customer)',
           role: 'prospect',
           text: 'Twelve days? That would save us thirty thousand a month in ramp burn. Show me how it works.',
           time: '02:40',
-          voiceId: 'cjVigY5qzO86Huf0OWal'
+          voiceId: 'iP95p4xoKVk53GoZ742B'
         }
       ]
     },
@@ -254,35 +254,35 @@ export default function LiveMonitoringCenter() {
       recentTranscript: [
         {
           id: 'turn-3-1',
-          speaker: 'Rick Henderson (Buyer Persona)',
+          speaker: 'Rick Henderson (AI Customer)',
           role: 'prospect',
           text: 'Take me off your list! You guys call every Tuesday with fake utility rebates and I am sick of it!',
           time: '03:45',
-          voiceId: 'SOYHLrjzK2X1ezoPC6cr' // Rick Henderson (Articulate Skeptical Male)
+          voiceId: '9B2Vd5yQ7rKaqNmzGdy1' // Steve Hogan (Deep Tone Gritty Australian/US Male)
         },
         {
           id: 'turn-3-2',
-          speaker: 'Marcus Brody (Rep)',
+          speaker: 'Marcus Brody (AI Rep)',
           role: 'rep',
           text: 'I completely hear your frustration Rick, I hate spam calls too. I am only calling because our team verified your substation rate rose 24% last month.',
           time: '03:56',
-          voiceId: 'CwhRBWXzGAHq8TQ4Fs17' // Roger (Male SDR)
+          voiceId: 'bIHbv24MWmeRgasZH58o' // Will (Conversational US Male SDR)
         },
         {
           id: 'turn-3-3',
-          speaker: 'Rick Henderson (Buyer Persona)',
+          speaker: 'Rick Henderson (AI Customer)',
           role: 'prospect',
           text: 'Twenty four percent? Wait, is that why my bill jumped to four hundred and fifty dollars?',
           time: '04:09',
-          voiceId: 'SOYHLrjzK2X1ezoPC6cr'
+          voiceId: '9B2Vd5yQ7rKaqNmzGdy1'
         },
         {
           id: 'turn-3-4',
-          speaker: 'Marcus Brody (Rep)',
+          speaker: 'Marcus Brody (AI Rep)',
           role: 'rep',
           text: 'Spot on Rick. If you have two minutes, I will show you the exact rate lock that protects your bill from the next rate hike.',
           time: '04:20',
-          voiceId: 'CwhRBWXzGAHq8TQ4Fs17'
+          voiceId: 'bIHbv24MWmeRgasZH58o'
         }
       ]
     },
@@ -307,35 +307,35 @@ export default function LiveMonitoringCenter() {
       recentTranscript: [
         {
           id: 'turn-4-1',
-          speaker: 'Sarah Jenkins (Buyer Persona)',
+          speaker: 'Sarah Jenkins (AI Customer)',
           role: 'prospect',
           text: 'Can you just shoot over an email? I am walking into an executive board session right now.',
           time: '01:32',
-          voiceId: 'XB0fDUnXU5powFXDhCwa' // British Professional Female
+          voiceId: 'pFZP5JQG7iQjIQuC4Bku' // Lily (Velvety British Professional Female)
         },
         {
           id: 'turn-4-2',
-          speaker: 'Jordan Smith (Rep)',
+          speaker: 'Jordan Smith (AI Rep)',
           role: 'rep',
           text: 'Happy to send an email Sarah, but without knowing whether your priority this quarter is CS headcount or outbound retention, it will just be spam.',
           time: '01:44',
-          voiceId: 'CwhRBWXzGAHq8TQ4Fs17' // Roger (Male SDR)
+          voiceId: 'onwK4e9ZLuTAKqWW03F9' // Daniel (British Broadcaster Male SDR)
         },
         {
           id: 'turn-4-3',
-          speaker: 'Sarah Jenkins (Buyer Persona)',
+          speaker: 'Sarah Jenkins (AI Customer)',
           role: 'prospect',
           text: 'Fair point. We are bleeding tier two reps right now. What specifically can you do for retention?',
           time: '01:55',
-          voiceId: 'XB0fDUnXU5powFXDhCwa'
+          voiceId: 'pFZP5JQG7iQjIQuC4Bku'
         },
         {
           id: 'turn-4-4',
-          speaker: 'Jordan Smith (Rep)',
+          speaker: 'Jordan Smith (AI Rep)',
           role: 'rep',
           text: 'We drill live escalations so reps do not burn out on hostile calls. Let us carve out 7 minutes on Thursday morning. Does 9:30 AM work?',
           time: '02:08',
-          voiceId: 'CwhRBWXzGAHq8TQ4Fs17'
+          voiceId: 'onwK4e9ZLuTAKqWW03F9'
         }
       ]
     }
@@ -387,8 +387,22 @@ export default function LiveMonitoringCenter() {
         return null;
       }
 
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const data = await res.json();
+      if (!data.audio) {
+        console.warn('[LiveMonitoring] No audio data in response');
+        return null;
+      }
+
+      // Convert base64 data to native audio/mpeg blob URL
+      const base64Data = data.audio.replace(/^data:audio\/[^;]+;base64,/, '');
+      const binaryString = window.atob(base64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const audioBlob = new Blob([bytes.buffer], { type: 'audio/mpeg' });
+      const blobUrl = URL.createObjectURL(audioBlob);
       audioCacheRef.current.set(cacheKey, blobUrl);
       return blobUrl;
     } catch (err) {
@@ -431,13 +445,17 @@ export default function LiveMonitoringCenter() {
       return;
     }
 
-    // Ensure audio element exists
-    if (!audioElementRef.current) {
-      audioElementRef.current = new Audio();
+    // Release any previous audio element before playing next turn
+    if (audioElementRef.current) {
+      try {
+        audioElementRef.current.pause();
+        audioElementRef.current.currentTime = 0;
+        audioElementRef.current.src = '';
+      } catch {}
     }
 
-    const audio = audioElementRef.current;
-    audio.src = audioUrl;
+    const audio = new Audio(audioUrl);
+    audioElementRef.current = audio;
     audio.volume = isAudioMuted ? 0 : volume / 100;
     audio.muted = isAudioMuted;
 
@@ -449,8 +467,12 @@ export default function LiveMonitoringCenter() {
           if (nextIdx < session.recentTranscript.length) {
             playTurn(session, nextIdx);
           } else {
-            setIsAudioPlaying(false);
-            setCurrentTurnIndex(null);
+            // Smooth conversational loop back to start after a brief 1.5s natural pause so live monitor keeps running
+            pendingTimerRef.current = setTimeout(() => {
+              if (activeSessionRef.current?.id === session.id && isPlayingRef.current) {
+                playTurn(session, 0);
+              }
+            }, 1500);
           }
         }
       }, 420);
@@ -1007,7 +1029,7 @@ export default function LiveMonitoringCenter() {
                           <span className={`font-bold px-1.5 py-0.2 rounded text-[9px] uppercase ${
                             isRep ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
                           }`}>
-                            {isRep ? 'SDR REP' : 'BUYER PERSONA'}
+                            {isRep ? 'AI SDR REP' : 'AI CUSTOMER'}
                           </span>
                           <span className={isRep ? 'text-blue-400 font-bold' : 'text-[#ED1C24] font-bold'}>
                             {turn.speaker}

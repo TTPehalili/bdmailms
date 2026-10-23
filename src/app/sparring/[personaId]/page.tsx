@@ -73,9 +73,27 @@ function SparringRoomContent() {
     }
   }, [searchParams]);
 
-  const handleCountryChange = (country: SparringCountry) => {
+  const handleCountryChange = async (country: SparringCountry) => {
     setSelectedCountry(country);
     localStorage.setItem('sparring_country', country);
+    try {
+      router.replace(`/sparring/${persona.id}?country=${country}`, { scroll: false });
+    } catch {}
+
+    // If call is active, immediately re-synthesize in new accent so user hears instant voice change!
+    if (callActive && transcript.length > 0) {
+      const newVoiceConfig = getPersonaVoiceByCountry(persona, country);
+      const lastProspectTurn = [...transcript].reverse().find(t => t.role === 'prospect');
+      if (lastProspectTurn && lastProspectTurn.content) {
+        setIsAiResponding(true);
+        const newAudio = await synthesizeVoiceIfNeeded(lastProspectTurn.content, newVoiceConfig.voiceId);
+        setIsAiResponding(false);
+        if (newAudio) {
+          lastProspectTurn.audioUrl = newAudio;
+          playVoiceAudio(newAudio, lastProspectTurn.content);
+        }
+      }
+    }
   };
 
   const [callActive, setCallActive] = useState(false);
@@ -375,19 +393,17 @@ function SparringRoomContent() {
         playableUrl = URL.createObjectURL(audioBlob);
       }
 
-      // Reuse persistent audio element unlocked during user click gesture
-      let audio = audioElementRef.current;
-      if (!audio) {
-        audio = new Audio();
-        audioElementRef.current = audio;
+      // Release any previous audio element before playing
+      if (audioElementRef.current) {
+        try {
+          audioElementRef.current.pause();
+          audioElementRef.current.currentTime = 0;
+          audioElementRef.current.src = '';
+        } catch {}
       }
 
-      try {
-        audio.pause();
-        audio.currentTime = 0;
-      } catch {}
-
-      audio.src = playableUrl;
+      const audio = new Audio(playableUrl);
+      audioElementRef.current = audio;
       audio.volume = 1.0;
 
       return new Promise<void>((resolve) => {
@@ -436,9 +452,10 @@ function SparringRoomContent() {
   const primeAudioContext = async () => {
     try {
       if (!audioElementRef.current) {
-        audioElementRef.current = new Audio();
+        audioElementRef.current = new Audio(SILENT_WAV);
+      } else {
+        audioElementRef.current.src = SILENT_WAV;
       }
-      audioElementRef.current.src = SILENT_WAV;
       await audioElementRef.current.play().catch(() => {});
       setAudioBlocked(false);
       if (lastAudioUrlRef.current && isPlayingAudioRef.current) {
@@ -449,31 +466,28 @@ function SparringRoomContent() {
 
   // Start Call & Dial in
   const startCall = async () => {
-    // 1. Prime Web Audio Context & DOM audio synchronously on click gesture!
+    // 1. Prime DOM audio synchronously on direct user click gesture!
     if (!audioElementRef.current) {
-      audioElementRef.current = new Audio();
+      audioElementRef.current = new Audio(SILENT_WAV);
+    } else {
+      audioElementRef.current.src = SILENT_WAV;
     }
-    audioElementRef.current.src = SILENT_WAV;
     audioElementRef.current.play().catch(() => {});
-    await primeAudioContext();
 
-    // 2. Pre-arm microphone stream on direct user click gesture!
-    // This immediately prompts for mic permission so hands-free speech recognition works seamlessly!
-    try {
-      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          }
-        });
+    // 2. Pre-arm microphone stream non-blocking in background so dial isn't delayed!
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      }).then(stream => {
         speechStreamRef.current = stream;
         setMicPermissionDenied(false);
-      }
-    } catch (micErr) {
-      console.warn('Microphone pre-arm notice:', micErr);
-      setMicPermissionDenied(true);
+      }).catch(micErr => {
+        console.warn('Microphone pre-arm notice:', micErr);
+      });
     }
 
     const voiceConfig = getPersonaVoiceByCountry(persona, selectedCountry);
