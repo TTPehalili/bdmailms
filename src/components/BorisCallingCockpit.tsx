@@ -36,10 +36,14 @@ import {
   Building2,
   Users,
   ShieldAlert,
-  Zap
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
+import { CallTelemetryState, INITIAL_TELEMETRY_STATE, synthesizeCrmNotes } from '@/lib/callTelemetry';
+import { CADENCE_TOUCHES, CadenceTouch } from '@/lib/cadenceMaster';
+import ViewFullCadenceModal from '@/components/cockpit/ViewFullCadenceModal';
 
 interface ARMRebuttal {
   id: string;
@@ -62,6 +66,14 @@ export default function BorisCallingCockpit() {
   const [callingAs, setCallingAs] = useState('Setter — New Bookings');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // Cadence Gating & Modal State
+  const [isCadenceModalOpen, setIsCadenceModalOpen] = useState<boolean>(false);
+  const [currentCadenceDay, setCurrentCadenceDay] = useState<number>(2); // Day 2: Phone #1
+  const [isSyncingCrm, setIsSyncingCrm] = useState<boolean>(false);
+  const [crmSyncSuccess, setCrmSyncSuccess] = useState<string | null>(null);
+  const [isQuarantined, setIsQuarantined] = useState<boolean>(false);
+  const [redialScheduled, setRedialScheduled] = useState<string | null>(null);
+
   // Customer / Lead State
   const [customerName, setCustomerName] = useState('Julian Vance');
   const [partnerName, setPartnerName] = useState('Apex Global BPO');
@@ -72,6 +84,9 @@ export default function BorisCallingCockpit() {
   const [repName, setRepName] = useState('Alex Mercer');
   const [companyName, setCompanyName] = useState('Appointmentlyy');
   const [leadNotes, setLeadNotes] = useState('Directory Lead Source: Outsource Accelerator\nFloor: 250 Seats handling CS & Sales\nBottleneck: Competing against 3-5 BPOs on identical shared lists ($8/hr margin crush)\nNext Step: 20-min demo with Founder Emil (17+ yrs BDM)');
+
+  // Master Call Telemetry State (v3.1 Specification)
+  const [telemetry, setTelemetry] = useState<CallTelemetryState>(INITIAL_TELEMETRY_STATE);
 
   // Interactive State Machine (Developer Spec 6-Screen Architecture)
   // Screen 1: Role Verification Gate
@@ -103,6 +118,9 @@ export default function BorisCallingCockpit() {
   const [showCalendlyEmbed, setShowCalendlyEmbed] = useState<boolean>(true);
   const [customRepNotes, setCustomRepNotes] = useState<string>('');
 
+  // Current Cadence Touch Definition
+  const currentCadenceTouch = CADENCE_TOUCHES.find(t => t.day === currentCadenceDay) || CADENCE_TOUCHES[2];
+
   // Derived Active Service Label for dynamic objection insertion
   const getActiveServiceLabel = () => {
     switch (primaryService) {
@@ -114,161 +132,270 @@ export default function BorisCallingCockpit() {
     }
   };
 
-  // Reactive CRM Note Generator
-  const generateCrmNotes = (overrides?: {
+  // Reactive CRM Note Synthesizer (Spec Section 5)
+  const buildNotes = (params?: {
     cName?: string;
     pName?: string;
     cTitle?: string;
     cDept?: string;
     cPhone?: string;
     cHeadcount?: string;
-    rStatus?: 'confirmed' | 'promoted' | 'changed' | null;
-    oa?: boolean | null;
-    trap?: 'confirmed' | 'denial' | null;
-    industries?: string[];
-    service?: 'customer-service' | 'bookkeeping' | 'outbound-sales' | 'technical-support' | 'other';
-    customServ?: string;
-    slot?: string | null;
+    tel?: CallTelemetryState;
     disp?: string | null;
-    email?: string;
-    cell?: string;
-    mode?: 'laptop' | 'mobile' | null;
-    committed?: boolean;
-    custom?: string;
+    customNotes?: string;
   }) => {
-    const cName = overrides?.cName ?? customerName;
-    const pName = overrides?.pName ?? partnerName;
-    const cTitle = overrides?.cTitle ?? title;
-    const cDept = overrides?.cDept ?? department;
-    const cPhone = overrides?.cPhone ?? phone;
-    const cHeadcount = overrides?.cHeadcount ?? headcount;
-    const rStatus = overrides?.rStatus !== undefined ? overrides.rStatus : roleStatus;
-    const oa = overrides?.oa !== undefined ? overrides.oa : recognizedOA;
-    const trap = overrides?.trap !== undefined ? overrides.trap : priceTrapStatus;
-    const industries = overrides?.industries ?? targetIndustries;
-    const service = overrides?.service ?? primaryService;
-    const customServ = overrides?.customServ !== undefined ? overrides.customServ : customServiceInput;
-    const slot = overrides?.slot !== undefined ? overrides.slot : bookingSlot;
-    const disp = overrides?.disp !== undefined ? overrides.disp : disposition;
-    const email = overrides?.email ?? directEmail;
-    const cell = overrides?.cell ?? cellPhone;
-    const mode = overrides?.mode !== undefined ? overrides.mode : attendanceMode;
-    const committed = overrides?.committed !== undefined ? overrides.committed : verbalCommitment;
-    const custom = overrides?.custom !== undefined ? overrides.custom : customRepNotes;
-
-    const roleText = rStatus === 'confirmed'
-      ? `✓ Confirmed active in role (${cTitle} • ${cDept})`
-      : rStatus === 'promoted'
-      ? `✏️ Promoted/New Title: ${cTitle}`
-      : rStatus === 'changed'
-      ? `✕ Left role / referral noted`
-      : `• Role verification pending`;
-
-    const oaText = oa === true
-      ? '✓ Buys from Outsource Accelerator / Directory brokers (Confirmed OA buyer)'
-      : oa === false
-      ? '✕ Does NOT buy from Outsource Accelerator (Directory awareness: No)'
-      : '• Directory sourcing pending confirmation';
-
-    const trapText = trap === 'confirmed'
-      ? '✓ CONFIRMED: Shared-lead price wars (pitched by 3-5 rival BPOs simultaneously)'
-      : trap === 'denial'
-      ? '• Prospect claims exclusive leads / defended margins'
-      : '• Price-trap bottleneck pending confirmation';
-
-    const industryText = industries.length > 0
-      ? industries.join(', ')
-      : 'General BPO';
-
-    const serviceText = service === 'customer-service'
-      ? '🎧 Customer Service / Support ($8/hr commodity rate pressure)'
-      : service === 'bookkeeping'
-      ? '📊 Bookkeeping / Accounting / Back-Office (QuickBooks/Xero trust)'
-      : service === 'outbound-sales'
-      ? '📞 Outbound Sales / Appointment Setting (10-second gatekeeper hook)'
-      : service === 'technical-support'
-      ? '💻 Technical Support / IT Helpdesk (Tier 1 vs. Tier 2 language)'
-      : `✨ Other: ${customServ || 'Specialized BPO Services'}`;
-
-    const meetingText = slot
-      ? `📅 ${slot} (20-min Founder Screen Share with Emil)`
-      : '• Demo pending time confirmation';
-
-    const dispText = disp ? disp : slot ? 'Meeting Booked' : 'In Progress';
-
-    let out = `=== APPOINTMENTLYY SDR CALL LOG ===\n`;
-    out += `PROSPECT: ${cName} | ${pName}\n`;
-    out += `ROLE: ${cTitle} (${cHeadcount})\n`;
-    out += `PHONE: ${cPhone}\n`;
-    out += `OUTCOME: ${dispText}\n\n`;
-    out += `QUALIFICATION BREAKDOWN:\n`;
-    out += `• Role Status: ${roleText}\n`;
-    out += `• Directory Sourcing: ${oaText}\n`;
-    out += `• Sourcing Pain: ${trapText}\n`;
-    out += `• Target Industries: ${industryText}\n`;
-    out += `• Primary Revenue Service: ${serviceText}\n`;
-    out += `• Founder Meeting: ${meetingText}\n`;
-    if (slot) {
-      out += `• Attendance Expectation: ${mode === 'laptop' ? 'Laptop / Desk (Screen Share Ready)' : mode === 'mobile' ? 'Mobile / On-The-Go' : 'Unspecified'}\n`;
-      out += `• Direct Calendar Contact: ${email} | Cell: ${cell}\n`;
-      out += `• Verbal Commitment: ${committed ? '✓ Confirmed by prospect (Zero prep needed)' : 'Pending final confirmation'}\n`;
-    }
-    if (custom && custom.trim()) {
-      out += `\nREP NOTES:\n${custom.trim()}\n`;
-    }
-    return out;
+    return synthesizeCrmNotes({
+      contactName: params?.cName ?? customerName,
+      companyName: params?.pName ?? partnerName,
+      title: params?.cTitle ?? title,
+      department: params?.cDept ?? department,
+      headcount: params?.cHeadcount ?? headcount,
+      phone: params?.cPhone ?? phone,
+      cadenceDay: currentCadenceDay,
+      stepName: currentCadenceTouch.stepName,
+      telemetry: params?.tel ?? telemetry,
+      disposition: params?.disp !== undefined ? params.disp : disposition,
+      customRepNotes: params?.customNotes !== undefined ? params.customNotes : customRepNotes
+    });
   };
 
-  const [notesDraft, setNotesDraft] = useState<string>(() => generateCrmNotes());
+  const [notesDraft, setNotesDraft] = useState<string>(() => buildNotes());
 
-  // Interactive Button Click Handlers that Auto-Update CRM Notes
+  // Interactive Button Click Handlers that Auto-Update Telemetry & CRM Notes
+  // Screen 1: Role Verification Handlers
   const handleSetRole = (status: 'confirmed' | 'promoted' | 'changed') => {
     setRoleStatus(status);
-    setNotesDraft(generateCrmNotes({ rStatus: status }));
+    let nextTel: CallTelemetryState;
+    if (status === 'confirmed') {
+      nextTel = {
+        ...telemetry,
+        roleVerified: true,
+        roleTitleStatus: `Verified in Role (${title} • ${department})`
+      };
+      setTelemetry(nextTel);
+      setNotesDraft(buildNotes({ tel: nextTel }));
+    } else if (status === 'promoted') {
+      nextTel = {
+        ...telemetry,
+        roleVerified: true,
+        roleTitleStatus: `Promoted to ${promotedTitleInput || title}`
+      };
+      setTelemetry(nextTel);
+      setNotesDraft(buildNotes({ tel: nextTel }));
+    } else {
+      nextTel = {
+        ...telemetry,
+        roleVerified: false,
+        roleTitleStatus: `Left role / Referral noted (${referralContactInput || 'New DM pending'})`
+      };
+      setTelemetry(nextTel);
+      setDisposition('Referral / Update Contact');
+      setNotesDraft(buildNotes({ tel: nextTel, disp: 'Referral / Update Contact' }));
+    }
   };
 
   const handleUpdatePromotedTitle = (newTitle: string) => {
     setTitle(newTitle);
-    setNotesDraft(generateCrmNotes({ cTitle: newTitle }));
+    const nextTel = {
+      ...telemetry,
+      roleVerified: true,
+      roleTitleStatus: `Promoted to ${newTitle}`
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ cTitle: newTitle, tel: nextTel }));
   };
 
+  // Screen 2: Directory & Price Trap Handlers
   const handleSetOA = (val: boolean) => {
     setRecognizedOA(val);
-    setNotesDraft(generateCrmNotes({ oa: val }));
+    const nextTel = {
+      ...telemetry,
+      directoryDiscussed: true,
+      sharedLeadComment: val 
+        ? 'Confirmed Outsource Accelerator awareness' 
+        : 'Unfamiliar with Outsource Accelerator'
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
   };
 
   const handleSetPriceTrap = (status: 'confirmed' | 'denial') => {
     setPriceTrapStatus(status);
-    setNotesDraft(generateCrmNotes({ trap: status }));
+    const nextTel = {
+      ...telemetry,
+      directoryDiscussed: true,
+      sharedLeadConfirmed: status === 'confirmed',
+      sharedLeadComment: status === 'confirmed'
+        ? 'Confirmed competing against 3-5 BPOs on identical Outsource Accelerator lists'
+        : 'Claims lists are exclusive'
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
   };
 
+  // Screen 3: Problem vs. Solution 2-Part Fix
+  const handleToggleProblemFix = () => {
+    const nextVal = !telemetry.problemFixDiscussed;
+    const nextTel = {
+      ...telemetry,
+      problemFixDiscussed: nextVal
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  // Screen 4: Industry & Primary Service Diagnostic Handlers
   const handleToggleIndustry = (tag: string) => {
     const next = targetIndustries.includes(tag)
       ? targetIndustries.filter(t => t !== tag)
       : [...targetIndustries, tag];
     setTargetIndustries(next);
-    setNotesDraft(generateCrmNotes({ industries: next }));
   };
 
   const handleSetService = (serv: 'customer-service' | 'bookkeeping' | 'outbound-sales' | 'technical-support' | 'other') => {
     setPrimaryService(serv);
-    setNotesDraft(generateCrmNotes({ service: serv }));
+    const serviceLabel = serv === 'customer-service' ? 'Customer Support' :
+      serv === 'bookkeeping' ? 'Bookkeeping / Accounting' :
+      serv === 'outbound-sales' ? 'Outbound Sales / SDR' :
+      serv === 'technical-support' ? 'Technical Support / IT' :
+      (customServiceInput.trim() ? `Specialized Niche (${customServiceInput.trim()})` : 'Specialized Niche');
+
+    const nextTel = {
+      ...telemetry,
+      primaryService: serviceLabel
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
   };
 
   const handleSetCustomService = (val: string) => {
     setCustomServiceInput(val);
-    setNotesDraft(generateCrmNotes({ customServ: val }));
+    const nextTel = {
+      ...telemetry,
+      primaryService: val.trim() ? `Specialized Niche (${val.trim()})` : 'Specialized Niche'
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
   };
 
+  // Screen 5: Screen Share Close Handlers
   const handleSelectSlot = (slot: string) => {
     setBookingSlot(slot);
     setDisposition('Meeting Booked');
-    setNotesDraft(generateCrmNotes({ slot, disp: 'Meeting Booked' }));
+    const nextTel = {
+      ...telemetry,
+      screenSharePitched: true,
+      screenShareSlot: slot
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel, disp: 'Meeting Booked' }));
   };
 
-  const handleSetDisposition = (d: string | null) => {
+  // Screen 6: Expectations & Attendance Handlers
+  const handleToggleZeroPrep = () => {
+    const nextVal = !telemetry.zeroPrepConfirmed;
+    const nextTel = {
+      ...telemetry,
+      zeroPrepConfirmed: nextVal
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  const handleToggleAttendance = () => {
+    const nextVal = !telemetry.attendanceVerified;
+    const nextTel = {
+      ...telemetry,
+      attendanceVerified: nextVal
+    };
+    setTelemetry(nextTel);
+    setAttendanceMode(nextVal ? 'laptop' : 'mobile');
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  // Master Disposition Handler & Gating Engine
+  const handleSetDisposition = async (d: string | null) => {
     setDisposition(d);
-    setNotesDraft(generateCrmNotes({ disp: d }));
+    setNotesDraft(buildNotes({ disp: d }));
+
+    if (d === 'Do not call') {
+      setIsQuarantined(true);
+      try {
+        await fetch('/api/cadence/dnc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lead_id: 'lead_001',
+            phone,
+            reason: 'Prospect requested Do Not Call',
+            rep_name: repName
+          })
+        });
+      } catch (err) {
+        console.error('Error reporting DNC:', err);
+      }
+    } else if (d === 'No answer') {
+      const redialTime = new Date(Date.now() + 3.5 * 3600 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setRedialScheduled(redialTime);
+      try {
+        await fetch('/api/cadence/complete-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lead_id: 'lead_001',
+            cadence_day: currentCadenceDay,
+            task_type: 'phone_call',
+            completion_status: 'unanswered',
+            redial_hours: 3.5
+          })
+        });
+      } catch (err) {
+        console.error('Error logging unanswered dial:', err);
+      }
+    } else if (d === 'Meeting Booked') {
+      try {
+        await fetch('/api/cadence/complete-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lead_id: 'lead_001',
+            cadence_day: currentCadenceDay,
+            task_type: 'phone_call',
+            completion_status: 'completed'
+          })
+        });
+      } catch (err) {
+        console.error('Error advancing cadence:', err);
+      }
+    }
+  };
+
+  // Direct CRM Sync Handler (Spec Section 6)
+  const handleSyncCRM = async () => {
+    setIsSyncingCrm(true);
+    setCrmSyncSuccess(null);
+    try {
+      const res = await fetch('/api/crm/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: 'lead_001',
+          disposition: disposition ? disposition.toLowerCase().replace(/\s+/g, '_') : (telemetry.screenShareSlot ? 'meeting_booked' : 'in_progress'),
+          cadence_day: currentCadenceDay,
+          crm_notes: notesDraft,
+          telemetry
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setCrmSyncSuccess(data.crm_record_id || 'hubspot_deal_984712');
+        setTimeout(() => setCrmSyncSuccess(null), 8000);
+      }
+    } catch (err) {
+      console.error('CRM sync error:', err);
+    } finally {
+      setIsSyncingCrm(false);
+    }
   };
 
   const copyText = (txt: string, key: string) => {
@@ -518,6 +645,15 @@ export default function BorisCallingCockpit() {
 
             {/* Top Action Bar */}
             <div className="flex items-center gap-2">
+              {/* View Full Cadence Tool Modal Button (Spec Section 3) */}
+              <button
+                onClick={() => setIsCadenceModalOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2F0EF] text-[#222021] border border-[#222021]/15 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              >
+                <Calendar className="h-3.5 w-3.5 text-[#ED1C24]" />
+                <span>📋 View Full Cadence</span>
+              </button>
+
               {/* Playbook Architecture Spec Modal Button */}
               <button
                 onClick={() => setShowPlaybookModal(true)}
@@ -601,9 +737,40 @@ export default function BorisCallingCockpit() {
           {!isRebuttalsMode ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               
-              {/* COLUMN 1: Lead Context (3 cols) */}
+              {/* COLUMN 1: Lead Context & Cadence Status (3 cols) */}
               <div className="lg:col-span-3 flex flex-col gap-4">
                 
+                {/* 27-Day Cadence Status Card */}
+                <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-xs border border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Cadence Gating Active</span>
+                    </span>
+                    <span className="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-bold border border-slate-700">
+                      Day {currentCadenceDay} / 27
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-extrabold text-white leading-tight">
+                      Touch #{currentCadenceTouch.touchNumber}: {currentCadenceTouch.stepName}
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                      {currentCadenceTouch.timingRule}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCadenceModalOpen(true)}
+                    className="w-full py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    <span>📋 View Full 13-Touch Sequence</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </button>
+                </div>
+
                 {/* Lead Identity Card */}
                 <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
                   <div>
@@ -641,7 +808,7 @@ export default function BorisCallingCockpit() {
                         value={customerName}
                         onChange={(e) => {
                           setCustomerName(e.target.value);
-                          setNotesDraft(generateCrmNotes({ cName: e.target.value }));
+                          setNotesDraft(buildNotes({ cName: e.target.value }));
                         }}
                         className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-1.5 text-xs text-[#222021] font-semibold focus:outline-none focus:bg-white focus:border-[#ED1C24]"
                       />
@@ -654,7 +821,7 @@ export default function BorisCallingCockpit() {
                         value={partnerName}
                         onChange={(e) => {
                           setPartnerName(e.target.value);
-                          setNotesDraft(generateCrmNotes({ pName: e.target.value }));
+                          setNotesDraft(buildNotes({ pName: e.target.value }));
                         }}
                         className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-1.5 text-xs text-[#222021] font-semibold focus:outline-none focus:bg-white focus:border-[#ED1C24]"
                       />
@@ -667,7 +834,7 @@ export default function BorisCallingCockpit() {
                         value={title}
                         onChange={(e) => {
                           setTitle(e.target.value);
-                          setNotesDraft(generateCrmNotes({ cTitle: e.target.value }));
+                          setNotesDraft(buildNotes({ cTitle: e.target.value }));
                         }}
                         className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-1.5 text-xs text-[#222021] font-medium focus:outline-none focus:bg-white focus:border-[#ED1C24]"
                       />
@@ -680,7 +847,7 @@ export default function BorisCallingCockpit() {
                         value={department}
                         onChange={(e) => {
                           setDepartment(e.target.value);
-                          setNotesDraft(generateCrmNotes({ cDept: e.target.value }));
+                          setNotesDraft(buildNotes({ cDept: e.target.value }));
                         }}
                         className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-1.5 text-xs text-[#222021] font-medium focus:outline-none focus:bg-white focus:border-[#ED1C24]"
                       />
@@ -694,7 +861,7 @@ export default function BorisCallingCockpit() {
                           value={phone}
                           onChange={(e) => {
                             setPhone(e.target.value);
-                            setNotesDraft(generateCrmNotes({ cPhone: e.target.value }));
+                            setNotesDraft(buildNotes({ cPhone: e.target.value }));
                           }}
                           className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-2.5 py-1.5 text-xs text-[#222021] font-mono focus:outline-none focus:bg-white"
                         />
@@ -706,28 +873,45 @@ export default function BorisCallingCockpit() {
                           value={headcount}
                           onChange={(e) => {
                             setHeadcount(e.target.value);
-                            setNotesDraft(generateCrmNotes({ cHeadcount: e.target.value }));
+                            setNotesDraft(buildNotes({ cHeadcount: e.target.value }));
                           }}
                           className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-2.5 py-1.5 text-xs text-[#222021] font-medium focus:outline-none focus:bg-white"
                         />
                       </div>
                     </div>
 
+                    {/* Global DNC Quarantine Alert */}
+                    {isQuarantined && (
+                      <div className="p-3 bg-red-100 border border-red-300 rounded-xl text-red-900 text-xs font-bold flex items-center gap-2">
+                        <Ban className="h-4 w-4 text-red-600 shrink-0" />
+                        <span>QUARANTINED (DO NOT CALL LIST): Dials restricted, pending drip emails terminated.</span>
+                      </div>
+                    )}
+
                     {/* Click-to-Call Dialer Button */}
                     <a
-                      href={phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : '#'}
+                      href={!isQuarantined && phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : '#'}
                       onClick={(e) => {
+                        if (isQuarantined) {
+                          e.preventDefault();
+                          alert('This lead is in GLOBAL DNC QUARANTINE and cannot be dialed.');
+                          return;
+                        }
                         if (!phone) {
                           e.preventDefault();
                           alert('Please enter a phone number first');
                           return;
                         }
                       }}
-                      className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all duration-150 group cursor-pointer"
-                      title="Click to call via your default dialer application (Dialpad, RingCentral, Zoom Phone, Teams, Phone Link, Softphone)"
+                      className={`flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all duration-150 group cursor-pointer ${
+                        isQuarantined
+                          ? 'bg-zinc-400 text-white cursor-not-allowed opacity-75'
+                          : 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white'
+                      }`}
+                      title={isQuarantined ? "Lead in DNC Quarantine" : "Click to call via your default dialer application"}
                     >
-                      <PhoneCall className="h-3.5 w-3.5 text-white transition-transform group-hover:scale-110" />
-                      <span>Click to Call ({phone || 'No Number'})</span>
+                      {isQuarantined ? <Ban className="h-3.5 w-3.5 text-white" /> : <PhoneCall className="h-3.5 w-3.5 text-white transition-transform group-hover:scale-110" />}
+                      <span>{isQuarantined ? 'DNC QUARANTINED' : `Click to Call (${phone || 'No Number'})`}</span>
                     </a>
                   </div>
                 </div>
@@ -936,7 +1120,13 @@ export default function BorisCallingCockpit() {
                                 type="button"
                                 onClick={() => {
                                   setDisposition('Referral / Update Contact');
-                                  setNotesDraft(generateCrmNotes({ disp: 'Referral / Update Contact', custom: `Referral Contact: ${referralContactInput}` }));
+                                  const nextTel = {
+                                    ...telemetry,
+                                    roleVerified: false,
+                                    roleTitleStatus: `Left role / Referral noted (${referralContactInput || 'New DM pending'})`
+                                  };
+                                  setTelemetry(nextTel);
+                                  setNotesDraft(buildNotes({ tel: nextTel, disp: 'Referral / Update Contact', customNotes: `Referral Contact: ${referralContactInput}` }));
                                 }}
                                 className="px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-bold text-xs"
                               >
@@ -1175,6 +1365,25 @@ export default function BorisCallingCockpit() {
                             <span>Copy</span>
                           </button>
                         </div>
+                      </div>
+
+                      {/* Screen 3 Telemetry Gate: Pitched 2-Part Fix */}
+                      <div className="bg-[#F2F0EF] p-3.5 rounded-xl border border-[#222021]/10 flex flex-col sm:flex-row items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={handleToggleProblemFix}
+                          className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            telemetry.problemFixDiscussed
+                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                              : 'bg-white border-[#222021]/15 text-[#222021] hover:border-emerald-600'
+                          }`}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          <span>{telemetry.problemFixDiscussed ? '✓ Pitched 2-Part Fix (Claude AI Lists + Sparring)' : 'Pitched 2-Part Fix'}</span>
+                        </button>
+                        <span className="text-[10px] font-mono text-[#6b6968]">
+                          {telemetry.problemFixDiscussed ? '✓ Auto-logged to Section 3 of CRM Call Notes' : 'Click to log pitch completion'}
+                        </span>
                       </div>
 
                       {/* Continue to Dynamic Diagnostic Engine */}
@@ -1660,7 +1869,7 @@ export default function BorisCallingCockpit() {
                               value={directEmail}
                               onChange={(e) => {
                                 setDirectEmail(e.target.value);
-                                setNotesDraft(generateCrmNotes({ email: e.target.value }));
+                                setNotesDraft(buildNotes());
                               }}
                               placeholder="e.g. julian@apexglobalbpo.com"
                               className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
@@ -1669,22 +1878,30 @@ export default function BorisCallingCockpit() {
 
                           <div>
                             <label className="text-[11px] font-bold text-[#222021] block mb-1">
-                              Direct Cell / Mobile (for 10-min SMS reminder)
+                              Direct Cell / Mobile (for 10-min SMS heads-up)
                             </label>
                             <div className="flex items-center gap-2">
                               <input
                                 type="tel"
                                 value={cellPhone}
                                 onChange={(e) => {
-                                  setCellPhone(e.target.value);
-                                  setNotesDraft(generateCrmNotes({ cell: e.target.value }));
+                                  const val = e.target.value;
+                                  setCellPhone(val);
+                                  const nextTel = { ...telemetry, directMobileCaptured: val };
+                                  setTelemetry(nextTel);
+                                  setNotesDraft(buildNotes({ tel: nextTel, cPhone: val }));
                                 }}
                                 placeholder="e.g. +1 (415) 890-1284"
                                 className="flex-1 bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
                               />
                               <a
-                                href={cellPhone ? `tel:${cellPhone.replace(/[^\d+]/g, '')}` : '#'}
+                                href={!isQuarantined && cellPhone ? `tel:${cellPhone.replace(/[^\d+]/g, '')}` : '#'}
                                 onClick={(e) => {
+                                  if (isQuarantined) {
+                                    e.preventDefault();
+                                    alert('Lead is in DNC Quarantine.');
+                                    return;
+                                  }
                                   if (!cellPhone) {
                                     e.preventDefault();
                                     alert('Please enter a mobile phone number first');
@@ -1700,40 +1917,32 @@ export default function BorisCallingCockpit() {
                           </div>
                         </div>
 
-                        {/* Interactive Verification Badges */}
+                        {/* Interactive Verification Badges (Spec Section 4) */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                           <button
                             type="button"
-                            onClick={() => {
-                              const next = attendanceMode === 'laptop' ? 'mobile' : 'laptop';
-                              setAttendanceMode(next);
-                              setNotesDraft(generateCrmNotes({ mode: next }));
-                            }}
+                            onClick={handleToggleAttendance}
                             className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                              attendanceMode === 'laptop'
+                              telemetry.attendanceVerified
                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
                                 : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
                             }`}
                           >
                             <span>💻</span>
-                            <span>{attendanceMode === 'laptop' ? 'Laptop / Desk Confirmed' : 'Mobile / On-The-Go'}</span>
+                            <span>{telemetry.attendanceVerified ? '✓ 2. Desktop Attendance Confirmed' : '2. Desktop Attendance'}</span>
                           </button>
 
                           <button
                             type="button"
-                            onClick={() => {
-                              const next = !verbalCommitment;
-                              setVerbalCommitment(next);
-                              setNotesDraft(generateCrmNotes({ committed: next }));
-                            }}
+                            onClick={handleToggleZeroPrep}
                             className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                              verbalCommitment
+                              telemetry.zeroPrepConfirmed
                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
                                 : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
                             }`}
                           >
-                            <span>{verbalCommitment ? '✅' : '⚪'}</span>
-                            <span>Verbal Commitment</span>
+                            <span>{telemetry.zeroPrepConfirmed ? '✅' : '⚪'}</span>
+                            <span>{telemetry.zeroPrepConfirmed ? '✓ 1. Zero Prep Guaranteed' : '1. Zero Prep Guarantee'}</span>
                           </button>
 
                           <button
@@ -1741,7 +1950,7 @@ export default function BorisCallingCockpit() {
                             onClick={() => {
                               const next = !inviteAccepted;
                               setInviteAccepted(next);
-                              setNotesDraft(generateCrmNotes({ custom: (notesDraft || '') + (next ? '\n[Invite sent from emil@appointmentlyy.com - Prospect accepted]' : '') }));
+                              setNotesDraft(buildNotes({ customNotes: (customRepNotes || '') + (next ? '\n[Calendar invite dispatched from emil@appointmentlyy.com - Client accepted]' : '') }));
                             }}
                             className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                               inviteAccepted
@@ -1801,31 +2010,41 @@ export default function BorisCallingCockpit() {
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        const now = new Date();
-                        const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                        const stamped = notesDraft.trim() + `\n\n[LOGGED ${dateStr} ${timeStr} by SDR Alex - Verified for CRM Sync]`;
-                        setNotesDraft(stamped);
-                      }}
-                      className="flex-1 py-1.5 rounded-lg bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-semibold text-xs transition-colors flex items-center justify-center gap-1 border border-[#222021]/10 cursor-pointer"
-                    >
-                      <Wand2 className="h-3 w-3 text-[#6b6968]" />
-                      <span>Format & Tidy</span>
-                    </button>
-                    <button
-                      onClick={() => copyText(notesDraft, 'notes_copy')}
-                      className="flex-1 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
-                    >
-                      {copiedKey === 'notes_copy' ? <Check className="h-3 w-3 text-white" /> : <Copy className="h-3 w-3" />}
-                      <span>{copiedKey === 'notes_copy' ? 'Copied to CRM!' : 'Copy CRM Notes'}</span>
-                    </button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => copyText(notesDraft, 'notes_copy')}
+                        className="flex-1 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
+                      >
+                        {copiedKey === 'notes_copy' ? <Check className="h-3 w-3 text-white" /> : <Copy className="h-3 w-3" />}
+                        <span>{copiedKey === 'notes_copy' ? 'Copied to Clipboard!' : '📋 Copy CRM Notes'}</span>
+                      </button>
+
+                      <button
+                        onClick={handleSyncCRM}
+                        disabled={isSyncingCrm}
+                        className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
+                      >
+                        {isSyncingCrm ? <Loader2 className="h-3 w-3 animate-spin text-white" /> : <RefreshCw className="h-3 w-3 text-white" />}
+                        <span>{isSyncingCrm ? 'Syncing...' : '🔄 Direct CRM Sync'}</span>
+                      </button>
+                    </div>
+
+                    {crmSyncSuccess && (
+                      <div className="p-2 bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-900 text-xs font-bold flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>CRM Record Synced</span>
+                        </span>
+                        <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-emerald-300">
+                          {crmSyncSuccess}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <textarea
-                    rows={8}
+                    rows={9}
                     value={notesDraft}
                     onChange={(e) => setNotesDraft(e.target.value)}
                     className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl p-2.5 text-[11px] leading-relaxed text-[#222021] font-mono focus:outline-none focus:bg-white focus:border-[#ED1C24]"
@@ -1845,27 +2064,29 @@ export default function BorisCallingCockpit() {
                       setAttendanceMode('laptop');
                       setVerbalCommitment(true);
                       setInviteAccepted(false);
+                      setIsQuarantined(false);
+                      setRedialScheduled(null);
+                      setCrmSyncSuccess(null);
                       setCurrentStep(1);
-                      setNotesDraft(generateCrmNotes({
-                        rStatus: null,
-                        oa: null,
-                        trap: null,
-                        industries: ['E-commerce / Retail', 'FinTech / Financial'],
-                        service: 'customer-service',
-                        customServ: '',
-                        slot: null,
-                        disp: null,
-                        email: 'julian@apexglobalbpo.com',
-                        cell: '+1 (415) 890-1284',
-                        mode: 'laptop',
-                        committed: true,
-                        custom: ''
+                      setTelemetry(INITIAL_TELEMETRY_STATE);
+                      setNotesDraft(synthesizeCrmNotes({
+                        contactName: customerName,
+                        companyName: partnerName,
+                        title,
+                        department,
+                        headcount,
+                        phone,
+                        cadenceDay: currentCadenceDay,
+                        stepName: currentCadenceTouch.stepName,
+                        telemetry: INITIAL_TELEMETRY_STATE,
+                        disposition: null,
+                        customRepNotes: ''
                       }));
                     }}
                     className="w-full text-center text-xs text-[#6b6968] hover:text-[#222021] flex items-center justify-center gap-1 py-1 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="h-3 w-3" />
-                    <span>Next call: clear everything</span>
+                    <span>Next call: clear & reset telemetry</span>
                   </button>
                 </div>
 
@@ -2322,6 +2543,16 @@ export default function BorisCallingCockpit() {
           </div>
         </div>
       )}
+
+      {/* Master 27-Day 13-Touch Cadence Modal (Spec Section 3) */}
+      <ViewFullCadenceModal
+        isOpen={isCadenceModalOpen}
+        onClose={() => setIsCadenceModalOpen(false)}
+        currentDay={currentCadenceDay}
+        contactName={customerName}
+        companyName={partnerName}
+        repName={repName}
+      />
 
     </div>
   );
