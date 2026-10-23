@@ -40,12 +40,22 @@ import {
   RefreshCw,
   Mail,
   Voicemail,
-  Send
+  Send,
+  Lock
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
 import { CallTelemetryState, INITIAL_TELEMETRY_STATE, synthesizeCrmNotes } from '@/lib/callTelemetry';
-import { CADENCE_TOUCHES, CadenceTouch, CADENCE_PHONE_SCRIPTS, CadencePhoneCallConfig } from '@/lib/cadenceMaster';
+import { 
+  CADENCE_TOUCHES, 
+  CadenceTouch, 
+  CADENCE_PHONE_SCRIPTS, 
+  CadencePhoneCallConfig,
+  DEMO_CADENCE_LEADS,
+  CadenceLeadRecord,
+  getTouchpointStatus,
+  TouchpointStatus
+} from '@/lib/cadenceMaster';
 import ViewFullCadenceModal from '@/components/cockpit/ViewFullCadenceModal';
 
 interface ARMRebuttal {
@@ -127,6 +137,48 @@ export default function BorisCallingCockpit() {
   const [isSendingEmail, setIsSendingEmail] = useState<boolean>(false);
   const [emailSentSuccess, setEmailSentSuccess] = useState<string | null>(null);
   const [linkedInCompleted, setLinkedInCompleted] = useState<boolean>(false);
+
+  // Active Lead Queue State (Supports fresh intakes & carry-overs from previous weeks)
+  const [activeLeadId, setActiveLeadId] = useState<string>('lead_fresh_d2');
+  const activeLead = DEMO_CADENCE_LEADS.find(l => l.id === activeLeadId) || DEMO_CADENCE_LEADS[0];
+
+  // Lead Selection Handler (Switches Lead, Updates Cadence Day & Locks Future Cadence Days)
+  const handleSelectLead = (lead: CadenceLeadRecord) => {
+    setActiveLeadId(lead.id);
+    setCustomerName(lead.name);
+    setPartnerName(lead.company);
+    setTitle(lead.title);
+    setDepartment(lead.department);
+    setPhone(lead.phone);
+    setHeadcount(lead.headcount);
+    setDirectEmail(lead.email);
+    setEmailRecipient(lead.email);
+    setCurrentCadenceDay(lead.cadenceDay);
+    setActiveCadenceTouchNumber(lead.touchNumber);
+    setEmailSentSuccess(null);
+    setLinkedInCompleted(false);
+
+    setLeadNotes(
+      lead.isCarryOver
+        ? `[CARRY-OVER FOLLOW-UP LEAD]\nScheduled Task: ${lead.carryOverReason}\nCadence Stage: Day ${lead.cadenceDay} Touchpoint\nContact: ${lead.name} (${lead.title})\nFloor: ${lead.headcount}`
+        : `Directory Lead Source: Outsource Accelerator\nFloor: ${lead.headcount}\nBottleneck: Competing against 3-5 BPOs on identical shared lists ($8/hr margin crush)\nNext Step: 20-min demo with Founder Emil`
+    );
+
+    const touch = CADENCE_TOUCHES.find(t => t.touchNumber === lead.touchNumber) || CADENCE_TOUCHES[2];
+    setNotesDraft(synthesizeCrmNotes({
+      contactName: lead.name,
+      companyName: lead.company,
+      title: lead.title,
+      department: lead.department,
+      headcount: lead.headcount,
+      phone: lead.phone,
+      cadenceDay: lead.cadenceDay,
+      stepName: touch.stepName,
+      telemetry,
+      disposition: touch.channel === 'Email' ? 'Follow-Up Email' : disposition,
+      customRepNotes: lead.isCarryOver ? `[Prior-Week Follow-up Scheduled: ${lead.carryOverReason}]` : ''
+    }));
+  };
 
   // Current Cadence Touch Definition
   const currentCadenceTouch = CADENCE_TOUCHES.find(t => t.touchNumber === activeCadenceTouchNumber)
@@ -876,6 +928,83 @@ export default function BorisCallingCockpit() {
             </button>
           </div>
 
+          {/* MULTI-CADENCE QUEUE & PRIOR-WEEK CARRY-OVER BAR */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 text-white shadow-xs space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300">
+                  AI Boris Lead Queue & Cadence Enforcer:
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                  <Lock className="h-3 w-3 text-emerald-400" />
+                  Cadence Gating Active (Future Steps Locked)
+                </span>
+              </div>
+
+              <div className="text-[11px] font-mono text-slate-400">
+                Enrolled Cadence Day: <strong className="text-white">Day {currentCadenceDay} of 27</strong>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+              {DEMO_CADENCE_LEADS.map(ld => {
+                const isSelected = activeLeadId === ld.id;
+                return (
+                  <button
+                    key={ld.id}
+                    type="button"
+                    onClick={() => handleSelectLead(ld)}
+                    className={`p-2.5 rounded-xl text-left transition-all border cursor-pointer relative ${
+                      isSelected
+                        ? 'bg-[#ED1C24] border-red-500 text-white shadow-sm ring-2 ring-white/20'
+                        : ld.isCarryOver
+                        ? 'bg-purple-950/40 border-purple-800/60 text-purple-200 hover:bg-purple-900/40'
+                        : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
+                        isSelected 
+                          ? 'bg-white/20 text-white' 
+                          : ld.isCarryOver 
+                          ? 'bg-purple-900/80 text-purple-200 border border-purple-700' 
+                          : 'bg-slate-700 text-slate-300'
+                      }`}>
+                        {ld.isCarryOver ? '🔄 Prior-Week Carry-Over' : '⚡ Fresh Intake'}
+                      </span>
+                      <span className="text-[10px] font-mono font-black">
+                        Day {ld.cadenceDay}
+                      </span>
+                    </div>
+                    <div className="text-xs font-bold truncate mt-1 text-white">
+                      {ld.name}
+                    </div>
+                    <div className={`text-[10px] truncate ${isSelected ? 'text-white/90' : 'text-slate-400'}`}>
+                      {ld.company}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Lead Carry-over Notice Banner if applicable */}
+            {activeLead?.isCarryOver && (
+              <div className="p-2.5 rounded-xl bg-purple-900/30 border border-purple-700/50 flex items-center justify-between text-xs text-purple-200">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-purple-400 shrink-0" />
+                  <span>
+                    <strong>Prior-Week Follow-up Queue:</strong> {activeLead.carryOverReason}
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] bg-purple-950 px-2 py-0.5 rounded border border-purple-800 text-purple-300 flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  Unlocks Day {currentCadenceDay} Script • Future Days Locked
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* 3-COLUMN WORK AREA */}
           {!isRebuttalsMode ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
@@ -904,33 +1033,49 @@ export default function BorisCallingCockpit() {
                     </p>
                   </div>
 
-                  {/* Multi-Channel Cadence Touchpoint Selector */}
+                  {/* Multi-Channel Cadence Touchpoint Selector with Locked Future Steps */}
                   <div className="space-y-1.5 pt-2 border-t border-slate-800">
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wide">
                       <span>Cadence Touchpoints:</span>
                       <span className="text-emerald-400 font-bold">{currentCadenceTouch.channel} Active</span>
                     </div>
                     <div className="grid grid-cols-4 gap-1 text-[10px] font-mono font-bold max-h-36 overflow-y-auto scrollbar-none">
-                      {CADENCE_TOUCHES.map((t) => (
-                        <button
-                          key={t.touchNumber}
-                          type="button"
-                          onClick={() => handleSelectCadenceTouch(t)}
-                          title={`${t.stepName} (${t.channel})`}
-                          className={`py-1.5 px-1 rounded text-center transition-all cursor-pointer truncate ${
-                            activeCadenceTouchNumber === t.touchNumber
-                              ? 'bg-[#ED1C24] text-white shadow-xs font-black ring-1 ring-white/30'
-                              : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                          }`}
-                        >
-                          <span className="text-[10px] block">
-                            {t.channel === 'Email' ? '✉️' : t.channel === 'Phone' ? '📞' : '💼'} D{t.day}
-                          </span>
-                          <span className="text-[8px] opacity-80 block truncate">
-                            T#{t.touchNumber}
-                          </span>
-                        </button>
-                      ))}
+                      {CADENCE_TOUCHES.map((t) => {
+                        const isCurrent = activeCadenceTouchNumber === t.touchNumber;
+                        const isPast = t.day < currentCadenceDay;
+                        const isLocked = t.day > currentCadenceDay;
+
+                        return (
+                          <button
+                            key={t.touchNumber}
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleSelectCadenceTouch(t)}
+                            title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} outreach before advancing.` : `${t.stepName} (${t.channel})`}
+                            className={`py-1.5 px-1 rounded text-center transition-all truncate ${
+                              isCurrent
+                                ? 'bg-[#ED1C24] text-white shadow-xs font-black ring-1 ring-white/30 cursor-pointer'
+                                : isLocked
+                                ? 'bg-slate-900/60 border border-slate-800/80 text-slate-600 opacity-40 cursor-not-allowed pointer-events-none'
+                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer'
+                            }`}
+                          >
+                            <div className="flex items-center justify-center gap-0.5 text-[10px]">
+                              {isLocked ? (
+                                <Lock className="h-2.5 w-2.5 text-slate-500" />
+                              ) : isPast ? (
+                                <Check className="h-2.5 w-2.5 text-emerald-400" />
+                              ) : (
+                                <span>{t.channel === 'Email' ? '✉️' : t.channel === 'Phone' ? '📞' : '💼'}</span>
+                              )}
+                              <span>D{t.day}</span>
+                            </div>
+                            <span className="text-[8px] opacity-80 block truncate">
+                              {isLocked ? 'Locked' : `T#${t.touchNumber}`}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1155,26 +1300,42 @@ export default function BorisCallingCockpit() {
                         </button>
                       </div>
                       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                        {CADENCE_TOUCHES.map(touch => (
-                          <button
-                            key={touch.touchNumber}
-                            type="button"
-                            onClick={() => handleSelectCadenceTouch(touch)}
-                            className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 cursor-pointer ${
-                              activeCadenceTouchNumber === touch.touchNumber
-                                ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                            }`}
-                          >
-                            <div className="flex items-center gap-1 text-[11px] font-mono font-bold">
-                              <span>{touch.channel === 'Email' ? '✉️' : touch.channel === 'Phone' ? '📞' : '💼'}</span>
-                              <span>D{touch.day}: T#{touch.touchNumber}</span>
-                            </div>
-                            <div className="text-[9px] text-slate-300/80 truncate max-w-[110px]">
-                              {touch.channel}
-                            </div>
-                          </button>
-                        ))}
+                        {CADENCE_TOUCHES.map(touch => {
+                          const isCurrent = activeCadenceTouchNumber === touch.touchNumber;
+                          const isPast = touch.day < currentCadenceDay;
+                          const isLocked = touch.day > currentCadenceDay;
+
+                          return (
+                            <button
+                              key={touch.touchNumber}
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleSelectCadenceTouch(touch)}
+                              title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} outreach before advancing.` : `${touch.stepName} (${touch.channel})`}
+                              className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 ${
+                                isCurrent
+                                  ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30 cursor-pointer'
+                                  : isLocked
+                                  ? 'bg-slate-900/60 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed pointer-events-none'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1 text-[11px] font-mono font-bold">
+                                {isLocked ? (
+                                  <Lock className="h-2.5 w-2.5 text-slate-500" />
+                                ) : isPast ? (
+                                  <Check className="h-2.5 w-2.5 text-emerald-400" />
+                                ) : (
+                                  <span>{touch.channel === 'Email' ? '✉️' : touch.channel === 'Phone' ? '📞' : '💼'}</span>
+                                )}
+                                <span>D{touch.day}: T#{touch.touchNumber}</span>
+                              </div>
+                              <div className="text-[9px] text-slate-300/80 truncate max-w-[110px]">
+                                {isLocked ? 'Locked' : touch.channel}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -1359,26 +1520,42 @@ export default function BorisCallingCockpit() {
                         </button>
                       </div>
                       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                        {CADENCE_TOUCHES.map(touch => (
-                          <button
-                            key={touch.touchNumber}
-                            type="button"
-                            onClick={() => handleSelectCadenceTouch(touch)}
-                            className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 cursor-pointer ${
-                              activeCadenceTouchNumber === touch.touchNumber
-                                ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                            }`}
-                          >
-                            <div className="flex items-center gap-1 text-[11px] font-mono font-bold">
-                              <span>{touch.channel === 'Email' ? '✉️' : touch.channel === 'Phone' ? '📞' : '💼'}</span>
-                              <span>D{touch.day}: T#{touch.touchNumber}</span>
-                            </div>
-                            <div className="text-[9px] text-slate-300/80 truncate max-w-[110px]">
-                              {touch.channel}
-                            </div>
-                          </button>
-                        ))}
+                        {CADENCE_TOUCHES.map(touch => {
+                          const isCurrent = activeCadenceTouchNumber === touch.touchNumber;
+                          const isPast = touch.day < currentCadenceDay;
+                          const isLocked = touch.day > currentCadenceDay;
+
+                          return (
+                            <button
+                              key={touch.touchNumber}
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleSelectCadenceTouch(touch)}
+                              title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} outreach before advancing.` : `${touch.stepName} (${touch.channel})`}
+                              className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 ${
+                                isCurrent
+                                  ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30 cursor-pointer'
+                                  : isLocked
+                                  ? 'bg-slate-900/60 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed pointer-events-none'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1 text-[11px] font-mono font-bold">
+                                {isLocked ? (
+                                  <Lock className="h-2.5 w-2.5 text-slate-500" />
+                                ) : isPast ? (
+                                  <Check className="h-2.5 w-2.5 text-emerald-400" />
+                                ) : (
+                                  <span>{touch.channel === 'Email' ? '✉️' : touch.channel === 'Phone' ? '📞' : '💼'}</span>
+                                )}
+                                <span>D{touch.day}: T#{touch.touchNumber}</span>
+                              </div>
+                              <div className="text-[9px] text-slate-300/80 truncate max-w-[110px]">
+                                {isLocked ? 'Locked' : touch.channel}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -1517,21 +1694,37 @@ export default function BorisCallingCockpit() {
                             { day: 9, label: 'Day 9: Phone #3', desc: 'Ref: Email #3' },
                             { day: 15, label: 'Day 15: Phone #4', desc: 'Ref: Email #4' },
                             { day: 24, label: 'Day 24: Phone #5', desc: 'Ref: Email #5' },
-                          ].map(item => (
-                            <button
-                              key={item.day}
-                              type="button"
-                              onClick={() => handleSelectCadenceDay(item.day)}
-                              className={`px-2 py-1.5 rounded-lg text-left transition-all cursor-pointer ${
-                                currentCadenceDay === item.day
-                                  ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30'
-                                  : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300'
-                              }`}
-                            >
-                              <div className="text-[11px] font-mono font-black">{item.label}</div>
-                              <div className="text-[9px] truncate text-slate-300/80">{item.desc}</div>
-                            </button>
-                          ))}
+                          ].map(item => {
+                            const isCurrent = currentCadenceDay === item.day;
+                            const isPast = item.day < currentCadenceDay;
+                            const isLocked = item.day > currentCadenceDay;
+
+                            return (
+                              <button
+                                key={item.day}
+                                type="button"
+                                disabled={isLocked}
+                                onClick={() => handleSelectCadenceDay(item.day)}
+                                title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} call before advancing.` : `Switch to Day ${item.day} Call Script`}
+                                className={`px-2 py-1.5 rounded-lg text-left transition-all ${
+                                  isCurrent
+                                    ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30 cursor-pointer'
+                                    : isLocked
+                                    ? 'bg-slate-900/60 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed pointer-events-none'
+                                    : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 cursor-pointer'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1 text-[11px] font-mono font-black">
+                                  {isLocked && <Lock className="h-2.5 w-2.5 text-slate-500" />}
+                                  {isPast && <Check className="h-2.5 w-2.5 text-emerald-400" />}
+                                  <span>{item.label}</span>
+                                </div>
+                                <div className="text-[9px] truncate text-slate-300/80">
+                                  {isLocked ? 'Locked by Cadence' : item.desc}
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 

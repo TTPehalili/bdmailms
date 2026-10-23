@@ -225,3 +225,89 @@ export const CADENCE_PHONE_SCRIPTS: Record<number, CadencePhoneCallConfig> = {
     reducedFrictionNote: 'Employs Chris Voss accusation audit referencing the 3-Day TTP Cheat Sheet email sent on Day 19.'
   }
 };
+
+export type TouchpointStatus = 'active' | 'completed' | 'locked';
+
+export function getTouchpointStatus(touchDay: number, currentCadenceDay: number): TouchpointStatus {
+  if (touchDay === currentCadenceDay) return 'active';
+  if (touchDay < currentCadenceDay) return 'completed';
+  return 'locked';
+}
+
+export interface CadenceLeadRecord {
+  id: string;
+  name: string;
+  company: string;
+  title: string;
+  department: string;
+  email: string;
+  phone: string;
+  headcount: string;
+  cadenceDay: number;
+  touchNumber: number;
+  isCarryOver: boolean;
+  carryOverReason?: string;
+  statusBadge: string;
+}
+
+export const DEMO_CADENCE_LEADS: CadenceLeadRecord[] = [
+  {
+    id: 'lead_fresh_d2',
+    name: 'Julian Vance',
+    company: 'Apex Global BPO',
+    title: 'Director of Outbound Operations',
+    department: 'Outbound Appointment Setting Floor',
+    email: 'julian@apexglobalbpo.com',
+    phone: '+1 (415) 890-2341',
+    headcount: '65 seats',
+    cadenceDay: 2,
+    touchNumber: 3,
+    isCarryOver: false,
+    statusBadge: 'Fresh Intake • Day 2 Phone Push'
+  },
+  {
+    id: 'lead_carryover_d9',
+    name: 'Marcus Brody',
+    company: 'Nexus Call Solutions',
+    title: 'VP of Contact Center Ops',
+    department: 'Enterprise Lead Gen',
+    email: 'mbrody@nexuscall.com',
+    phone: '+1 (312) 555-0198',
+    headcount: '120 seats',
+    cadenceDay: 9,
+    touchNumber: 8,
+    isCarryOver: true,
+    carryOverReason: 'Scheduled Follow-up from Last Week (Email #3 Sent Friday)',
+    statusBadge: 'Prior-Week Carry-Over • Day 9 Shifted Dial'
+  },
+  {
+    id: 'lead_carryover_d15',
+    name: 'Elena Rostova',
+    company: 'ClearDial Telephony',
+    title: 'Chief Revenue Officer',
+    department: 'Sales & Client Retention',
+    email: 'elena@cleardial.io',
+    phone: '+1 (646) 772-9102',
+    headcount: '45 seats',
+    cadenceDay: 15,
+    touchNumber: 10,
+    isCarryOver: true,
+    carryOverReason: 'Rescheduled Callback from Previous Week (Discuss Broker Margins)',
+    statusBadge: 'Prior-Week Carry-Over • Day 15 Reverse Sell'
+  },
+  {
+    id: 'lead_fresh_d1',
+    name: 'David Chen',
+    company: 'OmniBPO Worldwide',
+    title: 'Managing Director',
+    department: 'BPO Delivery & Workforce',
+    email: 'dchen@omnibpo.com',
+    phone: '+1 (212) 449-3381',
+    headcount: '210 seats',
+    cadenceDay: 1,
+    touchNumber: 1,
+    isCarryOver: false,
+    statusBadge: 'Fresh Intake • Day 1 Email #1'
+  }
+];
+

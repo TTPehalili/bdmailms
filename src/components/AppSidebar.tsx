@@ -15,7 +15,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
-  Workflow
+  Workflow,
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 
 export default function AppSidebar() {
@@ -98,6 +100,20 @@ export default function AppSidebar() {
       isActive: isWorkflows, 
       tag: 'N8N',
       adminOnly: true
+    },
+    { 
+      label: 'Performance & KPIs', 
+      href: '/analytics', 
+      icon: BarChart3, 
+      isActive: pathname.startsWith('/analytics'), 
+      tag: 'METRICS' 
+    },
+    { 
+      label: 'AI Assistant', 
+      href: '/assistant', 
+      icon: Sparkles, 
+      isActive: pathname.startsWith('/assistant'), 
+      tag: 'COPILOT' 
     },
     { 
       label: 'Admin Control', 

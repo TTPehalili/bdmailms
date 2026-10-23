@@ -47,6 +47,7 @@ import ByokVaultManager from './admin/ByokVaultManager';
 import UniversalCrmStudio from './admin/UniversalCrmStudio';
 import BillingInvoiceManager from './admin/BillingInvoiceManager';
 import McpDeveloperGateway from './admin/McpDeveloperGateway';
+import CallDispositionManager from './admin/CallDispositionManager';
 
 interface UserRecord {
   id: string;
@@ -94,7 +95,7 @@ interface TenantRecord {
 }
 
 export default function AdminControlCentre() {
-  const [activeTab, setActiveTab] = useState<'tenants' | 'byok' | 'crm' | 'invoicing' | 'mcp' | 'people' | 'modules' | 'access' | 'leads' | 'reps' | 'feedback' | 'audit'>('tenants');
+  const [activeTab, setActiveTab] = useState<'tenants' | 'dispositions' | 'byok' | 'crm' | 'invoicing' | 'mcp' | 'people' | 'modules' | 'access' | 'leads' | 'reps' | 'feedback' | 'audit'>('tenants');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [tenantFilter, setTenantFilter] = useState('all');
@@ -453,6 +454,7 @@ export default function AdminControlCentre() {
           <div className="flex items-center gap-6 border-b border-[#222021]/10 text-sm font-semibold overflow-x-auto scrollbar-none">
             {[
               { id: 'tenants', label: 'Tenants & Client Access' },
+              { id: 'dispositions', label: 'Call Dispositions' },
               { id: 'byok', label: 'BYOK AI Vault' },
               { id: 'crm', label: 'Universal CRM & Mapper' },
               { id: 'invoicing', label: 'Billing & Invoicing' },
@@ -1302,6 +1304,11 @@ export default function AdminControlCentre() {
           {/* TAB 12: MCP & DEVELOPER INGRESS */}
           {activeTab === 'mcp' && (
             <McpDeveloperGateway />
+          )}
+
+          {/* TAB 13: CALL DISPOSITIONS & CAMPAIGN RULES */}
+          {activeTab === 'dispositions' && (
+            <CallDispositionManager />
           )}
         </main>
       </div>
