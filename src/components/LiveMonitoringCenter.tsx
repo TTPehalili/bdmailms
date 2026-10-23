@@ -26,8 +26,25 @@ import {
   SkipForward,
   Loader2
 } from 'lucide-react';
+import { PERSONA_VOICE_MAP, SparringCountry } from '@/lib/personas';
 
 const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
+// Dedicated Filipino BPO SDR Voice Profiles (Authentic neutral Philippine English)
+export const FILIPINO_REP_VOICES = {
+  male: {
+    voiceId: 'TxGEqnHWrfWFTfGW9XjX', // Josh - Warm, clear, authentic Filipino neutral SDR cadence
+    label: 'Filipino Male SDR',
+    hub: 'Manila Floor',
+    accentBadge: '🇵🇭 Filipino Accent (Manila BPO Hub)'
+  },
+  female: {
+    voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel - Crisp, empathetic Filipino neutral SDR cadence
+    label: 'Filipino Female SDR',
+    hub: 'Cebu Hub',
+    accentBadge: '🇵🇭 Filipino Accent (Cebu Tech Hub)'
+  }
+};
 
 export interface DialogueTurn {
   id: string;
@@ -44,12 +61,14 @@ export interface ActiveSparringSession {
   repName: string;
   repEmail: string;
   repGender: 'male' | 'female';
+  repAccent: string;
   avatar: string;
   tenant: string;
+  personaId: string;
   personaName: string;
   personaRole: string;
   personaDifficulty: 'High' | 'Medium' | 'Extreme';
-  countryAccent: 'USA' | 'Australia' | 'UK';
+  countryAccent: SparringCountry;
   initialSeconds: number;
   currentObjection: string;
   score: number;
@@ -68,6 +87,9 @@ export default function LiveMonitoringCenter() {
   const [sentimentFilter, setSentimentFilter] = useState<'all' | 'Hostile' | 'Skeptical' | 'Neutral' | 'Engaged'>('all');
   const [tenantFilter, setTenantFilter] = useState('all');
   
+  // Dynamic Customer Voice Accent State (USA, Australia, UK)
+  const [selectedCustomerAccent, setSelectedCustomerAccent] = useState<SparringCountry>('Australia');
+
   // Audio playback state
   const [activeListeningSession, setActiveListeningSession] = useState<ActiveSparringSession | null>(null);
   const [currentTurnIndex, setCurrentTurnIndex] = useState<number | null>(null);
@@ -109,20 +131,34 @@ export default function LiveMonitoringCenter() {
     }
   }, [volume, isAudioMuted]);
 
-  // Active Sparring Lines on Floor with multi-turn real dialogues and ElevenLabs voice configs
-  const [sessions, setSessions] = useState<ActiveSparringSession[]>([
+  // Helper to map customer voiceId given personaId and country
+  const getCustomerVoiceId = (personaId: string, country: SparringCountry): string => {
+    const personaEntry = PERSONA_VOICE_MAP[personaId];
+    if (personaEntry && personaEntry[country]) {
+      return personaEntry[country].voiceId;
+    }
+    // Fallbacks
+    if (country === 'Australia') return '0zgVQzF8uy6TauIra2W1';
+    if (country === 'UK') return 'JBFqnCBsd6RMkjVDRZzb';
+    return 'cjVigY5qzO86Huf0OWal';
+  };
+
+  // Raw mock definitions with Filipino SDRs and target buyer personas
+  const rawSessionsConfig: ActiveSparringSession[] = [
     {
       id: 'sess-1',
       line: 'LINE 01',
-      repName: 'Alex Mercer',
-      repEmail: 'alex.mercer@apexglobal.ph',
+      repName: 'Paolo Reyes',
+      repEmail: 'paolo.reyes@apexglobal.ph',
       repGender: 'male',
-      avatar: 'AM',
-      tenant: 'Apex Global BPO',
+      repAccent: '🇵🇭 Filipino Neutral (Manila BPO Floor)',
+      avatar: 'PR',
+      tenant: 'Apex Global BPO (Manila)',
+      personaId: 'bpo-directory-buyer',
       personaName: 'Julian Vance',
       personaRole: 'Managing Director & Outbound Head (Apex BPO)',
       personaDifficulty: 'High',
-      countryAccent: 'Australia',
+      countryAccent: selectedCustomerAccent,
       initialSeconds: 228,
       currentObjection: '“We already buy shared leads from Outsource Accelerator. Why pay for private data?”',
       score: 88,
@@ -132,58 +168,60 @@ export default function LiveMonitoringCenter() {
       recentTranscript: [
         {
           id: 'turn-1-1',
-          speaker: 'Julian Vance (AI Customer)',
+          speaker: 'Julian Vance',
           role: 'prospect',
-          text: 'We already buy shared lead packs from Outsource Accelerator, Alex. Why on earth would I pay for additional software?',
+          text: 'We already buy shared lead packs from Outsource Accelerator, Paolo. Why on earth would I pay for additional software?',
           time: '03:15',
-          voiceId: '0zgVQzF8uy6TauIra2W1' // Joel (Calm & Friendly Australian Male)
+          voiceId: getCustomerVoiceId('bpo-directory-buyer', selectedCustomerAccent)
         },
         {
           id: 'turn-1-2',
-          speaker: 'Alex Mercer (AI Rep)',
+          speaker: 'Paolo Reyes (🇵🇭 Filipino SDR)',
           role: 'rep',
           text: 'Totally fair, Julian. But OA sells those identical leads to 3 to 5 other BPOs simultaneously, so you end up in eight dollar per hour price wars.',
           time: '03:26',
-          voiceId: 'cjVigY5qzO86Huf0OWal' // Eric (Smooth Trustworthy Executive Male SDR)
+          voiceId: FILIPINO_REP_VOICES.male.voiceId
         },
         {
           id: 'turn-1-3',
-          speaker: 'Julian Vance (AI Customer)',
+          speaker: 'Julian Vance',
           role: 'prospect',
           text: 'That is actually true. Our margins have taken a beating on those directory accounts. What are you doing differently?',
           time: '03:38',
-          voiceId: '0zgVQzF8uy6TauIra2W1'
+          voiceId: getCustomerVoiceId('bpo-directory-buyer', selectedCustomerAccent)
         },
         {
           id: 'turn-1-4',
-          speaker: 'Alex Mercer (AI Rep)',
+          speaker: 'Paolo Reyes (🇵🇭 Filipino SDR)',
           role: 'rep',
           text: 'We give you exclusive, verified tech-founder triggers before OA even lists them. Can I show you three live accounts right now?',
           time: '03:49',
-          voiceId: 'cjVigY5qzO86Huf0OWal'
+          voiceId: FILIPINO_REP_VOICES.male.voiceId
         },
         {
           id: 'turn-1-5',
-          speaker: 'Julian Vance (AI Customer)',
+          speaker: 'Julian Vance',
           role: 'prospect',
-          text: 'Alright Alex, pull them up on screen. If they are genuinely exclusive, you have got my attention.',
+          text: 'Alright Paolo, pull them up on screen. If they are genuinely exclusive, you have got my attention.',
           time: '04:01',
-          voiceId: '0zgVQzF8uy6TauIra2W1'
+          voiceId: getCustomerVoiceId('bpo-directory-buyer', selectedCustomerAccent)
         }
       ]
     },
     {
       id: 'sess-2',
       line: 'LINE 02',
-      repName: 'Elena Rostova',
-      repEmail: 'elena.r@fintechscaleups.com',
+      repName: 'Maria Santos',
+      repEmail: 'maria.santos@fintechscaleups.ph',
       repGender: 'female',
-      avatar: 'ER',
-      tenant: 'Fintech Scaleups',
+      repAccent: '🇵🇭 Filipino Neutral (Cebu Tech Floor)',
+      avatar: 'MS',
+      tenant: 'Fintech Scaleups (Cebu)',
+      personaId: 'rushed-vp',
       personaName: 'David M.',
       personaRole: 'VP of Sales (Acme Cloud Tech)',
       personaDifficulty: 'High',
-      countryAccent: 'USA',
+      countryAccent: selectedCustomerAccent,
       initialSeconds: 142,
       currentObjection: '“Our reps ramp in 4 weeks, we already have internal enablement training.”',
       score: 84,
@@ -193,58 +231,60 @@ export default function LiveMonitoringCenter() {
       recentTranscript: [
         {
           id: 'turn-2-1',
-          speaker: 'David M. (AI Customer)',
+          speaker: 'David M.',
           role: 'prospect',
-          text: 'We already have an internal enablement manager, Elena. Our reps ramp fine without extra tools.',
+          text: 'We already have an internal enablement manager, Maria. Our reps ramp fine without extra tools.',
           time: '01:55',
-          voiceId: 'iP95p4xoKVk53GoZ742B' // Chris (Fast-Paced US Executive Male)
+          voiceId: getCustomerVoiceId('rushed-vp', selectedCustomerAccent)
         },
         {
           id: 'turn-2-2',
-          speaker: 'Elena Rostova (AI Rep)',
+          speaker: 'Maria Santos (🇵🇭 Filipino SDR)',
           role: 'rep',
           text: 'Understood, David. But does your enablement team drill 40 unscripted voice objection scenarios before their first live dial?',
           time: '02:08',
-          voiceId: 'EXAVITQu4vr4xnSDxMaL' // Sarah (American SaaS Female SDR)
+          voiceId: FILIPINO_REP_VOICES.female.voiceId
         },
         {
           id: 'turn-2-3',
-          speaker: 'David M. (AI Customer)',
+          speaker: 'David M.',
           role: 'prospect',
           text: 'No, they mostly read slide decks and shadow top performers on Gong.',
           time: '02:18',
-          voiceId: 'iP95p4xoKVk53GoZ742B'
+          voiceId: getCustomerVoiceId('rushed-vp', selectedCustomerAccent)
         },
         {
           id: 'turn-2-4',
-          speaker: 'Elena Rostova (AI Rep)',
+          speaker: 'Maria Santos (🇵🇭 Filipino SDR)',
           role: 'rep',
           text: 'Shadowing is passive. When reps spar daily against our AI buyer personas, they hit quota in 12 days instead of 4 weeks.',
           time: '02:29',
-          voiceId: 'EXAVITQu4vr4xnSDxMaL'
+          voiceId: FILIPINO_REP_VOICES.female.voiceId
         },
         {
           id: 'turn-2-5',
-          speaker: 'David M. (AI Customer)',
+          speaker: 'David M.',
           role: 'prospect',
           text: 'Twelve days? That would save us thirty thousand a month in ramp burn. Show me how it works.',
           time: '02:40',
-          voiceId: 'iP95p4xoKVk53GoZ742B'
+          voiceId: getCustomerVoiceId('rushed-vp', selectedCustomerAccent)
         }
       ]
     },
     {
       id: 'sess-3',
       line: 'LINE 03',
-      repName: 'Marcus Brody',
-      repEmail: 'mbrody@horizonsolar.us',
+      repName: 'Angelo Cruz',
+      repEmail: 'angelo.cruz@horizonsolar.ph',
       repGender: 'male',
-      avatar: 'MB',
-      tenant: 'Horizon Solar Sales Floor',
+      repAccent: '🇵🇭 Filipino Neutral (Ortigas Outbound Floor)',
+      avatar: 'AC',
+      tenant: 'Horizon Solar Outbound Floor',
+      personaId: 'frugal-cfo',
       personaName: 'Rick Henderson',
-      personaRole: 'Skeptical Dual Homeowner ($450+ Power Bill)',
+      personaRole: 'Skeptical Homeowner ($450+ Power Bill)',
       personaDifficulty: 'Extreme',
-      countryAccent: 'USA',
+      countryAccent: selectedCustomerAccent,
       initialSeconds: 254,
       currentObjection: '“Take me off your list! You guys call every Tuesday with fake utility rebates!”',
       score: 79,
@@ -254,50 +294,52 @@ export default function LiveMonitoringCenter() {
       recentTranscript: [
         {
           id: 'turn-3-1',
-          speaker: 'Rick Henderson (AI Customer)',
+          speaker: 'Rick Henderson',
           role: 'prospect',
           text: 'Take me off your list! You guys call every Tuesday with fake utility rebates and I am sick of it!',
           time: '03:45',
-          voiceId: '9B2Vd5yQ7rKaqNmzGdy1' // Steve Hogan (Deep Tone Gritty Australian/US Male)
+          voiceId: getCustomerVoiceId('frugal-cfo', selectedCustomerAccent)
         },
         {
           id: 'turn-3-2',
-          speaker: 'Marcus Brody (AI Rep)',
+          speaker: 'Angelo Cruz (🇵🇭 Filipino SDR)',
           role: 'rep',
           text: 'I completely hear your frustration Rick, I hate spam calls too. I am only calling because our team verified your substation rate rose 24% last month.',
           time: '03:56',
-          voiceId: 'bIHbv24MWmeRgasZH58o' // Will (Conversational US Male SDR)
+          voiceId: FILIPINO_REP_VOICES.male.voiceId
         },
         {
           id: 'turn-3-3',
-          speaker: 'Rick Henderson (AI Customer)',
+          speaker: 'Rick Henderson',
           role: 'prospect',
           text: 'Twenty four percent? Wait, is that why my bill jumped to four hundred and fifty dollars?',
           time: '04:09',
-          voiceId: '9B2Vd5yQ7rKaqNmzGdy1'
+          voiceId: getCustomerVoiceId('frugal-cfo', selectedCustomerAccent)
         },
         {
           id: 'turn-3-4',
-          speaker: 'Marcus Brody (AI Rep)',
+          speaker: 'Angelo Cruz (🇵🇭 Filipino SDR)',
           role: 'rep',
           text: 'Spot on Rick. If you have two minutes, I will show you the exact rate lock that protects your bill from the next rate hike.',
           time: '04:20',
-          voiceId: 'bIHbv24MWmeRgasZH58o'
+          voiceId: FILIPINO_REP_VOICES.male.voiceId
         }
       ]
     },
     {
       id: 'sess-4',
       line: 'LINE 04',
-      repName: 'Jordan Smith',
-      repEmail: 'jsmith@oa-partner.com',
-      repGender: 'male',
-      avatar: 'JS',
-      tenant: 'Outsource Accelerator Partner A',
+      repName: 'Nicole Bautista',
+      repEmail: 'nicole.b@oa-partner.ph',
+      repGender: 'female',
+      repAccent: '🇵🇭 Filipino Neutral (BGC Taguig Hub)',
+      avatar: 'NB',
+      tenant: 'Outsource Accelerator Partner Hub',
+      personaId: 'burned-director',
       personaName: 'Sarah Jenkins',
       personaRole: 'VP Operations (Global Contact Center)',
       personaDifficulty: 'Medium',
-      countryAccent: 'UK',
+      countryAccent: selectedCustomerAccent,
       initialSeconds: 118,
       currentObjection: '“Send me an email first, I am in back-to-back executive meetings.”',
       score: 91,
@@ -307,39 +349,95 @@ export default function LiveMonitoringCenter() {
       recentTranscript: [
         {
           id: 'turn-4-1',
-          speaker: 'Sarah Jenkins (AI Customer)',
+          speaker: 'Sarah Jenkins',
           role: 'prospect',
           text: 'Can you just shoot over an email? I am walking into an executive board session right now.',
           time: '01:32',
-          voiceId: 'pFZP5JQG7iQjIQuC4Bku' // Lily (Velvety British Professional Female)
+          voiceId: getCustomerVoiceId('burned-director', selectedCustomerAccent)
         },
         {
           id: 'turn-4-2',
-          speaker: 'Jordan Smith (AI Rep)',
+          speaker: 'Nicole Bautista (🇵🇭 Filipino SDR)',
           role: 'rep',
           text: 'Happy to send an email Sarah, but without knowing whether your priority this quarter is CS headcount or outbound retention, it will just be spam.',
           time: '01:44',
-          voiceId: 'onwK4e9ZLuTAKqWW03F9' // Daniel (British Broadcaster Male SDR)
+          voiceId: FILIPINO_REP_VOICES.female.voiceId
         },
         {
           id: 'turn-4-3',
-          speaker: 'Sarah Jenkins (AI Customer)',
+          speaker: 'Sarah Jenkins',
           role: 'prospect',
           text: 'Fair point. We are bleeding tier two reps right now. What specifically can you do for retention?',
           time: '01:55',
-          voiceId: 'pFZP5JQG7iQjIQuC4Bku'
+          voiceId: getCustomerVoiceId('burned-director', selectedCustomerAccent)
         },
         {
           id: 'turn-4-4',
-          speaker: 'Jordan Smith (AI Rep)',
+          speaker: 'Nicole Bautista (🇵🇭 Filipino SDR)',
           role: 'rep',
           text: 'We drill live escalations so reps do not burn out on hostile calls. Let us carve out 7 minutes on Thursday morning. Does 9:30 AM work?',
           time: '02:08',
-          voiceId: 'onwK4e9ZLuTAKqWW03F9'
+          voiceId: FILIPINO_REP_VOICES.female.voiceId
         }
       ]
     }
-  ]);
+  ];
+
+  // Active Sparring Lines on Floor
+  const [sessions, setSessions] = useState<ActiveSparringSession[]>(rawSessionsConfig);
+
+  // Sync sessions when customer accent changes dynamically
+  const handleCustomerAccentChange = (newCountry: SparringCountry) => {
+    setSelectedCustomerAccent(newCountry);
+
+    setSessions(prevSessions =>
+      prevSessions.map(session => {
+        const newCustomerVoiceId = getCustomerVoiceId(session.personaId, newCountry);
+        const updatedTranscript = session.recentTranscript.map(turn => {
+          if (turn.role === 'prospect') {
+            return {
+              ...turn,
+              voiceId: newCustomerVoiceId
+            };
+          }
+          return turn;
+        });
+
+        return {
+          ...session,
+          countryAccent: newCountry,
+          recentTranscript: updatedTranscript
+        };
+      })
+    );
+
+    // If currently listening to a session, update its active transcript and re-play current turn with new accent
+    if (activeListeningSession) {
+      const activeNewVoiceId = getCustomerVoiceId(activeListeningSession.personaId, newCountry);
+      const updatedActiveTranscript = activeListeningSession.recentTranscript.map(turn => {
+        if (turn.role === 'prospect') {
+          return {
+            ...turn,
+            voiceId: activeNewVoiceId
+          };
+        }
+        return turn;
+      });
+
+      const updatedActiveSession = {
+        ...activeListeningSession,
+        countryAccent: newCountry,
+        recentTranscript: updatedActiveTranscript
+      };
+
+      setActiveListeningSession(updatedActiveSession);
+
+      // If playing, immediately re-synthesize this turn with the newly selected accent!
+      if (isAudioPlaying && currentTurnIndex !== null) {
+        playTurn(updatedActiveSession, currentTurnIndex);
+      }
+    }
+  };
 
   // Real-time dialer ticking clock for active lines
   useEffect(() => {
@@ -374,8 +472,9 @@ export default function LiveMonitoringCenter() {
         body: JSON.stringify({
           text: turn.text,
           voiceId: turn.voiceId,
+          modelId: 'eleven_multilingual_v2', // enforce high-fidelity regional accent synthesis
           voiceSettings: {
-            stability: turn.role === 'rep' ? 0.50 : 0.45,
+            stability: turn.role === 'rep' ? 0.52 : 0.45,
             similarity_boost: 0.75,
             style: turn.role === 'rep' ? 0.05 : 0.12
           }
@@ -467,7 +566,7 @@ export default function LiveMonitoringCenter() {
           if (nextIdx < session.recentTranscript.length) {
             playTurn(session, nextIdx);
           } else {
-            // Smooth conversational loop back to start after a brief 1.5s natural pause so live monitor keeps running
+            // Smooth conversational loop back to start after a brief 1.5s natural pause
             pendingTimerRef.current = setTimeout(() => {
               if (activeSessionRef.current?.id === session.id && isPlayingRef.current) {
                 playTurn(session, 0);
@@ -494,13 +593,11 @@ export default function LiveMonitoringCenter() {
 
   // Toggle "Listen Live" on a session
   const handleToggleListen = (session: ActiveSparringSession) => {
-    // If currently listening to this session, disconnect
     if (activeListeningSession?.id === session.id) {
       handleDisconnect();
       return;
     }
 
-    // Stop existing audio
     if (audioElementRef.current) {
       audioElementRef.current.pause();
     }
@@ -509,7 +606,7 @@ export default function LiveMonitoringCenter() {
       pendingTimerRef.current = null;
     }
 
-    // Crucial: Synchronously prime/unlock browser audio permissions within this user click!
+    // Synchronously prime/unlock browser audio permissions
     if (!audioElementRef.current) {
       audioElementRef.current = new Audio(SILENT_WAV);
     } else {
@@ -581,7 +678,7 @@ export default function LiveMonitoringCenter() {
     playTurn(activeListeningSession, index);
   };
 
-  // High-Tech Supervisor Whisper HUD Injection
+  // High-Tech Supervisor Whisper HUD Injection (Spoken by Filipino SDR)
   const handleSendWhisper = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!whisperMessage.trim() || !activeListeningSession) return;
@@ -589,39 +686,36 @@ export default function LiveMonitoringCenter() {
     const coachingText = whisperMessage.trim();
     setWhisperFeedbackSent(true);
 
-    // Play subtle supervisor audio chime
+    // AudioContext chime
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
-      osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.15); // A6
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.15);
       gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.25);
-    } catch {
-      // AudioContext chime optional
-    }
+    } catch {}
 
-    // Generate coached rep response turn
+    // Coached response voiced by Filipino SDR
     const repVoiceId = activeListeningSession.repGender === 'female' 
-      ? 'EXAVITQu4vr4xnSDxMaL' // Sarah
-      : 'CwhRBWXzGAHq8TQ4Fs17'; // Roger
+      ? FILIPINO_REP_VOICES.female.voiceId
+      : FILIPINO_REP_VOICES.male.voiceId;
 
     const coachedTurn: DialogueTurn = {
       id: `whisper-${Date.now()}`,
-      speaker: `${activeListeningSession.repName} (Rep - HUD Coached)`,
+      speaker: `${activeListeningSession.repName} (🇵🇭 Filipino SDR - HUD Coached)`,
       role: 'rep',
       text: `“Understood ${activeListeningSession.personaName.split(' ')[0]}. My supervisor just alerted my cockpit—${coachingText}”`,
       time: 'LIVE NOW',
       voiceId: repVoiceId
     };
 
-    // Append to active session and floor state
     const updatedTranscript = [...activeListeningSession.recentTranscript, coachedTurn];
     const updatedSession = { ...activeListeningSession, recentTranscript: updatedTranscript };
     
@@ -633,11 +727,10 @@ export default function LiveMonitoringCenter() {
       setWhisperFeedbackSent(false);
     }, 2500);
 
-    // Automatically speak the coached response immediately!
     playTurn(updatedSession, updatedTranscript.length - 1);
   };
 
-  // Filter sessions (Only active sparring calls are listed)
+  // Filter sessions
   const filteredSessions = sessions.filter(s => {
     const matchQuery = s.repName.toLowerCase().includes(searchQuery.toLowerCase()) || 
                        s.personaName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -651,27 +744,84 @@ export default function LiveMonitoringCenter() {
     <div className="space-y-6 max-w-7xl mx-auto w-full pb-16">
       
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#222021]/10 pb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#222021]/10 pb-5">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono font-bold mb-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-            <span>DIALER AUDIO MONITORING BUS • 4 LIVE ELEVENLABS CHANNELS</span>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono font-bold">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+              <span>DIALER AUDIO MONITORING BUS • 4 LIVE ELEVENLABS CHANNELS</span>
+            </div>
+
+            {/* Rep Voice Identity Badge */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-[11px] font-mono font-bold">
+              <span>🇵🇭</span>
+              <span>REP VOICE: FILIPINO BPO ACCENT</span>
+            </div>
           </div>
+
           <h1 className="text-3xl font-black text-[#222021] tracking-tight">
             Live Sparring Floor Monitor
           </h1>
           <p className="text-xs text-[#6b6968] mt-1 max-w-2xl leading-relaxed">
-            Real-time dialer supervisor console. Listen directly into active two-way AI buyer & rep conversations powered by ElevenLabs, track live objection handling, and whisper coaching cues.
+            Real-time supervisor console. Demonstrate how our <strong>Filipino BPO SDR reps</strong> sound over the phone handling live objections against <strong>global customer accents</strong> (US, Australian, and British buyers).
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Global Customer Accent Switcher & Action Links */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* Customer Accent Selector Pill Bar */}
+          <div className="flex items-center gap-1 p-1 bg-white border border-[#222021]/15 rounded-xl shadow-2xs">
+            <div className="flex items-center gap-1 pl-2.5 pr-1.5 text-[11px] font-mono font-bold text-[#6b6968]">
+              <Globe className="h-3.5 w-3.5 text-[#ED1C24]" />
+              <span className="hidden sm:inline">CUSTOMER ACCENT:</span>
+            </div>
+            
+            <button
+              onClick={() => handleCustomerAccentChange('USA')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedCustomerAccent === 'USA'
+                  ? 'bg-[#222021] text-white shadow-2xs'
+                  : 'text-[#6b6968] hover:text-[#222021] hover:bg-[#F2F0EF]'
+              }`}
+              title="Switch Customer Voice to American Accent"
+            >
+              <span>🇺🇸</span>
+              <span>USA</span>
+            </button>
+
+            <button
+              onClick={() => handleCustomerAccentChange('Australia')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedCustomerAccent === 'Australia'
+                  ? 'bg-[#222021] text-white shadow-2xs'
+                  : 'text-[#6b6968] hover:text-[#222021] hover:bg-[#F2F0EF]'
+              }`}
+              title="Switch Customer Voice to Australian Accent"
+            >
+              <span>🇦🇺</span>
+              <span>Australia</span>
+            </button>
+
+            <button
+              onClick={() => handleCustomerAccentChange('UK')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedCustomerAccent === 'UK'
+                  ? 'bg-[#222021] text-white shadow-2xs'
+                  : 'text-[#6b6968] hover:text-[#222021] hover:bg-[#F2F0EF]'
+              }`}
+              title="Switch Customer Voice to British Accent"
+            >
+              <span>🇬🇧</span>
+              <span>UK</span>
+            </button>
+          </div>
+
           <Link
             href="/sparring"
             className="px-4 py-2 rounded-xl bg-white border border-[#222021]/15 text-[#222021] hover:bg-[#F2F0EF] font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
           >
             <Headphones className="h-4 w-4 text-[#ED1C24]" />
-            <span>Open Sparring Arena</span>
+            <span>Sparring Arena</span>
           </Link>
           <Link
             href="/admin"
@@ -687,25 +837,27 @@ export default function LiveMonitoringCenter() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase text-[#6b6968]">Active Sparring Calls</span>
+            <span className="text-[10px] font-mono uppercase text-[#6b6968]">Active Floor Lines</span>
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           </div>
           <span className="text-2xl font-black text-emerald-600 font-mono">
             {sessions.length} Live Calls
           </span>
-          <p className="text-[11px] text-[#6b6968]">100% Reps in Active Sparring</p>
+          <p className="text-[11px] text-[#6b6968]">🇵🇭 Filipino SDRs Sparring</p>
         </div>
 
         <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
-          <span className="text-[10px] font-mono uppercase text-[#6b6968] block">Average Sparring Score</span>
-          <span className="text-2xl font-black text-[#222021] font-mono">88.5%</span>
-          <p className="text-[11px] text-emerald-700 font-medium">+4.2% vs last week</p>
+          <span className="text-[10px] font-mono uppercase text-[#6b6968] block">Customer Accent Target</span>
+          <span className="text-2xl font-black text-[#ED1C24] font-mono flex items-center gap-2">
+            <span>{selectedCustomerAccent === 'USA' ? '🇺🇸 USA' : selectedCustomerAccent === 'Australia' ? '🇦🇺 Australia' : '🇬🇧 UK'}</span>
+          </span>
+          <p className="text-[11px] text-[#6b6968]">Dynamic Persona Voice Bus</p>
         </div>
 
         <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
           <span className="text-[10px] font-mono uppercase text-[#6b6968] block">Audio Stream Engine</span>
           <span className="text-2xl font-black text-blue-600 font-mono">ElevenLabs</span>
-          <p className="text-[11px] text-[#6b6968]">Two-Way Low-Latency Voice</p>
+          <p className="text-[11px] text-[#6b6968]">Multilingual v2 Low-Latency</p>
         </div>
 
         <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
@@ -752,10 +904,10 @@ export default function LiveMonitoringCenter() {
             className="h-11 px-3.5 rounded-xl bg-white border border-[#222021]/15 text-xs font-semibold text-[#222021] focus:outline-none shadow-2xs cursor-pointer"
           >
             <option value="all">All Client BPOs</option>
-            <option value="Apex Global BPO">Apex Global BPO</option>
-            <option value="Fintech Scaleups">Fintech Scaleups</option>
-            <option value="Horizon Solar Sales Floor">Horizon Solar</option>
-            <option value="Outsource Accelerator Partner A">OA Partner A</option>
+            <option value="Apex Global BPO (Manila)">Apex Global (Manila)</option>
+            <option value="Fintech Scaleups (Cebu)">Fintech Scaleups (Cebu)</option>
+            <option value="Horizon Solar Outbound Floor">Horizon Solar</option>
+            <option value="Outsource Accelerator Partner Hub">OA Partner Hub</option>
           </select>
         </div>
       </div>
@@ -764,9 +916,9 @@ export default function LiveMonitoringCenter() {
       <div className="space-y-4">
         <div className="flex items-center justify-between text-xs font-mono text-[#6b6968]">
           <span className="font-bold text-[#222021]">
-            SHOWING {filteredSessions.length} REPS CURRENTLY IN ACTIVE AI SPARRING CALLS
+            SHOWING {filteredSessions.length} FILIPINO REPS IN ACTIVE SPARRING CALLS
           </span>
-          <span className="hidden sm:inline">CLICK "🎧 LISTEN LIVE" FOR REAL-TIME TWO-WAY ELEVENLABS AUDIO</span>
+          <span className="hidden sm:inline">CLICK "🎧 LISTEN LIVE" TO HEAR FILIPINO SDR VS {selectedCustomerAccent.toUpperCase()} BUYER</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -798,14 +950,19 @@ export default function LiveMonitoringCenter() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-extrabold text-[#222021]">{session.repName}</h3>
-                        <span className="text-[10px] font-mono text-[#6b6968] bg-[#F2F0EF] px-1.5 py-0.5 rounded border border-[#222021]/10">
-                          {session.tenant}
+                        <span className="text-[10px] font-mono text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-bold flex items-center gap-1">
+                          <span>🇵🇭</span>
+                          <span>Filipino SDR</span>
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#6b6968] mt-0.5 flex items-center gap-1.5">
-                        <span>Sparring against:</span>
+                      <p className="text-[11px] text-[#6b6968] mt-0.5 flex flex-wrap items-center gap-1.5">
+                        <span className="text-stone-500">{session.tenant}</span>
+                        <span>&bull;</span>
+                        <span>Facing:</span>
                         <strong className="text-[#222021]">{session.personaName}</strong>
-                        <span className="text-[10px] text-[#6b6968]">({session.countryAccent} Voice)</span>
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-stone-100 text-stone-700 border border-stone-200">
+                          {session.countryAccent === 'USA' ? '🇺🇸 USA' : session.countryAccent === 'Australia' ? '🇦🇺 Australia' : '🇬🇧 UK'} Accent
+                        </span>
                       </p>
                     </div>
                   </div>
@@ -904,7 +1061,7 @@ export default function LiveMonitoringCenter() {
       {activeListeningSession && (
         <div className="rounded-3xl bg-[#0C1017] border border-stone-800 p-6 text-white shadow-2xl space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Active Player Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-stone-800 pb-4">
             <div className="flex items-center gap-3">
               <div className={`h-11 w-11 rounded-xl flex items-center justify-center font-bold transition-colors ${
                 isAudioPlaying ? 'bg-red-600 text-white' : 'bg-emerald-500 text-stone-950'
@@ -912,13 +1069,22 @@ export default function LiveMonitoringCenter() {
                 <Radio className={`h-5 w-5 ${isAudioPlaying ? 'animate-pulse' : ''}`} />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
                     SUPERVISOR BUS &bull; {activeListeningSession.line}
                   </span>
-                  <span className="text-xs font-mono text-stone-400">
-                    Two-Way ElevenLabs Feed &bull; {activeListeningSession.countryAccent} Accent
+                  
+                  {/* Real-time accent badges */}
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800 flex items-center gap-1">
+                    <span>🇵🇭</span>
+                    <span>Filipino SDR Voice</span>
                   </span>
+
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-stone-800 text-stone-300 border border-stone-700 flex items-center gap-1">
+                    <span>{activeListeningSession.countryAccent === 'USA' ? '🇺🇸' : activeListeningSession.countryAccent === 'Australia' ? '🇦🇺' : '🇬🇧'}</span>
+                    <span>Customer Accent: {activeListeningSession.countryAccent}</span>
+                  </span>
+
                   {isLoadingAudio && (
                     <span className="text-xs font-mono text-amber-400 flex items-center gap-1">
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -926,14 +1092,33 @@ export default function LiveMonitoringCenter() {
                     </span>
                   )}
                 </div>
-                <h3 className="text-base font-extrabold text-white mt-0.5">
-                  {activeListeningSession.repName} ({activeListeningSession.tenant}) &harr; {activeListeningSession.personaName}
+                <h3 className="text-base font-extrabold text-white mt-1">
+                  {activeListeningSession.repName} (🇵🇭 Filipino SDR) &harr; {activeListeningSession.personaName} ({activeListeningSession.personaRole})
                 </h3>
               </div>
             </div>
 
-            {/* Audio Playback Controls & Volume */}
-            <div className="flex items-center gap-3">
+            {/* Audio Playback Controls, Accent Quick-Toggle & Volume */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              
+              {/* Quick Switch Customer Accent inside Docked Bus */}
+              <div className="flex items-center bg-stone-900 border border-stone-800 rounded-xl p-1">
+                <span className="text-[10px] font-mono text-stone-400 px-2 font-bold hidden sm:inline">ACCENT:</span>
+                {(['USA', 'Australia', 'UK'] as SparringCountry[]).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => handleCustomerAccentChange(c)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                      activeListeningSession.countryAccent === c
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-stone-400 hover:text-white hover:bg-stone-800'
+                    }`}
+                  >
+                    {c === 'USA' ? '🇺🇸 US' : c === 'Australia' ? '🇦🇺 AU' : '🇬🇧 UK'}
+                  </button>
+                ))}
+              </div>
+
               {/* Play / Pause Toggle */}
               <button
                 onClick={handleTogglePlayPause}
@@ -979,7 +1164,7 @@ export default function LiveMonitoringCenter() {
                     setVolume(Number(e.target.value));
                     setIsAudioMuted(false);
                   }}
-                  className="w-20 accent-emerald-500 cursor-pointer"
+                  className="w-16 sm:w-20 accent-emerald-500 cursor-pointer"
                 />
                 <span className="w-8 text-right font-mono">{isAudioMuted ? '0%' : `${volume}%`}</span>
               </div>
@@ -999,10 +1184,16 @@ export default function LiveMonitoringCenter() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* Transcript Dialogues (8 cols) */}
-            <div className="lg:col-span-8 bg-stone-900/90 rounded-2xl p-4 border border-stone-800 space-y-3 max-h-80 overflow-y-auto">
+            <div className="lg:col-span-8 bg-stone-900/90 rounded-2xl p-4 border border-stone-800 space-y-3 max-h-84 overflow-y-auto">
               <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-stone-400 tracking-wider">
-                <span>TWO-WAY LIVE CONVERSATION STREAM:</span>
-                <span className="text-emerald-400">Click any dialogue bubble to jump & listen</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-blue-400">🇵🇭 FILIPINO SDR</span>
+                  <span>&harr;</span>
+                  <span className="text-red-400">
+                    {activeListeningSession.countryAccent === 'USA' ? '🇺🇸 US BUYER' : activeListeningSession.countryAccent === 'Australia' ? '🇦🇺 AUSTRALIAN BUYER' : '🇬🇧 UK BUYER'}
+                  </span>
+                </span>
+                <span className="text-emerald-400">Click dialogue to jump & listen</span>
               </div>
 
               <div className="space-y-2.5">
@@ -1026,12 +1217,22 @@ export default function LiveMonitoringCenter() {
                     >
                       <div className="flex items-center justify-between text-[10px] font-mono mb-1.5">
                         <div className="flex items-center gap-2">
-                          <span className={`font-bold px-1.5 py-0.2 rounded text-[9px] uppercase ${
+                          <span className={`font-bold px-1.5 py-0.2 rounded text-[9px] uppercase flex items-center gap-1 ${
                             isRep ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
                           }`}>
-                            {isRep ? 'AI SDR REP' : 'AI CUSTOMER'}
+                            {isRep ? (
+                              <>
+                                <span>🇵🇭</span>
+                                <span>FILIPINO SDR</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>{activeListeningSession.countryAccent === 'USA' ? '🇺🇸' : activeListeningSession.countryAccent === 'Australia' ? '🇦🇺' : '🇬🇧'}</span>
+                                <span>{activeListeningSession.countryAccent} BUYER</span>
+                              </>
+                            )}
                           </span>
-                          <span className={isRep ? 'text-blue-400 font-bold' : 'text-[#ED1C24] font-bold'}>
+                          <span className={isRep ? 'text-blue-300 font-bold' : 'text-[#ED1C24] font-bold'}>
                             {turn.speaker}
                           </span>
                         </div>
@@ -1063,7 +1264,7 @@ export default function LiveMonitoringCenter() {
                   Supervisor Whisper (Live HUD Injection):
                 </span>
                 <p className="text-[11px] text-stone-400 mt-0.5">
-                  Inject coaching instructions into {activeListeningSession.repName}’s HUD teleprompter. The rep will immediately voice your rebuttal!
+                  Inject coaching cues into {activeListeningSession.repName}’s cockpit. The Filipino SDR will immediately voice the coached rebuttal!
                 </p>
               </div>
 
@@ -1080,7 +1281,7 @@ export default function LiveMonitoringCenter() {
                   {whisperFeedbackSent ? (
                     <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 font-bold">
                       <CheckCircle2 className="h-3 w-3" />
-                      <span>Injected & Voiced!</span>
+                      <span>Voiced in Filipino Accent!</span>
                     </span>
                   ) : (
                     <span className="text-[10px] font-mono text-stone-500">Live Teleprompter Bus</span>
@@ -1097,16 +1298,18 @@ export default function LiveMonitoringCenter() {
               </form>
 
               {/* ElevenLabs Channel Indicator */}
-              <div className="p-3 rounded-xl bg-stone-950 border border-stone-800/80 space-y-1 text-[11px]">
+              <div className="p-3 rounded-xl bg-stone-950 border border-stone-800/80 space-y-1.5 text-[11px]">
                 <div className="flex items-center justify-between text-[10px] font-mono text-stone-400">
                   <span>VOICE CHANNELS:</span>
                   <span className="text-emerald-400 font-bold">ACTIVE</span>
                 </div>
-                <div className="text-stone-300">
-                  &bull; Rep: <span className="font-semibold">{activeListeningSession.repGender === 'female' ? 'Sarah (Female SDR)' : 'Roger (Male SDR)'}</span>
+                <div className="text-stone-300 flex items-center gap-1.5">
+                  <span>🇵🇭</span>
+                  <span>Rep: <strong className="text-white">{activeListeningSession.repName} ({activeListeningSession.repGender === 'female' ? FILIPINO_REP_VOICES.female.label : FILIPINO_REP_VOICES.male.label})</strong></span>
                 </div>
-                <div className="text-stone-300">
-                  &bull; Customer: <span className="font-semibold">{activeListeningSession.personaName} ({activeListeningSession.countryAccent})</span>
+                <div className="text-stone-300 flex items-center gap-1.5">
+                  <span>{activeListeningSession.countryAccent === 'USA' ? '🇺🇸' : activeListeningSession.countryAccent === 'Australia' ? '🇦🇺' : '🇬🇧'}</span>
+                  <span>Customer: <strong className="text-white">{activeListeningSession.personaName} ({activeListeningSession.countryAccent} Accent)</strong></span>
                 </div>
               </div>
             </div>

@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const rateLimitResponse = applyRateLimit(req, { maxRequests: 120, windowMs: 60000 });
     if (rateLimitResponse) return rateLimitResponse;
 
-    const { text, voiceId, voiceSettings } = await req.json();
+    const { text, voiceId, voiceSettings, modelId } = await req.json();
 
     // 2. Validate payload size to prevent quota drainage
     const validation = validateTextPayload(text, 1200);
@@ -20,18 +20,21 @@ export async function POST(req: NextRequest) {
     // Default to Eric (conversational executive male) if voiceId not provided
     const targetVoiceId = voiceId || 'cjVigY5qzO86Huf0OWal';
 
+    const preferredModel = modelId || 'eleven_multilingual_v2';
+    const fallbackModel = preferredModel === 'eleven_multilingual_v2' ? 'eleven_turbo_v2_5' : 'eleven_multilingual_v2';
+
     const candidateModels = [
       {
-        id: 'eleven_turbo_v2_5',
+        id: preferredModel,
         settings: {
-          stability: voiceSettings?.stability ?? 0.48,
+          stability: voiceSettings?.stability ?? 0.50,
           similarity_boost: voiceSettings?.similarity_boost ?? 0.75,
           style: voiceSettings?.style ?? 0.08,
           use_speaker_boost: true
         }
       },
       {
-        id: 'eleven_multilingual_v2',
+        id: fallbackModel,
         settings: {
           stability: voiceSettings?.stability ?? 0.50,
           similarity_boost: voiceSettings?.similarity_boost ?? 0.75,
