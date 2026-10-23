@@ -169,13 +169,16 @@ export default function BorisCallingCockpit() {
   const [emailSentSuccess, setEmailSentSuccess] = useState<string | null>(null);
   const [linkedInCompleted, setLinkedInCompleted] = useState<boolean>(false);
 
-  // Active Lead Queue State (Supports fresh intakes & carry-overs from previous weeks)
-  const [activeLeadId, setActiveLeadId] = useState<string>('lead_fresh_d2');
-  const activeLead = DEMO_CADENCE_LEADS.find(l => l.id === activeLeadId) || DEMO_CADENCE_LEADS[0];
+  // Active Lead Queue State (Sequential Lead Progression)
+  const [currentLeadIndex, setCurrentLeadIndex] = useState<number>(0);
+  const activeLead = DEMO_CADENCE_LEADS[currentLeadIndex] || DEMO_CADENCE_LEADS[0];
+  const nextLeadCandidate = DEMO_CADENCE_LEADS[(currentLeadIndex + 1) % DEMO_CADENCE_LEADS.length];
+  const activeLeadId = activeLead.id;
 
-  // Lead Selection Handler (Switches Lead, Updates Cadence Day & Locks Future Cadence Days)
+  // Lead Selection Handler
   const handleSelectLead = (lead: CadenceLeadRecord) => {
-    setActiveLeadId(lead.id);
+    const idx = DEMO_CADENCE_LEADS.findIndex(l => l.id === lead.id);
+    if (idx !== -1) setCurrentLeadIndex(idx);
     setCustomerName(lead.name);
     setPartnerName(lead.company);
     setTitle(lead.title);
@@ -209,6 +212,27 @@ export default function BorisCallingCockpit() {
       disposition: touch.channel === 'Email' ? 'Follow-Up Email' : disposition,
       customRepNotes: lead.isCarryOver ? `[Prior-Week Follow-up Scheduled: ${lead.carryOverReason}]` : ''
     }));
+  };
+
+  // Sequential Lead Progression Handler: Only advances after call is disposed
+  const handleProceedToNextLead = () => {
+    if (!disposition) {
+      alert('Please select a call disposition before proceeding to the next lead.');
+      return;
+    }
+
+    const nextIndex = (currentLeadIndex + 1) % DEMO_CADENCE_LEADS.length;
+    setCurrentLeadIndex(nextIndex);
+    const nextLead = DEMO_CADENCE_LEADS[nextIndex];
+    handleSelectLead(nextLead);
+
+    // Reset disposition & state for new call
+    setDisposition(null);
+    setCurrentStep(1);
+    setTelemetry(INITIAL_TELEMETRY_STATE);
+    setCrmSyncSuccess(null);
+    setRedialScheduled(null);
+    setIsQuarantined(false);
   };
 
   // Current Cadence Touch Definition
@@ -890,7 +914,7 @@ export default function BorisCallingCockpit() {
                   <h1 className="text-2xl font-black tracking-tight text-[#222021]">
                     AI Boris
                   </h1>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold">
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#222021]/5 text-[#222021] border border-[#222021]/10 font-bold">
                     BPO PLAYBOOK ACTIVE
                   </span>
                 </div>
@@ -990,78 +1014,70 @@ export default function BorisCallingCockpit() {
             </button>
           </div>
 
-          {/* MULTI-CADENCE QUEUE & PRIOR-WEEK CARRY-OVER BAR */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 text-white shadow-xs space-y-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300">
-                  AI Boris Lead Queue & Cadence Enforcer:
-                </span>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded font-bold flex items-center gap-1">
-                  <Lock className="h-3 w-3 text-emerald-400" />
-                  Cadence Gating Active (Future Steps Locked)
-                </span>
+          {/* MINIMALIST LEAD QUEUE & ADVANCE WORKFLOW */}
+          <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 text-[#222021]">
+                  <PhoneCall className="w-5 h-5 text-[#ED1C24]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968]">
+                      Lead {currentLeadIndex + 1} of {DEMO_CADENCE_LEADS.length}
+                    </span>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#F2F0EF] text-[#222021] border border-[#222021]/10">
+                      {activeLead.isCarryOver ? 'Prior-Week Carry-Over' : 'Fresh Intake'}
+                    </span>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#F2F0EF] text-[#222021] border border-[#222021]/10 font-bold">
+                      Day {currentCadenceDay} Outreach
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-black text-[#222021] tracking-tight">
+                    {customerName}
+                    <span className="text-sm font-normal text-[#6b6968] ml-2">
+                      ({title} • <strong className="text-[#222021]">{partnerName}</strong>)
+                    </span>
+                  </h2>
+                </div>
               </div>
 
-              <div className="text-[11px] font-mono text-slate-400">
-                Enrolled Cadence Day: <strong className="text-white">Day {currentCadenceDay} of 27</strong>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-              {DEMO_CADENCE_LEADS.map(ld => {
-                const isSelected = activeLeadId === ld.id;
-                return (
+              {/* Sequential "Next Lead" Button - Unlocks only after Call Disposition */}
+              <div className="flex items-center gap-2 shrink-0">
+                {disposition ? (
                   <button
-                    key={ld.id}
                     type="button"
-                    onClick={() => handleSelectLead(ld)}
-                    className={`p-2.5 rounded-xl text-left transition-all border cursor-pointer relative ${
-                      isSelected
-                        ? 'bg-[#ED1C24] border-red-500 text-white shadow-sm ring-2 ring-white/20'
-                        : ld.isCarryOver
-                        ? 'bg-purple-950/40 border-purple-800/60 text-purple-200 hover:bg-purple-900/40'
-                        : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:bg-slate-700'
-                    }`}
+                    onClick={handleProceedToNextLead}
+                    className="px-5 py-2.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white text-xs font-black flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
-                        isSelected 
-                          ? 'bg-white/20 text-white' 
-                          : ld.isCarryOver 
-                          ? 'bg-purple-900/80 text-purple-200 border border-purple-700' 
-                          : 'bg-slate-700 text-slate-300'
-                      }`}>
-                        {ld.isCarryOver ? '🔄 Prior-Week Carry-Over' : '⚡ Fresh Intake'}
-                      </span>
-                      <span className="text-[10px] font-mono font-black">
-                        Day {ld.cadenceDay}
-                      </span>
-                    </div>
-                    <div className="text-xs font-bold truncate mt-1 text-white">
-                      {ld.name}
-                    </div>
-                    <div className={`text-[10px] truncate ${isSelected ? 'text-white/90' : 'text-slate-400'}`}>
-                      {ld.company}
-                    </div>
+                    <span>Proceed to Next Lead ({nextLeadCandidate.name})</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
-                );
-              })}
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    title="Select a call disposition below to advance to the next lead"
+                    className="px-4 py-2.5 rounded-xl bg-[#F2F0EF] text-[#6b6968] border border-[#222021]/10 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-60"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Log Disposition to Advance Lead</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Active Lead Carry-over Notice Banner if applicable */}
+            {/* Carry-over notice banner if lead is from prior week */}
             {activeLead?.isCarryOver && (
-              <div className="p-2.5 rounded-xl bg-purple-900/30 border border-purple-700/50 flex items-center justify-between text-xs text-purple-200">
+              <div className="p-2.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 flex items-center justify-between text-xs text-[#222021]">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-purple-400 shrink-0" />
+                  <Clock className="w-4 h-4 text-[#ED1C24] shrink-0" />
                   <span>
-                    <strong>Prior-Week Follow-up Queue:</strong> {activeLead.carryOverReason}
+                    <strong>Prior-Week Follow-up Scheduled:</strong> {activeLead.carryOverReason}
                   </span>
                 </div>
-                <span className="font-mono text-[10px] bg-purple-950 px-2 py-0.5 rounded border border-purple-800 text-purple-300 flex items-center gap-1">
-                  <Lock className="h-3 w-3" />
-                  Unlocks Day {currentCadenceDay} Script • Future Days Locked
+                <span className="text-[10px] font-mono text-[#6b6968]">
+                  Cadence Day {currentCadenceDay} Active
                 </span>
               </div>
             )}
@@ -1075,31 +1091,31 @@ export default function BorisCallingCockpit() {
               <div className="lg:col-span-3 flex flex-col gap-4">
                 
                 {/* 27-Day Cadence Status Card */}
-                <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-xs border border-slate-800 space-y-2.5">
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3 text-[#222021]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] font-mono text-[#ED1C24] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#ED1C24]" />
                       <span>Cadence Gating Active</span>
                     </span>
-                    <span className="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-bold border border-slate-700">
+                    <span className="text-[10px] font-mono bg-[#F2F0EF] px-2 py-0.5 rounded text-[#222021] font-bold border border-[#222021]/10">
                       Day {currentCadenceDay} / 27
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="text-xs font-extrabold text-white leading-tight">
+                    <h3 className="text-xs font-extrabold text-[#222021] leading-tight">
                       Touch #{currentCadenceTouch.touchNumber}: {currentCadenceTouch.stepName}
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                    <p className="text-[11px] text-[#6b6968] mt-1 leading-snug">
                       {currentCadenceTouch.timingRule}
                     </p>
                   </div>
 
                   {/* Multi-Channel Cadence Touchpoint Selector with Locked Future Steps */}
-                  <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wide">
+                  <div className="space-y-1.5 pt-2 border-t border-[#222021]/10">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-[#6b6968] uppercase tracking-wide">
                       <span>Cadence Touchpoints:</span>
-                      <span className="text-emerald-400 font-bold">{currentCadenceTouch.channel} Active</span>
+                      <span className="text-[#222021] font-bold">{currentCadenceTouch.channel} Active</span>
                     </div>
                     <div className="grid grid-cols-4 gap-1 text-[10px] font-mono font-bold max-h-36 overflow-y-auto scrollbar-none">
                       {CADENCE_TOUCHES.map((t) => {
@@ -1116,17 +1132,17 @@ export default function BorisCallingCockpit() {
                             title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} outreach before advancing.` : `${t.stepName} (${t.channel})`}
                             className={`py-1.5 px-1 rounded text-center transition-all truncate ${
                               isCurrent
-                                ? 'bg-[#ED1C24] text-white shadow-xs font-black ring-1 ring-white/30 cursor-pointer'
+                                ? 'bg-[#ED1C24] text-white shadow-xs font-black cursor-pointer'
                                 : isLocked
-                                ? 'bg-slate-900/60 border border-slate-800/80 text-slate-600 opacity-40 cursor-not-allowed pointer-events-none'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer'
+                                ? 'bg-[#F2F0EF]/40 border border-dashed border-[#222021]/10 text-[#6b6968]/50 opacity-40 cursor-not-allowed pointer-events-none'
+                                : 'bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] border border-[#222021]/10 cursor-pointer'
                             }`}
                           >
                             <div className="flex items-center justify-center gap-0.5 text-[10px]">
                               {isLocked ? (
-                                <Lock className="h-2.5 w-2.5 text-slate-500" />
+                                <Lock className="h-2.5 w-2.5 text-[#6b6968]" />
                               ) : isPast ? (
-                                <Check className="h-2.5 w-2.5 text-emerald-400" />
+                                <Check className="h-2.5 w-2.5 text-emerald-600" />
                               ) : (
                                 <span>{t.channel === 'Email' ? '✉️' : t.channel === 'Phone' ? '📞' : '💼'}</span>
                               )}
@@ -1144,7 +1160,7 @@ export default function BorisCallingCockpit() {
                   <button
                     type="button"
                     onClick={() => setIsCadenceModalOpen(true)}
-                    className="w-full py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 transition-colors cursor-pointer"
+                    className="w-full py-1.5 px-2.5 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] text-xs font-bold flex items-center justify-center gap-1.5 border border-[#222021]/10 transition-colors cursor-pointer"
                   >
                     <span>📋 View Full 13-Touch Sequence</span>
                     <ArrowRight className="h-3 w-3" />
@@ -1568,15 +1584,15 @@ export default function BorisCallingCockpit() {
                     </div>
 
                     {/* Cadence Touchpoints Quick Navigation Ribbon */}
-                    <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 space-y-2">
+                    <div className="bg-[#F2F0EF] text-[#222021] p-3 rounded-2xl border border-[#222021]/10 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                        <span className="text-[10px] font-mono text-[#6b6968] uppercase tracking-wider block">
                           Cadence Touchpoints Sequence:
                         </span>
                         <button
                           type="button"
                           onClick={() => setIsCadenceModalOpen(true)}
-                          className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
+                          className="text-[10px] font-mono text-[#ED1C24] hover:underline font-bold cursor-pointer"
                         >
                           View Full Cadence Map ↗
                         </button>
@@ -1596,23 +1612,23 @@ export default function BorisCallingCockpit() {
                               title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} outreach before advancing.` : `${touch.stepName} (${touch.channel})`}
                               className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 ${
                                 isCurrent
-                                  ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30 cursor-pointer'
+                                  ? 'bg-[#ED1C24] text-white shadow font-bold cursor-pointer'
                                   : isLocked
-                                  ? 'bg-slate-900/60 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed pointer-events-none'
-                                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer'
+                                  ? 'bg-transparent border border-dashed border-[#222021]/10 text-[#6b6968]/40 opacity-40 cursor-not-allowed pointer-events-none'
+                                  : 'bg-white hover:bg-stone-50 border border-[#222021]/10 text-[#222021] cursor-pointer'
                               }`}
                             >
                               <div className="flex items-center gap-1 text-[11px] font-mono font-bold">
                                 {isLocked ? (
-                                  <Lock className="h-2.5 w-2.5 text-slate-500" />
+                                  <Lock className="h-2.5 w-2.5 text-[#6b6968]" />
                                 ) : isPast ? (
-                                  <Check className="h-2.5 w-2.5 text-emerald-400" />
+                                  <Check className="h-2.5 w-2.5 text-emerald-600" />
                                 ) : (
                                   <span>{touch.channel === 'Email' ? '✉️' : touch.channel === 'Phone' ? '📞' : '💼'}</span>
                                 )}
                                 <span>D{touch.day}: T#{touch.touchNumber}</span>
                               </div>
-                              <div className="text-[9px] text-slate-300/80 truncate max-w-[110px]">
+                              <div className="text-[9px] text-[#6b6968] truncate max-w-[110px]">
                                 {isLocked ? 'Locked' : touch.channel}
                               </div>
                             </button>
@@ -1735,16 +1751,16 @@ export default function BorisCallingCockpit() {
                   {currentStep === 1 && (
                     <div className="space-y-4">
                       {/* Active Cadence Phone Touchpoint Selector */}
-                      <div className="bg-slate-900 text-white p-3 rounded-xl border border-slate-800 space-y-2">
+                      <div className="bg-[#F2F0EF] text-[#222021] p-3 rounded-xl border border-[#222021]/10 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300">
-                              Active Cadence Step: <span className="text-white font-black">{currentPhoneConfig.phoneStepName}</span> (Day {currentCadenceDay})
+                            <span className="h-2 w-2 rounded-full bg-[#ED1C24]"></span>
+                            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#6b6968]">
+                              Active Cadence Step: <span className="text-[#222021] font-black">{currentPhoneConfig.phoneStepName}</span> (Day {currentCadenceDay})
                             </span>
                           </div>
-                          <span className="text-[10px] font-mono text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
+                          <span className="text-[10px] font-mono text-[#222021] font-semibold bg-white border border-[#222021]/10 px-2 py-0.5 rounded flex items-center gap-1">
+                            <Mail className="h-3 w-3 text-[#ED1C24]" />
                             Email Context Injected
                           </span>
                         </div>
@@ -1770,18 +1786,18 @@ export default function BorisCallingCockpit() {
                                 title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} call before advancing.` : `Switch to Day ${item.day} Call Script`}
                                 className={`px-2 py-1.5 rounded-lg text-left transition-all ${
                                   isCurrent
-                                    ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30 cursor-pointer'
+                                    ? 'bg-[#ED1C24] text-white shadow font-bold cursor-pointer'
                                     : isLocked
-                                    ? 'bg-slate-900/60 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed pointer-events-none'
-                                    : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 cursor-pointer'
+                                    ? 'bg-transparent border border-dashed border-[#222021]/10 text-[#6b6968]/40 opacity-40 cursor-not-allowed pointer-events-none'
+                                    : 'bg-white hover:bg-stone-50 border border-[#222021]/10 text-[#222021] cursor-pointer'
                                 }`}
                               >
                                 <div className="flex items-center gap-1 text-[11px] font-mono font-black">
-                                  {isLocked && <Lock className="h-2.5 w-2.5 text-slate-500" />}
-                                  {isPast && <Check className="h-2.5 w-2.5 text-emerald-400" />}
+                                  {isLocked && <Lock className="h-2.5 w-2.5 text-[#6b6968]" />}
+                                  {isPast && <Check className="h-2.5 w-2.5 text-emerald-600" />}
                                   <span>{item.label}</span>
                                 </div>
-                                <div className="text-[9px] truncate text-slate-300/80">
+                                <div className="text-[9px] truncate text-[#6b6968]">
                                   {isLocked ? 'Locked by Cadence' : item.desc}
                                 </div>
                               </button>
@@ -1791,24 +1807,24 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* Prior Email Sent Context Card */}
-                      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-950 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs font-bold text-amber-900">
+                      <div className="p-3.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 text-[#222021] space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-bold text-[#222021]">
                           <div className="flex items-center gap-1.5">
-                            <Mail className="h-4 w-4 text-amber-600" />
+                            <Mail className="h-4 w-4 text-[#ED1C24]" />
                             <span>Prior Outreach Context: <strong>{currentPhoneConfig.priorEmail.touchName}</strong></span>
                           </div>
-                          <span className="text-[10px] font-mono bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300 font-semibold">
+                          <span className="text-[10px] font-mono bg-white text-[#222021] px-2 py-0.5 rounded-full border border-[#222021]/10 font-semibold">
                             {currentPhoneConfig.priorEmail.daySent}
                           </span>
                         </div>
-                        <div className="text-xs text-amber-900">
-                          <span className="font-semibold text-amber-950">Email Subject Injected: </span>
-                          <span className="font-mono font-bold bg-white/90 px-2 py-0.5 rounded border border-amber-300 text-amber-900 shadow-2xs">
+                        <div className="text-xs text-[#222021]">
+                          <span className="text-[#6b6968]">Email Subject Injected: </span>
+                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-[#222021]/10 text-[#222021]">
                             "{currentPhoneConfig.priorEmail.subject.replace(/\{\{company\}\}/g, partnerName)}"
                           </span>
                         </div>
-                        <p className="text-[11px] text-amber-800/90 leading-tight">
-                          <strong className="text-amber-950">Tactical Friction-Reducer:</strong> {currentPhoneConfig.reducedFrictionNote}
+                        <p className="text-[11px] text-[#6b6968] leading-tight">
+                          <strong className="text-[#222021]">Tactical Friction-Reducer:</strong> {currentPhoneConfig.reducedFrictionNote}
                         </p>
                       </div>
 
@@ -2517,14 +2533,14 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* Live Booking Slots & Direct Calendly Embed */}
-                      <div className="bg-gradient-to-r from-zinc-900 to-black text-white p-4 rounded-2xl border border-zinc-800 space-y-3 shadow-inner">
+                      <div className="bg-[#222021] text-white p-4 rounded-2xl border border-[#222021] space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="w-2 h-2 rounded-full bg-[#ED1C24]" />
                             <span className="text-xs font-bold text-white tracking-wide uppercase font-mono">
                               Founder Emil's Live Availability
                             </span>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-white/80">
                               17+ Yrs BDM
                             </span>
                           </div>
@@ -2533,7 +2549,7 @@ export default function BorisCallingCockpit() {
                             <button
                               type="button"
                               onClick={() => setShowCalendlyEmbed(!showCalendlyEmbed)}
-                              className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors cursor-pointer"
+                              className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
                             >
                               {showCalendlyEmbed ? 'Hide Calendar' : 'Show Calendar'}
                             </button>
@@ -2541,7 +2557,7 @@ export default function BorisCallingCockpit() {
                               href="https://calendly.com/emil-appointmentlyy/30min"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-rose-400 flex items-center gap-1 transition-colors"
+                              className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 flex items-center gap-1 transition-colors"
                             >
                               <span>Full Tab</span>
                               <ExternalLink className="h-3 w-3" />
@@ -2556,12 +2572,12 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSelectSlot('Thursday 2:00 PM')}
                             className={`py-2 px-3 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                               bookingSlot === 'Thursday 2:00 PM'
-                                ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                                : 'bg-zinc-800 border-zinc-700 text-white hover:border-emerald-500'
+                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
+                                : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
                             }`}
                           >
                             <Clock className="h-3.5 w-3.5" />
-                            <span>⚡ Lock Thursday 2:00 PM</span>
+                            <span>Lock Thursday 2:00 PM</span>
                           </button>
 
                           <button
@@ -2569,12 +2585,12 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSelectSlot('Friday 10:00 AM')}
                             className={`py-2 px-3 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                               bookingSlot === 'Friday 10:00 AM'
-                                ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                                : 'bg-zinc-800 border-zinc-700 text-white hover:border-emerald-500'
+                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
+                                : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
                             }`}
                           >
                             <Clock className="h-3.5 w-3.5" />
-                            <span>⚡ Lock Friday 10:00 AM</span>
+                            <span>Lock Friday 10:00 AM</span>
                           </button>
                         </div>
 
@@ -3017,20 +3033,30 @@ export default function BorisCallingCockpit() {
 
                   {disposition && (
                     <div className="space-y-2.5">
-                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
+                      {/* Prominent Next Lead Action Button */}
+                      <button
+                        type="button"
+                        onClick={handleProceedToNextLead}
+                        className="w-full py-3 px-4 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                      >
+                        <span>Proceed to Next Lead ({nextLeadCandidate.name})</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+
+                      <div className="p-2.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/15 text-[#222021] text-xs font-bold flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span
                             className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: selectedDispositionRecord?.color || '#10B981' }}
+                            style={{ backgroundColor: selectedDispositionRecord?.color || '#ED1C24' }}
                           />
                           <span>Logged: {disposition}</span>
                           {selectedDispositionRecord && (
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-emerald-300 text-emerald-950 font-normal">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-[#222021]/10 text-[#222021] font-normal">
                               {selectedDispositionRecord.code}
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-300">CRM SYNCED</span>
+                        <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-[#222021]/10">CRM SYNCED</span>
                       </div>
 
                       {/* AI Boris Script Rebuttal & Guidance Box (if configured for this disposition in Admin Control) */}
