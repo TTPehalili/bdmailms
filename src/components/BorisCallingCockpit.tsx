@@ -39,7 +39,8 @@ import {
   Zap,
   RefreshCw,
   Mail,
-  Voicemail
+  Voicemail,
+  Send
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
@@ -120,8 +121,22 @@ export default function BorisCallingCockpit() {
   const [showCalendlyEmbed, setShowCalendlyEmbed] = useState<boolean>(true);
   const [customRepNotes, setCustomRepNotes] = useState<string>('');
 
+  // Cadence Touch Selection & Email Dispatch State
+  const [activeCadenceTouchNumber, setActiveCadenceTouchNumber] = useState<number>(3); // Default Touch 3 = Day 2 Phone #1
+  const [emailRecipient, setEmailRecipient] = useState<string>('julian@apexglobalbpo.com');
+  const [isSendingEmail, setIsSendingEmail] = useState<boolean>(false);
+  const [emailSentSuccess, setEmailSentSuccess] = useState<string | null>(null);
+  const [linkedInCompleted, setLinkedInCompleted] = useState<boolean>(false);
+
   // Current Cadence Touch Definition
-  const currentCadenceTouch = CADENCE_TOUCHES.find(t => t.day === currentCadenceDay) || CADENCE_TOUCHES[2];
+  const currentCadenceTouch = CADENCE_TOUCHES.find(t => t.touchNumber === activeCadenceTouchNumber)
+    || CADENCE_TOUCHES.find(t => t.day === currentCadenceDay) 
+    || CADENCE_TOUCHES[2];
+
+  // Channel Category Indicators
+  const isEmailTouch = currentCadenceTouch.channel === 'Email';
+  const isLinkedInTouch = currentCadenceTouch.channel === 'LinkedIn';
+  const isPhoneTouch = currentCadenceTouch.channel === 'Phone';
 
   // Active Phone Script Configuration with Injected Prior Email Context
   const currentPhoneConfig: CadencePhoneCallConfig = CADENCE_PHONE_SCRIPTS[currentCadenceDay] || CADENCE_PHONE_SCRIPTS[2];
@@ -150,10 +165,53 @@ export default function BorisCallingCockpit() {
       .replace(/\{\{company\}\}/g, partnerName);
   };
 
-  // Cadence Day Selection Handler (Switches Day & Updates Synthesized CRM Notes)
+  // Interpolated Cadence Email Text
+  const getInterpolatedEmailSubject = () => {
+    return (currentCadenceTouch.subject || 'quick question on {{company}} ramp time')
+      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
+      .replace(/\{\{rep_name\}\}/g, repName)
+      .replace(/\{\{company\}\}/g, partnerName);
+  };
+
+  const getInterpolatedEmailBody = () => {
+    return (currentCadenceTouch.body || '')
+      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
+      .replace(/\{\{rep_name\}\}/g, repName)
+      .replace(/\{\{company\}\}/g, partnerName)
+      .replace(/\{\{loom_link\}\}/g, 'https://loom.com/share/bpo-arm-qa-demo')
+      .replace(/\{\{active_service\}\}/g, getActiveServiceLabel());
+  };
+
+  // Handle Cadence Touchpoint Selection
+  const handleSelectCadenceTouch = (touch: CadenceTouch) => {
+    setActiveCadenceTouchNumber(touch.touchNumber);
+    setCurrentCadenceDay(touch.day);
+    setEmailSentSuccess(null);
+    setLinkedInCompleted(false);
+
+    setNotesDraft(synthesizeCrmNotes({
+      contactName: customerName,
+      companyName: partnerName,
+      title,
+      department,
+      headcount,
+      phone,
+      cadenceDay: touch.day,
+      stepName: touch.stepName,
+      telemetry,
+      disposition: touch.channel === 'Email' ? 'Follow-Up Email' : disposition,
+      customRepNotes
+    }));
+  };
+
+  // Cadence Day Selection Handler
   const handleSelectCadenceDay = (day: number) => {
     setCurrentCadenceDay(day);
     const touch = CADENCE_TOUCHES.find(t => t.day === day) || CADENCE_TOUCHES[2];
+    setActiveCadenceTouchNumber(touch.touchNumber);
+    setEmailSentSuccess(null);
+    setLinkedInCompleted(false);
+
     setNotesDraft(synthesizeCrmNotes({
       contactName: customerName,
       companyName: partnerName,
@@ -164,9 +222,46 @@ export default function BorisCallingCockpit() {
       cadenceDay: day,
       stepName: touch.stepName,
       telemetry,
-      disposition,
+      disposition: touch.channel === 'Email' ? 'Follow-Up Email' : disposition,
       customRepNotes
     }));
+  };
+
+  // Handle Sending Cadence Email via Resend Integration API
+  const handleSendCadenceEmail = async () => {
+    if (isSendingEmail) return;
+    setIsSendingEmail(true);
+    try {
+      const res = await fetch('/api/cadence/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: 'lead_apex_001',
+          to: emailRecipient || directEmail || 'julian@apexglobalbpo.com',
+          from: `${repName} <emil@appointmentlyy.com>`,
+          subject: getInterpolatedEmailSubject(),
+          body: getInterpolatedEmailBody(),
+          cadence_day: currentCadenceTouch.day,
+          touch_number: currentCadenceTouch.touchNumber
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        const timeFormatted = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setEmailSentSuccess(`Dispatched at ${timeFormatted} (Msg ID: ${data.message_id.slice(0, 16)})`);
+        
+        const logEntry = `\n[Cadence Day ${currentCadenceTouch.day} ${currentCadenceTouch.stepName} Dispatched to ${emailRecipient || directEmail || 'prospect'} at ${timeFormatted} - Subject: "${getInterpolatedEmailSubject()}"]`;
+        setNotesDraft(prev => prev + logEntry);
+        setCustomRepNotes(prev => prev ? prev + logEntry : logEntry);
+      } else {
+        alert(`Email dispatch failed: ${data.message || 'Error sending email'}`);
+      }
+    } catch (e: any) {
+      console.error('[SEND EMAIL ERROR]', e);
+      alert('Network or dispatch error while sending cadence email.');
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   // Derived Active Service Label for dynamic objection insertion
@@ -809,31 +904,31 @@ export default function BorisCallingCockpit() {
                     </p>
                   </div>
 
-                  {/* Quick Phone Call Day Selector Pills */}
+                  {/* Multi-Channel Cadence Touchpoint Selector */}
                   <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wide block">
-                      Active Call Cadence Touchpoint:
-                    </span>
-                    <div className="grid grid-cols-5 gap-1 text-[10px] font-mono font-bold">
-                      {[
-                        { day: 2, label: 'D2: P#1' },
-                        { day: 3, label: 'D3: P#2' },
-                        { day: 9, label: 'D9: P#3' },
-                        { day: 15, label: 'D15: P#4' },
-                        { day: 24, label: 'D24: P#5' }
-                      ].map((item) => (
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wide">
+                      <span>Cadence Touchpoints:</span>
+                      <span className="text-emerald-400 font-bold">{currentCadenceTouch.channel} Active</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1 text-[10px] font-mono font-bold max-h-36 overflow-y-auto scrollbar-none">
+                      {CADENCE_TOUCHES.map((t) => (
                         <button
-                          key={item.day}
+                          key={t.touchNumber}
                           type="button"
-                          onClick={() => handleSelectCadenceDay(item.day)}
-                          title={`Switch to Day ${item.day} Call Script`}
-                          className={`py-1 rounded text-center transition-all cursor-pointer ${
-                            currentCadenceDay === item.day
+                          onClick={() => handleSelectCadenceTouch(t)}
+                          title={`${t.stepName} (${t.channel})`}
+                          className={`py-1.5 px-1 rounded text-center transition-all cursor-pointer truncate ${
+                            activeCadenceTouchNumber === t.touchNumber
                               ? 'bg-[#ED1C24] text-white shadow-xs font-black ring-1 ring-white/30'
                               : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                           }`}
                         >
-                          {item.label}
+                          <span className="text-[10px] block">
+                            {t.channel === 'Email' ? '✉️' : t.channel === 'Phone' ? '📞' : '💼'} D{t.day}
+                          </span>
+                          <span className="text-[8px] opacity-80 block truncate">
+                            T#{t.touchNumber}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -1014,11 +1109,356 @@ export default function BorisCallingCockpit() {
                 </div>
               </div>
 
-              {/* COLUMN 2: Step-by-Step Call Flow Script (6 cols) */}
+              {/* COLUMN 2: Cadence-Aware Teleprompter & Interactive Studio (6 cols) */}
               <div className="lg:col-span-6 flex flex-col gap-4">
-                
-                {/* Horizontal Step Pills Navigator */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+
+                {/* ===================================================================
+                    CADENCE PROTOCOL: EMAIL OUTREACH STUDIO (STRICTLY GATES PHONE CALL)
+                    =================================================================== */}
+                {isEmailTouch && (
+                  <div className="space-y-4">
+                    {/* Cadence Rule Gating Banner */}
+                    <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-4 flex items-start gap-3 text-amber-950 shadow-xs">
+                      <div className="p-2 bg-amber-500 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+                        <ShieldAlert className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center justify-between gap-1">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-900 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                            CADENCE RULE ENFORCED • STRICT DAILY PROTOCOL
+                          </span>
+                          <span className="text-xs font-mono font-bold text-amber-800">
+                            Touch #{currentCadenceTouch.touchNumber} • Day {currentCadenceTouch.day} of 27
+                          </span>
+                        </div>
+                        <h2 className="text-lg font-black text-amber-950 mt-1">
+                          Today's Scheduled Outreach: {currentCadenceTouch.stepName}
+                        </h2>
+                        <p className="text-xs text-amber-900/90 mt-0.5 leading-snug">
+                          Calling teleprompter is gated for this touchpoint. Reps must strictly dispatch today's scheduled cadence email to eliminate cold-call friction and maintain the 21-day blueprint before advancing this contact.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Cadence Touchpoints Quick Navigation Ribbon */}
+                    <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                          Cadence Touchpoints Sequence:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsCadenceModalOpen(true)}
+                          className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
+                        >
+                          View Full Cadence Map ↗
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                        {CADENCE_TOUCHES.map(touch => (
+                          <button
+                            key={touch.touchNumber}
+                            type="button"
+                            onClick={() => handleSelectCadenceTouch(touch)}
+                            className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 cursor-pointer ${
+                              activeCadenceTouchNumber === touch.touchNumber
+                                ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30'
+                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1 text-[11px] font-mono font-bold">
+                              <span>{touch.channel === 'Email' ? '✉️' : touch.channel === 'Phone' ? '📞' : '💼'}</span>
+                              <span>D{touch.day}: T#{touch.touchNumber}</span>
+                            </div>
+                            <div className="text-[9px] text-slate-300/80 truncate max-w-[110px]">
+                              {touch.channel}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Email Draft Card */}
+                    <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 shadow-2xs space-y-5">
+                      {/* Header Info */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#222021]/10">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#ED1C24] bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                            CADENCE EMAIL DRAFT • STRICT PROTOCOL
+                          </span>
+                          <h3 className="text-xl font-black text-[#222021] tracking-tight mt-1">
+                            {currentCadenceTouch.stepName}
+                          </h3>
+                          <p className="text-xs text-[#6b6968] mt-0.5">
+                            {currentCadenceTouch.mechanism}
+                          </p>
+                        </div>
+
+                        <div className="text-right sm:self-start">
+                          <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md block sm:inline-block">
+                            {getInterpolatedEmailBody().split(/\s+/).filter(Boolean).length} words
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Email Fields */}
+                      <div className="space-y-3 font-sans text-xs">
+                        {/* To / Recipient */}
+                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                          <span className="font-mono font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0">
+                            TO:
+                          </span>
+                          <input
+                            type="email"
+                            value={emailRecipient}
+                            onChange={(e) => setEmailRecipient(e.target.value)}
+                            placeholder="recipient@bpo.com"
+                            className="flex-1 font-mono font-semibold text-slate-900 bg-transparent focus:outline-none"
+                          />
+                        </div>
+
+                        {/* From */}
+                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                          <span className="font-mono font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0">
+                            FROM:
+                          </span>
+                          <span className="font-mono text-slate-700">
+                            <strong className="text-slate-900">{repName}</strong> &lt;emil@appointmentlyy.com&gt;
+                          </span>
+                        </div>
+
+                        {/* Subject Line with Copy Button */}
+                        <div className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="font-mono font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0">
+                              SUBJECT:
+                            </span>
+                            <span className="font-mono font-bold text-[#222021] truncate">
+                              {getInterpolatedEmailSubject()}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyText(getInterpolatedEmailSubject(), 'em_subj_cp')}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
+                          >
+                            {copiedKey === 'em_subj_cp' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                            <span>Copy Subject</span>
+                          </button>
+                        </div>
+
+                        {/* Email Body Draft */}
+                        <div className="space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono font-bold text-slate-500 uppercase tracking-wide">
+                              EMAIL BODY DRAFT (INTERPOLATED WITH PROSPECT VARIABLES):
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => copyText(getInterpolatedEmailBody(), 'em_body_cp')}
+                              className="text-[11px] font-semibold text-[#ED1C24] hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              {copiedKey === 'em_body_cp' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                              <span>Copy Body Only</span>
+                            </button>
+                          </div>
+
+                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 whitespace-pre-wrap font-sans text-sm text-[#222021] leading-relaxed select-text">
+                            {getInterpolatedEmailBody()}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Success Notification Banner */}
+                      {emailSentSuccess && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs font-bold flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                            <span>Cadence Email Dispatched Successfully via Resend API • Synced with CRM Notes</span>
+                          </div>
+                          <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-emerald-300">
+                            {emailSentSuccess}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Action Toolbar */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-[#222021]/10">
+                        <button
+                          type="button"
+                          onClick={() => copyText(`Subject: ${getInterpolatedEmailSubject()}\n\n${getInterpolatedEmailBody()}`, 'em_all_cp')}
+                          className="w-full sm:w-auto px-4 py-3 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-bold text-xs flex items-center justify-center gap-1.5 border border-[#222021]/15 transition-colors cursor-pointer"
+                        >
+                          {copiedKey === 'em_all_cp' ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-slate-500" />}
+                          <span>{copiedKey === 'em_all_cp' ? 'Copied Entire Email!' : 'Copy Entire Email (Subject + Body)'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSendCadenceEmail}
+                          disabled={isSendingEmail}
+                          className="flex-1 w-full py-3 px-5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] disabled:bg-slate-400 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer hover:scale-[1.01]"
+                        >
+                          {isSendingEmail ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin text-white" />
+                              <span>Sending Cadence Email via Resend API...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 text-white" />
+                              <span>Send Email (Via Resend API)</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ===================================================================
+                    CADENCE PROTOCOL: MANUAL LINKEDIN OUTREACH STUDIO
+                    =================================================================== */}
+                {isLinkedInTouch && (
+                  <div className="space-y-4">
+                    {/* Cadence Rule Gating Banner */}
+                    <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-2xl p-4 flex items-start gap-3 text-blue-950 shadow-xs">
+                      <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+                        <ShieldAlert className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center justify-between gap-1">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-900 bg-blue-100 px-2 py-0.5 rounded border border-blue-300">
+                            CADENCE RULE ENFORCED • MANUAL LINKEDIN TOUCHPOINT
+                          </span>
+                          <span className="text-xs font-mono font-bold text-blue-800">
+                            Touch #{currentCadenceTouch.touchNumber} • Day {currentCadenceTouch.day} of 27
+                          </span>
+                        </div>
+                        <h2 className="text-lg font-black text-blue-950 mt-1">
+                          Today's Scheduled Outreach: {currentCadenceTouch.stepName}
+                        </h2>
+                        <p className="text-xs text-blue-900/90 mt-0.5 leading-snug">
+                          LinkedIn API automation is restricted. Reps strictly execute this manual touchpoint: open the prospect profile, send the pre-drafted zero-pitch note, and mark completed.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Cadence Touchpoints Quick Navigation Ribbon */}
+                    <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                          Cadence Touchpoints Sequence:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsCadenceModalOpen(true)}
+                          className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
+                        >
+                          View Full Cadence Map ↗
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                        {CADENCE_TOUCHES.map(touch => (
+                          <button
+                            key={touch.touchNumber}
+                            type="button"
+                            onClick={() => handleSelectCadenceTouch(touch)}
+                            className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 cursor-pointer ${
+                              activeCadenceTouchNumber === touch.touchNumber
+                                ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30'
+                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1 text-[11px] font-mono font-bold">
+                              <span>{touch.channel === 'Email' ? '✉️' : touch.channel === 'Phone' ? '📞' : '💼'}</span>
+                              <span>D{touch.day}: T#{touch.touchNumber}</span>
+                            </div>
+                            <div className="text-[9px] text-slate-300/80 truncate max-w-[110px]">
+                              {touch.channel}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* LinkedIn Task Card */}
+                    <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 shadow-2xs space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#222021]/10">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                            MANUAL 1-CLICK TASK • ZERO AUTOMATED API RISK
+                          </span>
+                          <h3 className="text-xl font-black text-[#222021] tracking-tight mt-1">
+                            {currentCadenceTouch.stepName}
+                          </h3>
+                          <p className="text-xs text-[#6b6968] mt-0.5">
+                            {currentCadenceTouch.timingRule}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Pre-drafted Note */}
+                      <div className="space-y-2">
+                        <span className="font-mono text-[10px] font-bold text-slate-500 uppercase tracking-wide block">
+                          PRE-DRAFTED ZERO-PITCH MESSAGE:
+                        </span>
+                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 whitespace-pre-wrap font-sans text-sm text-[#222021] leading-relaxed">
+                          {getInterpolatedEmailBody()}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-[#222021]/10">
+                        <a
+                          href={`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(customerName + ' ' + partnerName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full sm:w-auto px-4 py-3 rounded-xl bg-[#0077b5] hover:bg-[#006097] text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-2xs"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          <span>Open Prospect on LinkedIn</span>
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => copyText(getInterpolatedEmailBody(), 'li_note_cp')}
+                          className="w-full sm:w-auto px-4 py-3 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-bold text-xs flex items-center justify-center gap-1.5 border border-[#222021]/15 transition-colors cursor-pointer"
+                        >
+                          {copiedKey === 'li_note_cp' ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-slate-500" />}
+                          <span>Copy Message</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLinkedInCompleted(true);
+                            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            const logEntry = `\n[Cadence Day ${currentCadenceTouch.day} ${currentCadenceTouch.stepName} Completed on LinkedIn by ${repName} at ${timeStr}]`;
+                            setNotesDraft(prev => prev + logEntry);
+                            setCustomRepNotes(prev => prev ? prev + logEntry : logEntry);
+                          }}
+                          className={`flex-1 w-full py-3 px-5 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                            linkedInCompleted
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-zinc-900 hover:bg-zinc-800 text-white shadow-md'
+                          }`}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>{linkedInCompleted ? 'LinkedIn Touch Logged to CRM ✓' : 'Mark LinkedIn Touchpoint Completed'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ===================================================================
+                    CADENCE PROTOCOL: COLD CALLING TELEPROMPTER FLOW (PHONE STEPS 1-6)
+                    =================================================================== */}
+                {isPhoneTouch && (
+                  <>
+                    {/* Horizontal Step Pills Navigator */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                   {steps.map((st) => (
                     <button
                       key={st.num}
@@ -2180,7 +2620,9 @@ export default function BorisCallingCockpit() {
                   )}
 
                 </div>
-              </div>
+              </>
+            )}
+          </div>
 
               {/* COLUMN 3: Auto-Updating CRM Notes & Dispositions (3 cols) */}
               <div className="lg:col-span-3 flex flex-col gap-4">
