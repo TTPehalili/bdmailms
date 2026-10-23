@@ -1,8 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Play, CheckCircle2, AlertCircle, Copy, Check, Terminal, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowLeft, X, Play, CheckCircle2, AlertCircle, Copy, Check, ExternalLink, RefreshCw, CheckCheck } from 'lucide-react';
 import { getNodeDefinition, INodeDefinition } from '@/registry';
+
+function ElevenLabsBadgeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className || 'h-5 w-5'}>
+      <rect x="7" y="4" width="3.5" height="16" rx="1.75" />
+      <rect x="13.5" y="4" width="3.5" height="16" rx="1.75" />
+    </svg>
+  );
+}
 
 interface NodeConfigDrawerProps {
   nodeId: string | null;
@@ -53,7 +62,6 @@ export default function NodeConfigDrawer({
     setTestOutput(null);
     try {
       if (nodeDef?.execute) {
-        // Run test execution locally
         const result = await nodeDef.execute({
           nodeId,
           nodeName: label,
@@ -76,85 +84,175 @@ export default function NodeConfigDrawer({
     }
   };
 
-  const webhookUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/api/webhooks/${config.path || 'incoming-hook'}`
-    : `/api/webhooks/${config.path || 'incoming-hook'}`;
-
-  const testWebhookUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/api/webhooks/test/${workflowId}/${nodeId}`
-    : `/api/webhooks/test/${workflowId}/${nodeId}`;
+  const isElevenLabs = initialNodeData.nodeType === 'elevenLabsNode';
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white border-l border-stone-200 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
-      {/* Header */}
-      <div className="p-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-stone-100 flex items-center justify-center font-bold text-stone-700">
-            {nodeDef?.displayName?.[0] || 'N'}
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-stone-900">{label || nodeDef?.displayName}</h3>
-            <span className="text-[10px] font-mono text-stone-500">
-              {nodeDef?.category} • {nodeDef?.name}
-            </span>
-          </div>
-        </div>
+    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white border-l border-stone-200 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+      {/* n8n Node Details Top Bar */}
+      <div className="px-4 py-3 border-b border-stone-200 flex items-center justify-between bg-white text-xs">
         <button
           onClick={onClose}
-          className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 font-bold text-stone-700 hover:text-stone-900 transition-colors cursor-pointer"
         >
-          <X className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" />
+          <span>Node details</span>
         </button>
+
+        <a
+          href="https://elevenlabs.io/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-stone-500 hover:text-stone-800 transition-colors font-medium text-[11px]"
+        >
+          <span>Docs</span>
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+
+      {/* Node Brand & Description Header (Exactly matching n8n screenshot) */}
+      <div className="p-5 border-b border-stone-100 bg-stone-50/40 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            {isElevenLabs ? (
+              <ElevenLabsBadgeIcon className="h-6 w-6 text-stone-900" />
+            ) : (
+              <div className="h-7 w-7 rounded-lg bg-stone-900 text-white flex items-center justify-center font-bold text-xs">
+                {nodeDef?.displayName?.[0] || 'N'}
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-base font-black text-stone-900">{nodeDef?.displayName}</h3>
+              <span className="h-4 w-4 rounded-full bg-stone-900 text-white flex items-center justify-center text-[10px]">
+                ✓
+              </span>
+            </div>
+          </div>
+          <span className="text-[11px] font-mono text-stone-400">Installed</span>
+        </div>
+
+        <p className="text-xs text-stone-500 leading-relaxed">
+          {nodeDef?.description || 'Interact with ElevenLabs API for speech synthesis and voice cloning'}
+        </p>
+
+        <div className="flex items-center gap-3 text-[11px] text-stone-400 font-mono">
+          <span className="flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span>Verified</span>
+          </span>
+          <span>•</span>
+          <span>Published by appointmentlyy</span>
+        </div>
       </div>
 
       {/* Body scroll area */}
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* Node Label input */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-stone-700">Display Label</label>
+        {/* Node Label Customization */}
+        <div className="space-y-1">
+          <label className="text-[11px] font-semibold text-stone-600">Node Name on Canvas</label>
           <input
             type="text"
             value={label}
             onChange={(e) => handleLabelChange(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:ring-2 focus:ring-[#ED1C24] focus:outline-none"
+            className="w-full px-3 py-1.5 rounded-lg bg-white border border-stone-200 text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-800"
           />
         </div>
 
-        {/* Webhook specific helper banner */}
-        {nodeDef?.name === 'webhookTrigger' && (
-          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
-            <span className="text-[10px] font-mono font-bold uppercase text-amber-800 tracking-wider">
-              Production Webhook Ingress URL
-            </span>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                readOnly
-                value={webhookUrl}
-                className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 text-[11px] font-mono text-stone-700"
-              />
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(webhookUrl);
-                  setCopiedWebhook(true);
-                  setTimeout(() => setCopiedWebhook(false), 2000);
-                }}
-                className="p-2 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-900 transition-colors"
-                title="Copy Production URL"
-              >
-                {copiedWebhook ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              </button>
+        {/* ElevenLabs 7 Actions Selector (Exact replica of screenshot) */}
+        {isElevenLabs && (
+          <div className="space-y-3 border-y border-stone-200 py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-stone-800 uppercase tracking-wider">Actions (7)</span>
             </div>
-            <p className="text-[10px] text-amber-700 leading-relaxed">
-              Test Listener URL: <code className="font-mono text-[9px] bg-white px-1 py-0.5 rounded">{testWebhookUrl}</code>
-            </p>
+
+            {/* Voice Actions */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Voice Actions</span>
+              <div className="space-y-1 pl-1">
+                {[
+                  { id: 'getVoice', label: 'Get a voice' },
+                  { id: 'getManyVoices', label: 'Get many voices' },
+                  { id: 'createVoiceClone', label: 'Create a voice clone' },
+                  { id: 'deleteVoice', label: 'Delete a voice' }
+                ].map((act) => {
+                  const isChecked = config.operation === act.id;
+                  return (
+                    <label
+                      key={act.id}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? 'bg-stone-100 font-bold text-stone-900' : 'text-stone-600 hover:bg-stone-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="elevenlabs_op"
+                        checked={isChecked}
+                        onChange={() => {
+                          handleFieldChange('actionCategory', 'voice');
+                          handleFieldChange('operation', act.id);
+                        }}
+                        className="text-stone-900 focus:ring-stone-900"
+                      />
+                      <span>{act.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Speech Actions */}
+            <div className="space-y-1.5 pt-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Speech Actions</span>
+              <div className="space-y-1 pl-1">
+                {[
+                  { id: 'textToSpeech', label: 'Convert text to speech' },
+                  { id: 'transcribeAudio', label: 'Transcribe audio or video' },
+                  { id: 'changeVoiceSettings', label: 'Change a voice' }
+                ].map((act) => {
+                  const isChecked = config.operation === act.id;
+                  return (
+                    <label
+                      key={act.id}
+                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                        isChecked ? 'bg-stone-100 font-bold text-stone-900' : 'text-stone-600 hover:bg-stone-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="elevenlabs_op"
+                        checked={isChecked}
+                        onChange={() => {
+                          handleFieldChange('actionCategory', 'speech');
+                          handleFieldChange('operation', act.id);
+                        }}
+                        className="text-stone-900 focus:ring-stone-900"
+                      />
+                      <span>{act.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Dynamic Parameter Fields */}
         <div className="space-y-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">Node Parameters</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">Parameters</h4>
           {nodeDef?.properties.map((prop) => {
+            // Check displayOptions
+            if (prop.displayOptions?.show) {
+              for (const [key, allowedVals] of Object.entries(prop.displayOptions.show)) {
+                if (!allowedVals.includes(config[key])) {
+                  return null;
+                }
+              }
+            }
+
+            // Skip operation radio if already displayed above for ElevenLabs
+            if (isElevenLabs && (prop.name === 'operation' || prop.name === 'actionCategory')) {
+              return null;
+            }
+
             const currentValue = config[prop.name] !== undefined ? config[prop.name] : prop.default;
 
             return (
@@ -168,7 +266,7 @@ export default function NodeConfigDrawer({
                   <select
                     value={currentValue}
                     onChange={(e) => handleFieldChange(prop.name, e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:ring-2 focus:ring-[#ED1C24] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 focus:outline-none"
                   >
                     {prop.options?.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -183,16 +281,17 @@ export default function NodeConfigDrawer({
                     type="text"
                     value={currentValue}
                     onChange={(e) => handleFieldChange(prop.name, e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs font-mono focus:ring-2 focus:ring-[#ED1C24] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs font-mono focus:ring-2 focus:ring-stone-900 focus:outline-none"
                   />
                 )}
 
                 {prop.type === 'number' && (
                   <input
                     type="number"
+                    step="0.05"
                     value={currentValue}
                     onChange={(e) => handleFieldChange(prop.name, Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:ring-2 focus:ring-[#ED1C24] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 focus:outline-none"
                   />
                 )}
 
@@ -202,18 +301,18 @@ export default function NodeConfigDrawer({
                       type="checkbox"
                       checked={Boolean(currentValue)}
                       onChange={(e) => handleFieldChange(prop.name, e.target.checked)}
-                      className="rounded text-[#ED1C24] focus:ring-[#ED1C24]"
+                      className="rounded text-stone-900 focus:ring-stone-900"
                     />
-                    <span className="text-xs text-stone-600">Enable</span>
+                    <span className="text-xs text-stone-600">Enabled</span>
                   </label>
                 )}
 
                 {(prop.type === 'json' || prop.type === 'code') && (
                   <textarea
-                    rows={prop.type === 'code' ? 7 : 4}
+                    rows={prop.type === 'code' ? 6 : 4}
                     value={typeof currentValue === 'object' ? JSON.stringify(currentValue, null, 2) : currentValue}
                     onChange={(e) => handleFieldChange(prop.name, e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-stone-900 text-emerald-400 font-mono text-[11px] border border-stone-800 focus:ring-2 focus:ring-[#ED1C24] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-stone-950 text-stone-200 font-mono text-[11px] border border-stone-800 focus:ring-2 focus:ring-stone-700 focus:outline-none"
                   />
                 )}
 
@@ -225,18 +324,10 @@ export default function NodeConfigDrawer({
           })}
         </div>
 
-        {/* Expression Helper */}
-        <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 text-[11px] text-stone-600 space-y-1">
-          <span className="font-bold text-stone-800">💡 Expression Helper:</span>
-          <p>
-            Reference data using: <code className="bg-stone-200 px-1 py-0.5 rounded text-[10px] font-mono">{"{{ $json.field }}"}</code> or <code className="bg-stone-200 px-1 py-0.5 rounded text-[10px] font-mono">{"{{ $node['Node Name'].json.field }}"}</code>
-          </p>
-        </div>
-
         {/* Test Step Inspector */}
         <div className="pt-2 border-t border-stone-200 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">Test Step Inspector</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">Test Step</h4>
             <button
               onClick={handleRunTestStep}
               disabled={isTesting}
@@ -245,21 +336,21 @@ export default function NodeConfigDrawer({
               {isTesting ? (
                 <>
                   <RefreshCw className="h-3 w-3 animate-spin" />
-                  <span>Evaluating...</span>
+                  <span>Testing...</span>
                 </>
               ) : (
                 <>
                   <Play className="h-3 w-3" />
-                  <span>Test This Step</span>
+                  <span>Execute Step</span>
                 </>
               )}
             </button>
           </div>
 
           {testOutput && (
-            <div className="p-3 rounded-2xl bg-stone-900 text-stone-100 font-mono text-[10px] space-y-1.5 max-h-56 overflow-y-auto">
+            <div className="p-3 rounded-2xl bg-stone-950 text-stone-100 font-mono text-[10px] space-y-1.5 max-h-56 overflow-y-auto">
               <div className="flex items-center justify-between text-stone-400 border-b border-stone-800 pb-1">
-                <span>Output Payloads ({testOutput.items?.length || 0} items)</span>
+                <span>Output Payloads</span>
                 {testOutput.success ? (
                   <span className="text-emerald-400 font-bold flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" /> Passed
@@ -270,7 +361,7 @@ export default function NodeConfigDrawer({
                   </span>
                 )}
               </div>
-              <pre className="text-emerald-400 whitespace-pre-wrap">
+              <pre className="text-stone-300 whitespace-pre-wrap">
                 {JSON.stringify(testOutput.items || testOutput.error, null, 2)}
               </pre>
             </div>
@@ -279,12 +370,13 @@ export default function NodeConfigDrawer({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-end gap-2">
+      <div className="p-3.5 border-t border-stone-200 bg-stone-50 flex items-center justify-between text-xs text-stone-500">
+        <span className="font-mono text-[11px]">{nodeDef?.name}</span>
         <button
           onClick={onClose}
-          className="px-4 py-2 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-bold transition-colors cursor-pointer"
+          className="px-3.5 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold transition-colors cursor-pointer"
         >
-          Close Drawer
+          Close
         </button>
       </div>
     </div>

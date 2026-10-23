@@ -5,11 +5,14 @@ import Link from 'next/link';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
 import WorkflowAutomationStudio from '@/components/admin/WorkflowAutomationStudio';
-import { ShieldAlert, Lock, ArrowLeft, KeyRound } from 'lucide-react';
+import WorkflowListHub from '@/components/admin/WorkflowListHub';
+import { ShieldAlert, Lock, ArrowLeft, KeyRound, Layers, Sliders, Zap } from 'lucide-react';
 
 export default function WorkflowsStandalonePage() {
   const [userRole, setUserRole] = useState<string>('Super Admin');
   const [isLoading, setIsLoading] = useState(true);
+  const [view, setView] = useState<'list' | 'canvas'>('list');
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | undefined>('wf-voice-chatbot');
 
   useEffect(() => {
     // Check saved role from localStorage
@@ -78,28 +81,77 @@ export default function WorkflowsStandalonePage() {
               </div>
             </div>
           ) : (
-            /* FULL WORKFLOW STUDIO FOR ADMIN USERS */
+            /* WORKFLOW LIST OR CANVAS STUDIO VIEW */
             <div className="space-y-6">
-              {/* Standalone Breadcrumb & Access Pill */}
+              {/* Top View Selector Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs text-[#6b6968]">
                   <Link href="/admin" className="hover:text-[#222021] font-semibold transition-colors">
                     Admin
                   </Link>
                   <span>/</span>
-                  <span className="font-bold text-[#222021]">Workflow Automation Studio</span>
+                  <button
+                    onClick={() => setView('list')}
+                    className={`font-semibold transition-colors ${view === 'list' ? 'text-[#222021] font-bold' : 'hover:text-[#222021]'}`}
+                  >
+                    Workflow Directory
+                  </button>
+                  {view === 'canvas' && (
+                    <>
+                      <span>/</span>
+                      <span className="font-bold text-[#ED1C24]">Canvas Studio</span>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* View Mode Toggle Pill */}
+                  <div className="flex items-center bg-stone-200/80 p-0.5 rounded-xl text-xs font-bold">
+                    <button
+                      onClick={() => setView('list')}
+                      className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                        view === 'list'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      <Layers className="h-3.5 w-3.5" />
+                      <span>List & Folders</span>
+                    </button>
+                    <button
+                      onClick={() => setView('canvas')}
+                      className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                        view === 'canvas'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                      <span>Studio Canvas</span>
+                    </button>
+                  </div>
+
                   <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Admin Clearance: {userRole}</span>
+                    <span>Clearance: {userRole}</span>
                   </span>
                 </div>
               </div>
 
-              {/* n8n Workflow Studio Component */}
-              <WorkflowAutomationStudio />
+              {/* Dynamic View Component */}
+              {view === 'list' ? (
+                <WorkflowListHub
+                  onOpenCanvas={(wfId) => {
+                    if (wfId) setSelectedWorkflowId(wfId);
+                    setView('canvas');
+                  }}
+                />
+              ) : (
+                <WorkflowAutomationStudio
+                  initialWorkflowId={selectedWorkflowId}
+                  onBackToList={() => setView('list')}
+                />
+              )}
             </div>
           )}
         </main>

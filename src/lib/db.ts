@@ -323,13 +323,128 @@ class WorkflowDatabase {
       updatedAt: new Date().toISOString()
     });
 
-    this.projects.set('proj-mcp', {
-      id: 'proj-mcp',
-      name: '🤖 Model Context Protocol (MCP) Hub',
-      description: 'Workflows exposed as MCP tools for Claude, Gemini, and external autonomous AI agents',
-      color: '#059669',
+    this.projects.set('proj-voice', {
+      id: 'proj-voice',
+      name: 'Personal / VoiceChatbot',
+      description: 'Conversational voice bots with ElevenLabs TTS, Scribe, and autonomous AI Agent tool routing',
+      color: '#4F46E5',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
+    });
+
+    // 0. n8n VoiceChatbot (ElevenLabs + AI Agent)
+    this.workflows.set('wf-voice-chatbot', {
+      id: 'wf-voice-chatbot',
+      name: 'VoiceChatbot',
+      description: 'Conversational voice assistant: Inbound Webhook (Listen) ➔ AI Agent ➔ ElevenLabs TTS synthesis with memory & vector tool.',
+      folderId: 'proj-voice',
+      active: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      webhookPath: 'voice-chat',
+      nodes: [
+        {
+          id: 'node-listen',
+          type: 'customNode',
+          position: { x: 100, y: 160 },
+          data: {
+            nodeType: 'webhookTrigger',
+            label: 'Listen',
+            category: 'Triggers',
+            icon: 'Webhook',
+            isTriggerPill: true,
+            config: {
+              path: 'voice-chat',
+              httpMethod: 'POST',
+              responseMode: 'lastNode'
+            }
+          }
+        },
+        {
+          id: 'node-agent',
+          type: 'customNode',
+          position: { x: 380, y: 140 },
+          data: {
+            nodeType: 'aiAgentNode',
+            label: 'AI Agent',
+            category: 'AI & LLMs',
+            icon: 'Bot',
+            hasSubHandles: true,
+            config: {
+              agentGoal: 'Respond concisely to incoming customer query using conversational tone.',
+              maxIterations: 3
+            }
+          }
+        },
+        {
+          id: 'node-elevenlabs',
+          type: 'customNode',
+          position: { x: 740, y: 140 },
+          data: {
+            nodeType: 'elevenLabsNode',
+            label: 'ElevenLabs2',
+            subtitle: 'textToSpeech: speech',
+            category: 'App Integrations',
+            icon: 'ElevenLabs',
+            config: {
+              actionCategory: 'speech',
+              operation: 'textToSpeech',
+              voiceId: '21m00Tcm4TlvDq8ikWAM',
+              modelId: 'eleven_turbo_v2_5',
+              text: '{{ $json.aiResponse.content || "Hello! Thanks for connecting with Appointmentlyy." }}'
+            }
+          }
+        },
+        {
+          id: 'node-model',
+          type: 'customNode',
+          position: { x: 260, y: 350 },
+          data: {
+            nodeType: 'openAiModelNode',
+            label: 'OpenAI',
+            subtitle: 'Model: gpt-4o',
+            category: 'AI & LLMs',
+            icon: 'Bot',
+            isSubNode: true,
+            config: { model: 'gpt-4o', temperature: 0.7 }
+          }
+        },
+        {
+          id: 'node-memory',
+          type: 'customNode',
+          position: { x: 440, y: 350 },
+          data: {
+            nodeType: 'windowBufferMemoryNode',
+            label: 'Window Buffer Memory',
+            subtitle: 'Memory: 5 turns',
+            category: 'AI & LLMs',
+            icon: 'Memory',
+            isSubNode: true,
+            config: { windowSize: 5 }
+          }
+        },
+        {
+          id: 'node-tool',
+          type: 'customNode',
+          position: { x: 620, y: 350 },
+          data: {
+            nodeType: 'vectorStoreToolNode',
+            label: 'Vector Store Tool',
+            subtitle: 'Tool: solar_playbook',
+            category: 'AI & LLMs',
+            icon: 'Database',
+            isSubNode: true,
+            config: { collection: 'solar_objection_playbook' }
+          }
+        }
+      ],
+      edges: [
+        { id: 'edge-listen-agent', source: 'node-listen', target: 'node-agent', sourceHandle: 'output', targetHandle: 'input', label: 'POST' },
+        { id: 'edge-agent-eleven', source: 'node-agent', target: 'node-elevenlabs', sourceHandle: 'output', targetHandle: 'input' },
+        { id: 'edge-agent-model', source: 'node-agent', target: 'node-model', sourceHandle: 'output', targetHandle: 'input', style: { strokeDasharray: '4 4' } },
+        { id: 'edge-agent-memory', source: 'node-agent', target: 'node-memory', sourceHandle: 'output', targetHandle: 'input', style: { strokeDasharray: '4 4' } },
+        { id: 'edge-agent-tool', source: 'node-agent', target: 'node-tool', sourceHandle: 'output', targetHandle: 'input', style: { strokeDasharray: '4 4' } }
+      ]
     });
 
     // 1. Sparring ARM Rubric -> GHL Auto-Tag & Supervisor Slack Escalation

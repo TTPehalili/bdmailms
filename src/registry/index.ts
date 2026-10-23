@@ -18,8 +18,10 @@ import {
 import { llmChatNode, aiAgentNode, textEmbeddingsNode } from './ai';
 import { mcpToolCallerNode, mcpResourceReaderNode, mcpServerNode } from './mcp';
 import { httpRequestNode, graphQLNode } from './protocols';
+import { elevenLabsNode, windowBufferMemoryNode, vectorStoreToolNode, openAiModelNode } from './elevenlabs';
 
 export * from './types';
+export * from './elevenlabs';
 
 export const ALL_NODE_DEFINITIONS: INodeDefinition[] = [
   // Triggers
@@ -56,11 +58,15 @@ export const ALL_NODE_DEFINITIONS: INodeDefinition[] = [
   stripeNode,
   resendNode,
   supabaseNode,
+  elevenLabsNode,
 
   // AI & LLMs
   llmChatNode,
   aiAgentNode,
   textEmbeddingsNode,
+  windowBufferMemoryNode,
+  vectorStoreToolNode,
+  openAiModelNode,
 
   // Model Context Protocol (MCP)
   mcpToolCallerNode,

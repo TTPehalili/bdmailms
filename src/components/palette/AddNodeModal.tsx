@@ -129,14 +129,21 @@ export default function AddNodeModal({ isOpen, onClose, onSelectNode }: AddNodeM
                   onSelectNode(node);
                   onClose();
                 }}
-                className="group p-3.5 rounded-2xl border border-stone-200 bg-white hover:border-[#ED1C24]/50 hover:bg-rose-50/30 hover:shadow-sm transition-all cursor-pointer flex items-start gap-3"
+                className="group p-3.5 rounded-2xl border border-stone-200 bg-white hover:border-stone-800 hover:shadow-xs transition-all cursor-pointer flex items-start gap-3"
               >
-                <div className="p-2.5 rounded-xl bg-stone-100 group-hover:bg-rose-100/60 text-stone-700 group-hover:text-[#ED1C24] transition-colors">
-                  <span className="font-mono text-xs font-bold">{node.displayName[0]}</span>
+                <div className="p-2.5 rounded-xl bg-stone-100 text-stone-900 shrink-0">
+                  {node.name === 'elevenLabsNode' ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                      <rect x="7" y="4" width="3.5" height="16" rx="1.75" />
+                      <rect x="13.5" y="4" width="3.5" height="16" rx="1.75" />
+                    </svg>
+                  ) : (
+                    <span className="font-mono text-xs font-bold">{node.displayName[0]}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
-                    <h4 className="text-xs font-bold text-stone-900 group-hover:text-[#ED1C24] transition-colors truncate">
+                    <h4 className="text-xs font-bold text-stone-900 transition-colors truncate">
                       {node.displayName}
                     </h4>
                     <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 border border-stone-200 shrink-0">
