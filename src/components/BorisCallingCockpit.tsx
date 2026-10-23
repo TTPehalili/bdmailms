@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Swords, 
   Minus, 
@@ -57,6 +57,11 @@ import {
   TouchpointStatus
 } from '@/lib/cadenceMaster';
 import ViewFullCadenceModal from '@/components/cockpit/ViewFullCadenceModal';
+import { 
+  getStoredDispositions, 
+  subscribeToDispositions, 
+  CallDisposition 
+} from '@/lib/dispositionStore';
 
 interface ARMRebuttal {
   id: string;
@@ -130,6 +135,32 @@ export default function BorisCallingCockpit() {
   const [calendlyLoading, setCalendlyLoading] = useState<boolean>(true);
   const [showCalendlyEmbed, setShowCalendlyEmbed] = useState<boolean>(true);
   const [customRepNotes, setCustomRepNotes] = useState<string>('');
+
+  // Persistent Dispositions from Admin Control
+  const [availableDispositions, setAvailableDispositions] = useState<CallDisposition[]>([]);
+
+  useEffect(() => {
+    setAvailableDispositions(getStoredDispositions());
+    const unsubscribe = subscribeToDispositions((updated) => {
+      setAvailableDispositions(updated);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Filtered active dispositions available for current lead / campaign
+  const activeCampaignDispositions = useMemo(() => {
+    return availableDispositions.filter(d => {
+      if (!d.isActive) return false;
+      if (d.campaign === 'All Campaigns (Global)') return true;
+      if (partnerName && d.campaign.toLowerCase().includes(partnerName.toLowerCase())) return true;
+      return true; // show all active dispositions in the cockpit
+    });
+  }, [availableDispositions, partnerName]);
+
+  const selectedDispositionRecord = useMemo(() => {
+    if (!disposition) return null;
+    return availableDispositions.find(d => d.name === disposition || d.code === disposition) || null;
+  }, [availableDispositions, disposition]);
 
   // Cadence Touch Selection & Email Dispatch State
   const [activeCadenceTouchNumber, setActiveCadenceTouchNumber] = useState<number>(3); // Default Touch 3 = Day 2 Phone #1
@@ -513,23 +544,52 @@ export default function BorisCallingCockpit() {
     setDisposition(d);
     setNotesDraft(buildNotes({ disp: d }));
 
-    if (d === 'Do not call') {
+    if (!d) return;
+
+    // Find configured disposition in persistent store
+    const matched = availableDispositions.find(item => item.name === d || item.code === d);
+    const trigger = matched ? matched.actionTrigger : 'none';
+    const isDnc = trigger === 'dnc_quarantine' || matched?.category === 'Compliance' || d.toLowerCase().includes('do not call') || d.toLowerCase().includes('dnc');
+    const isCallback = trigger === 'schedule_callback' || matched?.category === 'Follow-up' || d.toLowerCase().includes('callback') || d.toLowerCase().includes('call back') || d.toLowerCase().includes('follow-up');
+    const isBooked = trigger === 'mark_booked' || matched?.category === 'Positive' || d.toLowerCase().includes('booked');
+    const isVoicemailOrUnanswered = trigger === 'resend_email_120s' || trigger === 'recycle_cadence' || d.toLowerCase().includes('no answer') || d.toLowerCase().includes('voicemail');
+
+    if (isDnc) {
       setIsQuarantined(true);
       try {
         await fetch('/api/cadence/dnc', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            lead_id: 'lead_001',
+            lead_id: activeLeadId || 'lead_001',
             phone,
-            reason: 'Prospect requested Do Not Call',
+            reason: matched ? `Disposition: ${matched.name} (${matched.code})` : 'Prospect requested Do Not Call',
             rep_name: repName
           })
         });
       } catch (err) {
         console.error('Error reporting DNC:', err);
       }
-    } else if (d === 'No answer') {
+    } else if (isCallback) {
+      const redialTime = new Date(Date.now() + 24 * 3600 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setRedialScheduled(redialTime);
+      try {
+        await fetch('/api/cadence/complete-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lead_id: activeLeadId || 'lead_001',
+            cadence_day: currentCadenceDay,
+            task_type: 'phone_call',
+            completion_status: 'callback_scheduled',
+            redial_hours: 24,
+            disposition: d
+          })
+        });
+      } catch (err) {
+        console.error('Error scheduling callback:', err);
+      }
+    } else if (isVoicemailOrUnanswered) {
       const redialTime = new Date(Date.now() + 3.5 * 3600 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setRedialScheduled(redialTime);
       try {
@@ -537,26 +597,28 @@ export default function BorisCallingCockpit() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            lead_id: 'lead_001',
+            lead_id: activeLeadId || 'lead_001',
             cadence_day: currentCadenceDay,
             task_type: 'phone_call',
             completion_status: 'unanswered',
-            redial_hours: 3.5
+            redial_hours: 3.5,
+            disposition: d
           })
         });
       } catch (err) {
         console.error('Error logging unanswered dial:', err);
       }
-    } else if (d === 'Meeting Booked') {
+    } else if (isBooked) {
       try {
         await fetch('/api/cadence/complete-task', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            lead_id: 'lead_001',
+            lead_id: activeLeadId || 'lead_001',
             cadence_day: currentCadenceDay,
             task_type: 'phone_call',
-            completion_status: 'completed'
+            completion_status: 'completed',
+            disposition: d
           })
         });
       } catch (err) {
@@ -2939,23 +3001,50 @@ export default function BorisCallingCockpit() {
                       className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#222021] focus:outline-none focus:ring-2 focus:ring-[#ED1C24] focus:border-[#ED1C24] transition-all cursor-pointer"
                     >
                       <option value="">-- Select Call Disposition --</option>
-                      <option value="Meeting Booked">✅ Meeting Booked (Founder Demo with Emil)</option>
-                      <option value="Follow-up Required">📅 Follow-up Required / Send Calendar</option>
-                      <option value="Referral / Update Contact">👤 Referral / New DM Identified</option>
-                      <option value="Call back">📞 Call back (Floor busy right now)</option>
-                      <option value="No answer">📵 No answer (Voicemail / No Pick)</option>
-                      <option value="Not interested">🚫 Not interested (Prefers shared leads)</option>
-                      <option value="Disqualified">⛔ Disqualified (Under 5 seats / No budget)</option>
-                      <option value="Do not call">🛑 Do not call (DNC List)</option>
+                      {activeCampaignDispositions.map((disp) => {
+                        const icon = disp.category === 'Positive' ? '✅' :
+                          disp.category === 'Follow-up' ? '📅' :
+                          disp.category === 'Negative' ? '🚫' :
+                          disp.category === 'Compliance' ? '🛑' : '📵';
+                        return (
+                          <option key={disp.id} value={disp.name}>
+                            {icon} {disp.name}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
                   {disposition && (
                     <div className="space-y-2.5">
                       <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
-                        <span>Logged: {disposition}</span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: selectedDispositionRecord?.color || '#10B981' }}
+                          />
+                          <span>Logged: {disposition}</span>
+                          {selectedDispositionRecord && (
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-emerald-300 text-emerald-950 font-normal">
+                              {selectedDispositionRecord.code}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-300">CRM SYNCED</span>
                       </div>
+
+                      {/* AI Boris Script Rebuttal & Guidance Box (if configured for this disposition in Admin Control) */}
+                      {selectedDispositionRecord?.rebuttalScriptPrompt && (
+                        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-stone-900 text-xs space-y-1.5 shadow-2xs">
+                          <div className="flex items-center gap-1.5 text-amber-800 font-bold text-[11px]">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Boris AI Script Guidance & Objection Cue:</span>
+                          </div>
+                          <p className="text-[11px] font-semibold text-stone-800 leading-relaxed italic">
+                            "{selectedDispositionRecord.rebuttalScriptPrompt}"
+                          </p>
+                        </div>
+                      )}
 
                       {/* Automated Disposition Workflow Trigger Banner */}
                       <div className="p-3 rounded-xl bg-stone-900 text-white text-xs space-y-2 shadow-xs">
@@ -2965,17 +3054,16 @@ export default function BorisCallingCockpit() {
                             <span>Automated Workflow Linked</span>
                           </span>
                           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 font-bold border border-stone-700">
-                            Active Trigger
+                            {selectedDispositionRecord?.actionTrigger ? selectedDispositionRecord.actionTrigger.replace(/_/g, ' ').toUpperCase() : 'ACTIVE TRIGGER'}
                           </span>
                         </div>
                         <p className="text-[11px] text-stone-300 leading-relaxed">
-                          {disposition === 'Meeting Booked' && 'VIP Multi-Channel Cadence: Instant SMS confirmation to prospect mobile, founder calendar invite email with executive briefing, queues 1-click LinkedIn connection note task for Emil / rep, and alerts Slack #deal-closing.'}
-                          {disposition === 'Follow-up Required' && '1-Click Booking Cadence: Instant SMS booking link to Emil’s calendar, 1-pager pitch deck email, and queues 24h LinkedIn nudge task with pre-drafted copy.'}
-                          {disposition === 'No answer' && '3-Touch Synergy Cadence: Waits 2m, drops subtle voicemail alert SMS, emails recap summary, and re-queues in Cockpit for Day 2 redial.'}
-                          {disposition === 'Referral / Update Contact' && 'AI Referral Engine: Parses referee from notes, emails thank-you to referrer, and drafts warm LinkedIn invite task for the new decision maker.'}
-                          {disposition === 'Call back' && 'Callback Handler: Sends SMS window confirmation and creates high-priority alert for SDR floor.'}
-                          {disposition === 'Not interested' && 'Soft Turnaround: Queues manual LinkedIn soft-network invite task with pre-drafted note and enrolls in 60-day newsletter nurture.'}
-                          {!['Meeting Booked', 'Follow-up Required', 'No answer', 'Referral / Update Contact', 'Call back', 'Not interested'].includes(disposition) && 'Omnichannel Switch Router: Logs disposition outcome and triggers post-call CRM audit flow.'}
+                          {selectedDispositionRecord?.actionTrigger === 'mark_booked' && 'VIP Multi-Channel Cadence: Instant SMS confirmation to prospect mobile, founder calendar invite email with executive briefing, queues 1-click LinkedIn connection note task for Emil / rep, and alerts Slack #deal-closing.'}
+                          {selectedDispositionRecord?.actionTrigger === 'schedule_callback' && '1-Click Booking Cadence: Instant SMS booking link to Emil’s calendar, 1-pager pitch deck email, and queues 24h LinkedIn nudge task with pre-drafted copy.'}
+                          {selectedDispositionRecord?.actionTrigger === 'resend_email_120s' && '3-Touch Synergy Cadence: Waits 2m, drops subtle voicemail alert SMS, emails recap summary, and re-queues in Cockpit for Day 2 redial.'}
+                          {selectedDispositionRecord?.actionTrigger === 'dnc_quarantine' && 'TCPA Compliance Sentinel: Immediately quenches outbound dials, adds number to company-wide suppression list, and cancels active cadence sequences.'}
+                          {selectedDispositionRecord?.actionTrigger === 'recycle_cadence' && 'Cadence Recycle Engine: Reschedules lead touchpoint to Cadence Day +3 with revised morning dial window.'}
+                          {(!selectedDispositionRecord || selectedDispositionRecord.actionTrigger === 'none') && 'Omnichannel Switch Router: Logs disposition outcome to CRM and triggers post-call audit flow.'}
                         </p>
                         <div className="pt-1 border-t border-stone-800 flex items-center justify-between text-[10px] font-semibold text-stone-400">
                           <span>Auto-fires on Call End</span>

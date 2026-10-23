@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   PhoneCall,
   Plus,
@@ -22,30 +22,19 @@ import {
   FolderPlus,
   ArrowRight
 } from 'lucide-react';
-
-export type DispositionCategory = 'Positive' | 'Follow-up' | 'Negative' | 'Compliance' | 'Unreached';
-
-export type ActionTrigger =
-  | 'mark_booked'
-  | 'schedule_callback'
-  | 'dnc_quarantine'
-  | 'resend_email_120s'
-  | 'recycle_cadence'
-  | 'none';
-
-export interface CallDisposition {
-  id: string;
-  code: string;
-  name: string;
-  campaign: string;
-  category: DispositionCategory;
-  actionTrigger: ActionTrigger;
-  rebuttalScriptPrompt: string;
-  requiresNote: boolean;
-  isActive: boolean;
-  color: string;
-  updatedAt: string;
-}
+import {
+  CallDisposition,
+  DispositionCategory,
+  ActionTrigger,
+  getStoredDispositions,
+  saveStoredDispositions,
+  addStoredDisposition,
+  updateStoredDisposition,
+  deleteStoredDisposition,
+  resetStoredDispositions,
+  subscribeToDispositions,
+  INITIAL_DEFAULT_DISPOSITIONS
+} from '@/lib/dispositionStore';
 
 const DEFAULT_CAMPAIGNS = [
   'All Campaigns (Global)',
@@ -55,117 +44,19 @@ const DEFAULT_CAMPAIGNS = [
   'SaaS SMB Pipeline'
 ];
 
-const INITIAL_DISPOSITIONS: CallDisposition[] = [
-  {
-    id: 'disp-1',
-    code: 'BOOKED_QUALIFIED',
-    name: 'Booked: Qualified Demo',
-    campaign: 'Apex Global BPO',
-    category: 'Positive',
-    actionTrigger: 'mark_booked',
-    rebuttalScriptPrompt: 'Lock calendar invite, verify attendee cell phone, and state meeting agenda with Boris AI.',
-    requiresNote: true,
-    isActive: true,
-    color: '#10B981',
-    updatedAt: '2026-10-22'
-  },
-  {
-    id: 'disp-2',
-    code: 'CALLBACK_REQUESTED',
-    name: 'Callback Scheduled (Agreed Time)',
-    campaign: 'All Campaigns (Global)',
-    category: 'Follow-up',
-    actionTrigger: 'schedule_callback',
-    rebuttalScriptPrompt: 'Pinpoint exact day & hour: "Would Tuesday at 10 AM or Thursday at 2 PM work better for your calendar?"',
-    requiresNote: true,
-    isActive: true,
-    color: '#F59E0B',
-    updatedAt: '2026-10-21'
-  },
-  {
-    id: 'disp-3',
-    code: 'NI_COMPETITOR',
-    name: 'Not Interested: Using Competitor / Agency',
-    campaign: 'Enterprise Outbound Q4',
-    category: 'Negative',
-    actionTrigger: 'none',
-    rebuttalScriptPrompt: 'Pivot to hybrid validation: "Most of our enterprise clients were using existing partners too before testing our copilot."',
-    requiresNote: true,
-    isActive: true,
-    color: '#EF4444',
-    updatedAt: '2026-10-20'
-  },
-  {
-    id: 'disp-4',
-    code: 'NI_BUDGET_TIMING',
-    name: 'Not Interested: No Budget / Next Fiscal Year',
-    campaign: 'Fintech Scaleups',
-    category: 'Negative',
-    actionTrigger: 'none',
-    rebuttalScriptPrompt: 'De-escalate to quarterly proof-of-concept: "Understood on budget cycles. What month do you finalize H1 allocations?"',
-    requiresNote: false,
-    isActive: true,
-    color: '#F43F5E',
-    updatedAt: '2026-10-19'
-  },
-  {
-    id: 'disp-5',
-    code: 'DNC_TCPA_OPTOUT',
-    name: 'DNC: Hostile Opt-Out & Suppress',
-    campaign: 'All Campaigns (Global)',
-    category: 'Compliance',
-    actionTrigger: 'dnc_quarantine',
-    rebuttalScriptPrompt: 'Politely acknowledge opt-out: "Apologies for disturbing your morning, I will immediately remove your number from our contact list."',
-    requiresNote: true,
-    isActive: true,
-    color: '#8B5CF6',
-    updatedAt: '2026-10-22'
-  },
-  {
-    id: 'disp-6',
-    code: 'GATEKEEPER_BLOCK',
-    name: 'Gatekeeper Screened / No Transfer',
-    campaign: 'Apex Global BPO',
-    category: 'Unreached',
-    actionTrigger: 'recycle_cadence',
-    rebuttalScriptPrompt: 'Ask for direct assistant or mobile extension: "Could you tell me who handles their operations agenda?"',
-    requiresNote: false,
-    isActive: true,
-    color: '#64748B',
-    updatedAt: '2026-10-18'
-  },
-  {
-    id: 'disp-7',
-    code: 'VOICEMAIL_DROPPED',
-    name: 'Left Voicemail (Drop Audio Script 1)',
-    campaign: 'All Campaigns (Global)',
-    category: 'Unreached',
-    actionTrigger: 'resend_email_120s',
-    rebuttalScriptPrompt: 'Drop crisp 18-second voicemail referencing the morning email sent.',
-    requiresNote: false,
-    isActive: true,
-    color: '#6366F1',
-    updatedAt: '2026-10-22'
-  },
-  {
-    id: 'disp-8',
-    code: 'WRONG_NUMBER',
-    name: 'Wrong Number / Invalid Extension',
-    campaign: 'All Campaigns (Global)',
-    category: 'Compliance',
-    actionTrigger: 'dnc_quarantine',
-    rebuttalScriptPrompt: 'Confirm company name: "Did I reach [Company]? Apologies, will update our directory records."',
-    requiresNote: false,
-    isActive: true,
-    color: '#DC2626',
-    updatedAt: '2026-10-17'
-  }
-];
-
 export default function CallDispositionManager() {
-  const [dispositions, setDispositions] = useState<CallDisposition[]>(INITIAL_DISPOSITIONS);
+  const [dispositions, setDispositions] = useState<CallDisposition[]>(INITIAL_DEFAULT_DISPOSITIONS);
   const [campaignList, setCampaignList] = useState<string[]>(DEFAULT_CAMPAIGNS);
-  
+
+  // Sync with persistent store on mount and react to updates
+  useEffect(() => {
+    setDispositions(getStoredDispositions());
+    const unsubscribe = subscribeToDispositions((updated) => {
+      setDispositions(updated);
+    });
+    return unsubscribe;
+  }, []);
+
   // Filters
   const [selectedCampaignFilter, setSelectedCampaignFilter] = useState<string>('All Campaigns (Global)');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
@@ -289,28 +180,36 @@ export default function CallDispositionManager() {
         color: formColor,
         updatedAt: 'Just now'
       };
-      setDispositions((prev) => [newDisp, ...prev]);
+      const updated = addStoredDisposition(newDisp);
+      setDispositions(updated);
+      fetch('/api/dispositions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disposition: newDisp })
+      }).catch(() => {});
       showFeedback(`Disposition "${newDisp.name}" added and assigned to ${newDisp.campaign}`);
     } else if (modalMode === 'edit' && editingId) {
-      setDispositions((prev) =>
-        prev.map((disp) =>
-          disp.id === editingId
-            ? {
-                ...disp,
-                code: autoCode,
-                name: formName.trim(),
-                campaign: finalCampaign,
-                category: formCategory,
-                actionTrigger: formActionTrigger,
-                rebuttalScriptPrompt: formRebuttalPrompt.trim(),
-                requiresNote: formRequiresNote,
-                isActive: formIsActive,
-                color: formColor,
-                updatedAt: 'Just now'
-              }
-            : disp
-        )
-      );
+      const existing = dispositions.find(d => d.id === editingId);
+      const updatedDisp: CallDisposition = {
+        id: editingId,
+        code: autoCode,
+        name: formName.trim(),
+        campaign: finalCampaign,
+        category: formCategory,
+        actionTrigger: formActionTrigger,
+        rebuttalScriptPrompt: formRebuttalPrompt.trim(),
+        requiresNote: formRequiresNote,
+        isActive: formIsActive,
+        color: formColor,
+        updatedAt: 'Just now'
+      };
+      const updated = updateStoredDisposition(updatedDisp);
+      setDispositions(updated);
+      fetch('/api/dispositions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disposition: updatedDisp })
+      }).catch(() => {});
       showFeedback(`Disposition "${formName.trim()}" updated successfully`);
     }
 
@@ -321,23 +220,39 @@ export default function CallDispositionManager() {
   const handleConfirmDelete = () => {
     if (!deleteCandidate) return;
     const name = deleteCandidate.name;
-    setDispositions((prev) => prev.filter((d) => d.id !== deleteCandidate.id));
+    const updated = deleteStoredDisposition(deleteCandidate.id);
+    setDispositions(updated);
+    fetch(`/api/dispositions?id=${deleteCandidate.id}`, { method: 'DELETE' }).catch(() => {});
     setDeleteCandidate(null);
     showFeedback(`Disposition "${name}" permanently deleted`);
   };
 
   // Quick Inline Campaign Switch
   const handleQuickCampaignChange = (id: string, newCampaign: string) => {
-    setDispositions((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, campaign: newCampaign, updatedAt: 'Just now' } : d))
-    );
+    const target = dispositions.find(d => d.id === id);
+    if (target) {
+      const updatedTarget: CallDisposition = { ...target, campaign: newCampaign, updatedAt: 'Just now' };
+      const updated = updateStoredDisposition(updatedTarget);
+      setDispositions(updated);
+      fetch('/api/dispositions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disposition: updatedTarget })
+      }).catch(() => {});
+    }
     showFeedback(`Reassigned disposition to ${newCampaign}`);
   };
 
   // Clean Slate Preset Reset
   const handleResetToCleanSlate = () => {
     if (window.confirm('Reset call dispositions to a clean slate starting set for new tenant onboarding?')) {
-      setDispositions(INITIAL_DISPOSITIONS);
+      const reset = resetStoredDispositions();
+      setDispositions(reset);
+      fetch('/api/dispositions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dispositions: reset })
+      }).catch(() => {});
       showFeedback('Reset call dispositions to default turnkey template');
     }
   };
