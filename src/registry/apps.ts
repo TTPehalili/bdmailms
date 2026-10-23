@@ -354,3 +354,128 @@ export const supabaseNode: INodeDefinition = {
     }))];
   }
 };
+
+export const twilioSmsNode: INodeDefinition = {
+  name: 'twilioSmsNode',
+  displayName: 'Twilio SMS',
+  description: 'Send automated SMS or WhatsApp text messages to prospect mobile phones',
+  icon: 'Smartphone',
+  category: 'App Integrations',
+  group: ['action'],
+  inputs: [{ id: 'input', type: 'main', label: 'Input' }],
+  outputs: [{ id: 'output', type: 'main', label: 'Output' }],
+  properties: [
+    {
+      name: 'operation',
+      displayName: 'Channel Operation',
+      type: 'options',
+      default: 'sendSms',
+      options: [
+        { name: 'Send SMS', value: 'sendSms' },
+        { name: 'Send WhatsApp Message', value: 'sendWhatsApp' }
+      ]
+    },
+    {
+      name: 'to',
+      displayName: 'To Phone Number',
+      type: 'string',
+      default: '{{ $json.phone || "+1 (555) 392-8812" }}',
+      required: true
+    },
+    {
+      name: 'from',
+      displayName: 'From Phone Number',
+      type: 'string',
+      default: '+1 (800) 555-0199'
+    },
+    {
+      name: 'message',
+      displayName: 'SMS Text Message',
+      type: 'string',
+      default: 'Hi {{ $json.leadName }}, Boris from Appointmentlyy! Confirmed demo with Emil for {{ $json.scheduledTime }}. Calendar invite is in your inbox.',
+      required: true
+    }
+  ],
+  execute: async (context: NodeExecutionContext): Promise<WorkflowItem[][]> => {
+    return [
+      context.inputItems.map((item) => {
+        const to = context.context.resolve(context.config.to, item);
+        const msg = context.context.resolve(context.config.message, item);
+        return {
+          ...item,
+          json: {
+            ...item.json,
+            sms: {
+              sid: `SM_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+              status: 'delivered',
+              channel: context.config.operation || 'sendSms',
+              to,
+              body: msg,
+              deliveredAt: new Date().toISOString()
+            }
+          }
+        };
+      })
+    ];
+  }
+};
+
+export const linkedInNode: INodeDefinition = {
+  name: 'linkedInNode',
+  displayName: 'LinkedIn Outreach',
+  description: 'Send connection invites, direct messages, or InMails via LinkedIn Sales Navigator',
+  icon: 'LinkedIn',
+  category: 'App Integrations',
+  group: ['action'],
+  inputs: [{ id: 'input', type: 'main', label: 'Input' }],
+  outputs: [{ id: 'output', type: 'main', label: 'Output' }],
+  properties: [
+    {
+      name: 'operation',
+      displayName: 'Action Type',
+      type: 'options',
+      default: 'sendConnectionInvite',
+      options: [
+        { name: 'Send Connection Request + Note', value: 'sendConnectionInvite' },
+        { name: 'Send Direct Message', value: 'sendDirectMessage' },
+        { name: 'Send InMail', value: 'sendInMail' }
+      ]
+    },
+    {
+      name: 'profileUrl',
+      displayName: 'LinkedIn Profile URL',
+      type: 'string',
+      default: '{{ $json.linkedInUrl || "https://linkedin.com/in/prospect" }}',
+      required: true
+    },
+    {
+      name: 'message',
+      displayName: 'Message / Invite Note',
+      type: 'string',
+      default: 'Hi {{ $json.leadName }} - great speaking with your team today! Looking forward to our demo with Emil. Let’s connect here.',
+      required: true
+    }
+  ],
+  execute: async (context: NodeExecutionContext): Promise<WorkflowItem[][]> => {
+    return [
+      context.inputItems.map((item) => {
+        const profileUrl = context.context.resolve(context.config.profileUrl, item);
+        const message = context.context.resolve(context.config.message, item);
+        return {
+          ...item,
+          json: {
+            ...item.json,
+            linkedIn: {
+              status: 'queued',
+              action: context.config.operation || 'sendConnectionInvite',
+              profileUrl,
+              message,
+              sentAt: new Date().toISOString()
+            }
+          }
+        };
+      })
+    ];
+  }
+};
+

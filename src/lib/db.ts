@@ -1,5 +1,6 @@
 import { WorkflowItem } from '../engine/item-pipeline';
 import { encryptSecret, decryptSecret } from './crypto';
+import { PRELOADED_WORKFLOW_TEMPLATES } from './workflowTemplates';
 
 export interface ProjectFolderRecord {
   id: string;
@@ -304,12 +305,41 @@ class WorkflowDatabase {
 
   // Seed default presets
   private seedDefaults() {
-    // Seed default Project Folders
+    // 1. 21-Day Outbound Cadence Suite
+    this.projects.set('proj-cadence', {
+      id: 'proj-cadence',
+      name: '🚀 21-Day Outbound Cadence Suite',
+      description: 'Multi-channel outbound blueprint: Day 1-27 cold emails, phone synergy recaps, and LinkedIn touches',
+      color: '#ED1C24',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    // 2. After-Call Dispositions (Boris Cockpit)
+    this.projects.set('proj-dispositions', {
+      id: 'proj-dispositions',
+      name: '🎯 After-Call Dispositions (Boris Cockpit)',
+      description: 'Automated SMS, email, LinkedIn, and CRM workflows triggered on call disposition outcomes',
+      color: '#059669',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    // 3. Speed-to-Lead & Signals
+    this.projects.set('proj-speed', {
+      id: 'proj-speed',
+      name: '⚡ Speed-to-Lead & Inbound Signals',
+      description: 'Sub-60s inbound lead ring-downs, instant mobile SMS spikes, and Slack floor countdowns',
+      color: '#D97706',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
     this.projects.set('proj-qa', {
       id: 'proj-qa',
       name: '🎯 QA & Sparring Automation',
       description: 'ARM framework rubric evaluation, supervisor Slack alerts, and CRM certificate auto-tagging',
-      color: '#ED1C24',
+      color: '#7C3AED',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
@@ -331,6 +361,25 @@ class WorkflowDatabase {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
+
+    // Preload Outbound Cadence & Disposition Workflows
+    for (const tpl of PRELOADED_WORKFLOW_TEMPLATES) {
+      let folderId = 'proj-cadence';
+      if (tpl.category === 'After-Call Dispositions') folderId = 'proj-dispositions';
+      else if (tpl.category === 'Speed-to-Lead & Signals') folderId = 'proj-speed';
+
+      this.workflows.set(tpl.id, {
+        id: tpl.id,
+        name: tpl.name,
+        description: tpl.description,
+        folderId,
+        active: true,
+        nodes: tpl.nodes,
+        edges: tpl.edges,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
 
     // 0. n8n VoiceChatbot (ElevenLabs + AI Agent)
     this.workflows.set('wf-voice-chatbot', {

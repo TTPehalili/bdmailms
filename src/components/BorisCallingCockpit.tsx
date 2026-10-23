@@ -35,7 +35,8 @@ import {
   Briefcase,
   Building2,
   Users,
-  ShieldAlert
+  ShieldAlert,
+  Zap
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
@@ -1904,9 +1905,44 @@ export default function BorisCallingCockpit() {
                   </div>
 
                   {disposition && (
-                    <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
-                      <span>Logged: {disposition}</span>
-                      <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-300">CRM SYNCED</span>
+                    <div className="space-y-2.5">
+                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
+                        <span>Logged: {disposition}</span>
+                        <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-300">CRM SYNCED</span>
+                      </div>
+
+                      {/* Automated Disposition Workflow Trigger Banner */}
+                      <div className="p-3 rounded-xl bg-stone-900 text-white text-xs space-y-2 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-400">
+                            <Zap className="h-3.5 w-3.5 fill-amber-400" />
+                            <span>Automated Workflow Linked</span>
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 font-bold border border-stone-700">
+                            Active Trigger
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-300 leading-relaxed">
+                          {disposition === 'Meeting Booked' && 'VIP Multi-Channel Cadence: Instant SMS confirmation to prospect mobile, founder calendar invite email with executive briefing, Emil LinkedIn connection invite, and Slack #deal-closing alert.'}
+                          {disposition === 'Follow-up Required' && '1-Click Booking Cadence: Instant SMS booking link to Emil’s calendar, 1-pager pitch deck email, and 24h LinkedIn nudge.'}
+                          {disposition === 'No answer' && '3-Touch Synergy Cadence: Waits 2m, drops subtle voicemail alert SMS, emails recap summary, and re-queues in Cockpit for Day 2 redial.'}
+                          {disposition === 'Referral / Update Contact' && 'AI Referral Engine: Parses referee from notes, emails thank-you to referrer, and drafts warm outreach to new decision maker.'}
+                          {disposition === 'Call back' && 'Callback Handler: Sends SMS window confirmation and creates high-priority alert for SDR floor.'}
+                          {disposition === 'Not interested' && 'Soft Turnaround: Sends polite LinkedIn connection invite and enrolls in 60-day thought leadership newsletter.'}
+                          {!['Meeting Booked', 'Follow-up Required', 'No answer', 'Referral / Update Contact', 'Call back', 'Not interested'].includes(disposition) && 'Omnichannel Switch Router: Logs disposition outcome and triggers post-call CRM audit flow.'}
+                        </p>
+                        <div className="pt-1 border-t border-stone-800 flex items-center justify-between text-[10px] font-semibold text-stone-400">
+                          <span>Auto-fires on Call End</span>
+                          <a
+                            href="/workflows"
+                            target="_blank"
+                            className="text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Open in Canvas Studio</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </a>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

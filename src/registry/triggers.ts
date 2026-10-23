@@ -191,3 +191,74 @@ export const emailTriggerNode: INodeDefinition = {
     ];
   }
 };
+
+export const borisDispositionTriggerNode: INodeDefinition = {
+  name: 'borisDispositionTrigger',
+  displayName: 'Boris Cockpit Disposition',
+  description: 'Triggers immediately when a call disposition is saved in AI Boris Calling Cockpit',
+  icon: 'PhoneCall',
+  category: 'Triggers',
+  group: ['trigger'],
+  inputs: [],
+  outputs: [{ id: 'output', type: 'main', label: 'Output' }],
+  properties: [
+    {
+      name: 'dispositionFilter',
+      displayName: 'Call Disposition Filter',
+      type: 'options',
+      default: 'all',
+      options: [
+        { name: 'All Dispositions', value: 'all' },
+        { name: 'Meeting Booked', value: 'Meeting Booked' },
+        { name: 'Follow-up Required', value: 'Follow-up Required' },
+        { name: 'Referral / Update Contact', value: 'Referral / Update Contact' },
+        { name: 'Call back', value: 'Call back' },
+        { name: 'No answer', value: 'No answer' },
+        { name: 'Not interested', value: 'Not interested' },
+        { name: 'Disqualified', value: 'Disqualified' },
+        { name: 'Do not call', value: 'Do not call' }
+      ]
+    },
+    {
+      name: 'requirePhone',
+      displayName: 'Require Valid Mobile Phone',
+      type: 'boolean',
+      default: true
+    },
+    {
+      name: 'requireEmail',
+      displayName: 'Require Email Address',
+      type: 'boolean',
+      default: true
+    }
+  ],
+  execute: async (context: NodeExecutionContext): Promise<WorkflowItem[][]> => {
+    if (context.inputItems && context.inputItems.length > 0 && Object.keys(context.inputItems[0].json).length > 0) {
+      return [context.inputItems];
+    }
+    return [
+      [
+        {
+          json: {
+            disposition:
+              context.config.dispositionFilter && context.config.dispositionFilter !== 'all'
+                ? context.config.dispositionFilter
+                : 'Meeting Booked',
+            leadName: 'Sarah Jenkins',
+            title: 'VP of Business Development',
+            company: 'Nexus Logistics AI',
+            phone: '+1 (555) 392-8812',
+            email: 'sjenkins@nexuslogistics.ai',
+            linkedInUrl: 'https://linkedin.com/in/sarahjenkins-nexus',
+            repName: 'Boris AI Agent',
+            scheduledTime: 'Tomorrow at 2:00 PM EST',
+            callDuration: '4m 12s',
+            notes: 'High intent. Asked for founder demo with Emil. Wants to automate after-call follow-ups for 12 SDRs.',
+            timestamp: new Date().toISOString()
+          }
+        }
+      ]
+    ];
+  }
+};
+

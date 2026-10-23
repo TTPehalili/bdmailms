@@ -32,7 +32,9 @@ import {
   CheckSquare,
   Square,
   Share2,
-  Bot
+  Bot,
+  PhoneCall,
+  Calendar
 } from 'lucide-react';
 import { ProjectFolderRecord, WorkflowRecord } from '@/lib/db';
 import ProjectModal from '../panels/ProjectManagerModal';
@@ -41,6 +43,8 @@ import {
   DuplicateWorkflowModal,
   WorkflowSettingsModal
 } from '../panels/WorkflowActionModals';
+import TemplateGalleryModal from '../panels/TemplateGalleryModal';
+import { WorkflowTemplate, PRELOADED_WORKFLOW_TEMPLATES } from '@/lib/workflowTemplates';
 
 interface WorkflowListHubProps {
   onOpenCanvas: (workflowId?: string) => void;
@@ -66,6 +70,7 @@ export default function WorkflowListHub({ onOpenCanvas }: WorkflowListHubProps) 
 
   // Modals
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [isTemplateGalleryOpen, setIsTemplateGalleryOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectFolderRecord | null>(null);
   const [movingWorkflow, setMovingWorkflow] = useState<WorkflowRecord | null>(null);
   const [duplicatingWorkflow, setDuplicatingWorkflow] = useState<WorkflowRecord | null>(null);
@@ -283,6 +288,27 @@ export default function WorkflowListHub({ onOpenCanvas }: WorkflowListHubProps) 
     }
   };
 
+  // Deploy preloaded outbound template
+  const handleDeployTemplate = async (template: WorkflowTemplate, targetFolderId?: string) => {
+    setIsTemplateGalleryOpen(false);
+    setIsCreateMenuOpen(false);
+    const res = await fetch('/api/workflows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: template.name,
+        folderId: targetFolderId || currentFolderId || undefined,
+        nodes: template.nodes,
+        edges: template.edges
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setWorkflows((prev) => [data.data, ...prev]);
+      onOpenCanvas(data.data.id);
+    }
+  };
+
   // Duplicate Workflow
   const handleDuplicateWorkflow = async (workflowId: string, newName: string, folderId?: string) => {
     const res = await fetch(`/api/workflows/${workflowId}/duplicate`, {
@@ -395,48 +421,120 @@ export default function WorkflowListHub({ onOpenCanvas }: WorkflowListHubProps) 
 
             {/* Dropdown Menu (Matches red highlighted popup in Screenshot) */}
             {isCreateMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-60 rounded-2xl bg-white border border-stone-200 shadow-xl py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                <button
-                  onClick={() => handleCreateWorkflow('scratch')}
-                  className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-900 font-bold flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Plus className="h-4 w-4 text-[#ED1C24]" />
-                  <span>Start from Scratch</span>
-                </button>
+              <div className="absolute right-0 top-full mt-1.5 w-72 rounded-2xl bg-white border border-stone-200 shadow-xl py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100 text-xs divide-y divide-stone-100">
+                <div className="py-1">
+                  <button
+                    onClick={() => handleCreateWorkflow('scratch')}
+                    className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-900 font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4 text-[#ED1C24]" />
+                    <span>Start from Scratch</span>
+                  </button>
 
-                <button
-                  onClick={() => handleCreateWorkflow('elevenlabs')}
-                  className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-700 flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Sparkles className="h-4 w-4 text-purple-600" />
-                  <span>VoiceChatbot (ElevenLabs)</span>
-                </button>
+                  <button
+                    onClick={() => {
+                      setIsTemplateGalleryOpen(true);
+                      setIsCreateMenuOpen(false);
+                    }}
+                    className="w-full px-3.5 py-2 text-left hover:bg-rose-50 text-[#ED1C24] font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="h-4 w-4 fill-rose-100" />
+                    <span>Browse 15+ Outbound Templates...</span>
+                  </button>
+                </div>
 
-                <button
-                  onClick={() => handleCreateWorkflow('scratch')}
-                  className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-700 flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Layers className="h-4 w-4 text-blue-600" />
-                  <span>Select a Recipe</span>
-                </button>
+                {/* Outbound Cadences Quick-Picks */}
+                <div className="py-1">
+                  <div className="px-3.5 py-1 text-[10px] font-mono uppercase tracking-wider text-stone-400 font-bold">
+                    Cadences & After-Call Dispositions
+                  </div>
 
-                <button
-                  onClick={() => handleCreateWorkflow('scratch')}
-                  className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-700 flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <FileCode2 className="h-4 w-4 text-emerald-600" />
-                  <span>Select from Template</span>
-                </button>
+                  <button
+                    onClick={() => {
+                      const tpl = PRELOADED_WORKFLOW_TEMPLATES.find((t) => t.id === 'tpl-cadence-21day-master');
+                      if (tpl) handleDeployTemplate(tpl);
+                    }}
+                    className="w-full px-3.5 py-1.5 text-left hover:bg-stone-50 text-stone-800 font-medium flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                    <span>21-Day Multi-Channel Blueprint</span>
+                  </button>
 
-                <div className="border-t border-stone-100 my-1" />
+                  <button
+                    onClick={() => {
+                      const tpl = PRELOADED_WORKFLOW_TEMPLATES.find((t) => t.id === 'tpl-meeting-booked-vip');
+                      if (tpl) handleDeployTemplate(tpl);
+                    }}
+                    className="w-full px-3.5 py-1.5 text-left hover:bg-stone-50 text-stone-800 font-medium flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>Meeting Booked VIP (SMS+Email+LI)</span>
+                  </button>
 
-                <button
-                  onClick={() => handleCreateWorkflow('scratch')}
-                  className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-500 text-[11px] flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Home className="h-3.5 w-3.5 text-stone-400" />
-                  <span>Properties based workflow (Beta)</span>
-                </button>
+                  <button
+                    onClick={() => {
+                      const tpl = PRELOADED_WORKFLOW_TEMPLATES.find((t) => t.id === 'tpl-cadence-day3-vm-email-synergy');
+                      if (tpl) handleDeployTemplate(tpl);
+                    }}
+                    className="w-full px-3.5 py-1.5 text-left hover:bg-stone-50 text-stone-800 font-medium flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <PhoneCall className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Day 3: Voicemail + Email Synergy</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const tpl = PRELOADED_WORKFLOW_TEMPLATES.find((t) => t.id === 'tpl-followup-calendar-nudge');
+                      if (tpl) handleDeployTemplate(tpl);
+                    }}
+                    className="w-full px-3.5 py-1.5 text-left hover:bg-stone-50 text-stone-800 font-medium flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Calendar className="h-3.5 w-3.5 text-purple-600" />
+                    <span>Follow-up: 1-Click Calendar Link</span>
+                  </button>
+                </div>
+
+                <div className="py-1">
+                  <button
+                    onClick={() => handleCreateWorkflow('elevenlabs')}
+                    className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-700 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Bot className="h-4 w-4 text-purple-600" />
+                    <span>VoiceChatbot (ElevenLabs)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsTemplateGalleryOpen(true);
+                      setIsCreateMenuOpen(false);
+                    }}
+                    className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-700 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Layers className="h-4 w-4 text-blue-600" />
+                    <span>Select a Recipe</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsTemplateGalleryOpen(true);
+                      setIsCreateMenuOpen(false);
+                    }}
+                    className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-700 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <FileCode2 className="h-4 w-4 text-emerald-600" />
+                    <span>Select from Template</span>
+                  </button>
+                </div>
+
+                <div className="py-1">
+                  <button
+                    onClick={() => handleCreateWorkflow('scratch')}
+                    className="w-full px-3.5 py-2 text-left hover:bg-stone-50 text-stone-500 text-[11px] flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Home className="h-3.5 w-3.5 text-stone-400" />
+                    <span>Properties based workflow (Beta)</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -848,6 +946,14 @@ export default function WorkflowListHub({ onOpenCanvas }: WorkflowListHubProps) 
           loadData();
         }}
         onDelete={handleDeleteWorkflow}
+      />
+
+      <TemplateGalleryModal
+        isOpen={isTemplateGalleryOpen}
+        onClose={() => setIsTemplateGalleryOpen(false)}
+        onSelectTemplate={handleDeployTemplate}
+        projects={projects}
+        currentFolderId={currentFolderId}
       />
     </div>
   );

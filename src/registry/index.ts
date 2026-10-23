@@ -1,5 +1,11 @@
 import { INodeDefinition, NodeCategory } from './types';
-import { webhookTriggerNode, scheduleTriggerNode, manualTriggerNode, emailTriggerNode } from './triggers';
+import {
+  webhookTriggerNode,
+  scheduleTriggerNode,
+  manualTriggerNode,
+  emailTriggerNode,
+  borisDispositionTriggerNode
+} from './triggers';
 import { ifNode, switchNode, filterNode, loopNode, mergeNode, delayNode, subWorkflowNode } from './logic';
 import { codeNode, setFieldsNode, jsonParserNode, dateTimeNode, cryptoNode } from './data';
 import {
@@ -13,7 +19,9 @@ import {
   airtableNode,
   stripeNode,
   resendNode,
-  supabaseNode
+  supabaseNode,
+  twilioSmsNode,
+  linkedInNode
 } from './apps';
 import { llmChatNode, aiAgentNode, textEmbeddingsNode } from './ai';
 import { mcpToolCallerNode, mcpResourceReaderNode, mcpServerNode } from './mcp';
@@ -22,6 +30,8 @@ import { elevenLabsNode, windowBufferMemoryNode, vectorStoreToolNode, openAiMode
 
 export * from './types';
 export * from './elevenlabs';
+export * from './triggers';
+export * from './apps';
 
 export const ALL_NODE_DEFINITIONS: INodeDefinition[] = [
   // Triggers
@@ -29,6 +39,7 @@ export const ALL_NODE_DEFINITIONS: INodeDefinition[] = [
   scheduleTriggerNode,
   manualTriggerNode,
   emailTriggerNode,
+  borisDispositionTriggerNode,
 
   // Logic & Flow
   ifNode,
@@ -58,6 +69,8 @@ export const ALL_NODE_DEFINITIONS: INodeDefinition[] = [
   stripeNode,
   resendNode,
   supabaseNode,
+  twilioSmsNode,
+  linkedInNode,
   elevenLabsNode,
 
   // AI & LLMs
