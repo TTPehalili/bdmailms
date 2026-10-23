@@ -3,8 +3,8 @@ import { applyRateLimit, validateTextPayload } from '@/lib/security';
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Enforce rate limiting (20 requests/minute per client IP)
-    const rateLimitResponse = applyRateLimit(req, { maxRequests: 20, windowMs: 60000 });
+    // 1. Enforce rate limiting (120 requests/minute per client IP)
+    const rateLimitResponse = applyRateLimit(req, { maxRequests: 120, windowMs: 60000 });
     if (rateLimitResponse) return rateLimitResponse;
 
     const { text, voiceId, voiceSettings } = await req.json();
@@ -15,14 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const apiKey = (process.env.ELEVENLABS_API_KEY || '').trim();
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'ELEVENLABS_API_KEY is not configured on the server.' },
-        { status: 500 }
-      );
-    }
+    const apiKey = (process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '').trim();
 
     // Default to Eric (conversational executive male) if voiceId not provided
     const targetVoiceId = voiceId || 'cjVigY5qzO86Huf0OWal';

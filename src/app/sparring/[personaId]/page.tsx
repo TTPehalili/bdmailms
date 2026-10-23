@@ -375,16 +375,19 @@ function SparringRoomContent() {
         playableUrl = URL.createObjectURL(audioBlob);
       }
 
-      if (audioElementRef.current) {
-        try {
-          audioElementRef.current.pause();
-          audioElementRef.current.currentTime = 0;
-          audioElementRef.current.src = '';
-        } catch {}
+      // Reuse persistent audio element unlocked during user click gesture
+      let audio = audioElementRef.current;
+      if (!audio) {
+        audio = new Audio();
+        audioElementRef.current = audio;
       }
 
-      const audio = new Audio(playableUrl);
-      audioElementRef.current = audio;
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {}
+
+      audio.src = playableUrl;
       audio.volume = 1.0;
 
       return new Promise<void>((resolve) => {
@@ -408,12 +411,19 @@ function SparringRoomContent() {
           }
         };
 
-        audio.play().catch((playErr) => {
-          console.warn('Audio autoplay notice:', playErr);
-          setAudioBlocked(true);
-          setIsPlayingAudio(false);
-          resolve();
-        });
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setAudioBlocked(false);
+            })
+            .catch((playErr) => {
+              console.warn('Audio autoplay notice:', playErr);
+              setAudioBlocked(true);
+              setIsPlayingAudio(false);
+              resolve();
+            });
+        }
       });
     } catch (err) {
       console.warn('playVoiceAudio caught error:', err);
@@ -425,11 +435,11 @@ function SparringRoomContent() {
   // Unblock / prime audio context synchronously
   const primeAudioContext = async () => {
     try {
-      await getOrCreateAudioContext();
-      if (audioElementRef.current) {
-        audioElementRef.current.src = SILENT_WAV;
-        audioElementRef.current.play().catch(() => {});
+      if (!audioElementRef.current) {
+        audioElementRef.current = new Audio();
       }
+      audioElementRef.current.src = SILENT_WAV;
+      await audioElementRef.current.play().catch(() => {});
       setAudioBlocked(false);
       if (lastAudioUrlRef.current && isPlayingAudioRef.current) {
         playVoiceAudio(lastAudioUrlRef.current, lastTextRef.current);
@@ -440,6 +450,11 @@ function SparringRoomContent() {
   // Start Call & Dial in
   const startCall = async () => {
     // 1. Prime Web Audio Context & DOM audio synchronously on click gesture!
+    if (!audioElementRef.current) {
+      audioElementRef.current = new Audio();
+    }
+    audioElementRef.current.src = SILENT_WAV;
+    audioElementRef.current.play().catch(() => {});
     await primeAudioContext();
 
     // 2. Pre-arm microphone stream on direct user click gesture!

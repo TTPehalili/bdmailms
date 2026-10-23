@@ -439,7 +439,7 @@ function deriveDynamicScriptAssist(
 
 export async function POST(req: NextRequest) {
   try {
-    const rateLimitResponse = applyRateLimit(req, { maxRequests: 30, windowMs: 60000 });
+    const rateLimitResponse = applyRateLimit(req, { maxRequests: 120, windowMs: 60000 });
     if (rateLimitResponse) return rateLimitResponse;
 
     const { personaId, transcript = [], repMessage = '', objectives = [], country = 'USA' } = await req.json();
