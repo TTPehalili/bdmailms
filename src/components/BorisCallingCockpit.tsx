@@ -41,8 +41,10 @@ import {
   Mail,
   Voicemail,
   Send,
-  Lock
+  Lock,
+  Globe
 } from 'lucide-react';
+import LinkedinIcon from '@/components/icons/LinkedinIcon';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
 import { CallTelemetryState, INITIAL_TELEMETRY_STATE, synthesizeCrmNotes } from '@/lib/callTelemetry';
@@ -57,6 +59,9 @@ import {
   TouchpointStatus
 } from '@/lib/cadenceMaster';
 import ViewFullCadenceModal from '@/components/cockpit/ViewFullCadenceModal';
+import DailyActivityReportModal from '@/components/cockpit/DailyActivityReportModal';
+import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
+import { logCadenceActivity, getDailyActivitySummary, subscribeToActivities } from '@/lib/activityStore';
 import { 
   getStoredDispositions, 
   subscribeToDispositions, 
@@ -169,15 +174,55 @@ export default function BorisCallingCockpit() {
   const [emailSentSuccess, setEmailSentSuccess] = useState<string | null>(null);
   const [linkedInCompleted, setLinkedInCompleted] = useState<boolean>(false);
 
-  // Active Lead Queue State (Sequential Lead Progression)
+  // Active Lead Queue & Dynamic CSV Ingestion State
+  const [leadsQueue, setLeadsQueue] = useState<CadenceLeadRecord[]>(DEMO_CADENCE_LEADS);
   const [currentLeadIndex, setCurrentLeadIndex] = useState<number>(0);
-  const activeLead = DEMO_CADENCE_LEADS[currentLeadIndex] || DEMO_CADENCE_LEADS[0];
-  const nextLeadCandidate = DEMO_CADENCE_LEADS[(currentLeadIndex + 1) % DEMO_CADENCE_LEADS.length];
+  const activeLead = leadsQueue[currentLeadIndex] || leadsQueue[0] || DEMO_CADENCE_LEADS[0];
+  const nextLeadCandidate = leadsQueue[(currentLeadIndex + 1) % leadsQueue.length];
   const activeLeadId = activeLead.id;
+
+  // Injected Signals & Account Intelligence from CSV
+  const [leadWebsite, setLeadWebsite] = useState<string>(DEMO_CADENCE_LEADS[0].website || '');
+  const [leadLinkedinUrl, setLeadLinkedinUrl] = useState<string>(DEMO_CADENCE_LEADS[0].linkedinUrl || '');
+  const [leadTechStack, setLeadTechStack] = useState<string>(DEMO_CADENCE_LEADS[0].techStack || 'HubSpot & Apollo.io');
+  const [leadPainPoint, setLeadPainPoint] = useState<string>(DEMO_CADENCE_LEADS[0].painPoint || 'objection hesitation on shared lead lists');
+  const [leadOutsourcer, setLeadOutsourcer] = useState<string>(DEMO_CADENCE_LEADS[0].outsourcer || 'Titan BPO Solutions');
+  const [leadBuyingSignals, setLeadBuyingSignals] = useState<string[]>(DEMO_CADENCE_LEADS[0].buyingSignals || []);
+  const [leadCustomVars, setLeadCustomVars] = useState<Record<string, string>>(DEMO_CADENCE_LEADS[0].customVariables || {});
+
+  // Modals & Feedback State
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState<boolean>(false);
+  const [isDailyReportOpen, setIsDailyReportOpen] = useState<boolean>(false);
+  const [activityToast, setActivityToast] = useState<string | null>(null);
+  const [completedActivityCount, setCompletedActivityCount] = useState<number>(0);
+
+  useEffect(() => {
+    try {
+      setCompletedActivityCount(getDailyActivitySummary().totalActivities);
+    } catch {
+      // fallback
+    }
+    const unsubscribe = subscribeToActivities(() => {
+      try {
+        setCompletedActivityCount(getDailyActivitySummary().totalActivities);
+      } catch {}
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Handle Dynamic CSV Leads Import
+  const handleLeadsImported = (newLeads: CadenceLeadRecord[]) => {
+    if (newLeads.length === 0) return;
+    setLeadsQueue(newLeads);
+    setCurrentLeadIndex(0);
+    handleSelectLead(newLeads[0]);
+    setActivityToast(`✓ Successfully loaded ${newLeads.length} leads into Boris Calling Queue with Website, LinkedIn & Signals!`);
+    setTimeout(() => setActivityToast(null), 4000);
+  };
 
   // Lead Selection Handler
   const handleSelectLead = (lead: CadenceLeadRecord) => {
-    const idx = DEMO_CADENCE_LEADS.findIndex(l => l.id === lead.id);
+    const idx = leadsQueue.findIndex(l => l.id === lead.id);
     if (idx !== -1) setCurrentLeadIndex(idx);
     setCustomerName(lead.name);
     setPartnerName(lead.company);
@@ -192,10 +237,19 @@ export default function BorisCallingCockpit() {
     setEmailSentSuccess(null);
     setLinkedInCompleted(false);
 
+    // Context & CSV Signals
+    setLeadWebsite(lead.website || '');
+    setLeadLinkedinUrl(lead.linkedinUrl || '');
+    setLeadTechStack(lead.techStack || 'HubSpot & Apollo.io');
+    setLeadPainPoint(lead.painPoint || 'objection hesitation on shared lead lists');
+    setLeadOutsourcer(lead.outsourcer || 'Titan BPO Solutions');
+    setLeadBuyingSignals(lead.buyingSignals || []);
+    setLeadCustomVars(lead.customVariables || {});
+
     setLeadNotes(
       lead.isCarryOver
-        ? `[CARRY-OVER FOLLOW-UP LEAD]\nScheduled Task: ${lead.carryOverReason}\nCadence Stage: Day ${lead.cadenceDay} Touchpoint\nContact: ${lead.name} (${lead.title})\nFloor: ${lead.headcount}`
-        : `Directory Lead Source: Outsource Accelerator\nFloor: ${lead.headcount}\nBottleneck: Competing against 3-5 BPOs on identical shared lists ($8/hr margin crush)\nNext Step: 20-min demo with Founder Emil`
+        ? `[CARRY-OVER FOLLOW-UP LEAD]\nScheduled Task: ${lead.carryOverReason}\nCadence Stage: Day ${lead.cadenceDay} Touchpoint\nContact: ${lead.name} (${lead.title})\nFloor: ${lead.headcount}\nWebsite: ${lead.website || 'N/A'}\nSignals: ${(lead.buyingSignals || []).join(', ')}`
+        : `Directory Lead Source: Outsource Accelerator\nFloor: ${lead.headcount}\nBottleneck: ${lead.painPoint || 'Competing against 3-5 BPOs on identical shared lists'}\nTech: ${lead.techStack || 'Apollo/HubSpot'}\nNext Step: 20-min demo with Founder Emil`
     );
 
     const touch = CADENCE_TOUCHES.find(t => t.touchNumber === lead.touchNumber) || CADENCE_TOUCHES[2];
@@ -221,9 +275,9 @@ export default function BorisCallingCockpit() {
       return;
     }
 
-    const nextIndex = (currentLeadIndex + 1) % DEMO_CADENCE_LEADS.length;
+    const nextIndex = (currentLeadIndex + 1) % leadsQueue.length;
     setCurrentLeadIndex(nextIndex);
-    const nextLead = DEMO_CADENCE_LEADS[nextIndex];
+    const nextLead = leadsQueue[nextIndex];
     handleSelectLead(nextLead);
 
     // Reset disposition & state for new call
@@ -248,45 +302,68 @@ export default function BorisCallingCockpit() {
   // Active Phone Script Configuration with Injected Prior Email Context
   const currentPhoneConfig: CadencePhoneCallConfig = CADENCE_PHONE_SCRIPTS[currentCadenceDay] || CADENCE_PHONE_SCRIPTS[2];
 
+  // Universal Script Variable Replacer: Injects ALL information from the CSV
+  const replaceLeadVariables = (text: string): string => {
+    if (!text) return '';
+    const firstName = customerName.split(' ')[0] || 'there';
+    const cleanWebsite = leadWebsite || (partnerName ? `${partnerName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com` : 'your domain');
+    const primarySignal = leadBuyingSignals.length > 0 ? leadBuyingSignals[0] : 'scaling outbound sales';
+
+    return text
+      .replace(/\{\{first_name\}\}/gi, firstName)
+      .replace(/\{\{last_name\}\}/gi, customerName.split(' ').slice(1).join(' ') || '')
+      .replace(/\{\{full_name\}\}/gi, customerName || 'there')
+      .replace(/\{\{rep_name\}\}/gi, repName || 'Alex')
+      .replace(/\{\{company\}\}/gi, partnerName || 'your team')
+      .replace(/\{\{title\}\}/gi, title || 'Executive')
+      .replace(/\{\{department\}\}/gi, department || 'Operations')
+      .replace(/\{\{phone\}\}/gi, phone || '')
+      .replace(/\{\{email\}\}/gi, directEmail || '')
+      .replace(/\{\{headcount\}\}/gi, headcount || '50+ seats')
+      .replace(/\{\{website\}\}/gi, cleanWebsite)
+      .replace(/\{\{linkedin\}\}/gi, leadLinkedinUrl || '#')
+      .replace(/\{\{linkedin_url\}\}/gi, leadLinkedinUrl || '#')
+      .replace(/\{\{tech_stack\}\}/gi, leadTechStack || 'Apollo & HubSpot')
+      .replace(/\{\{pain_point\}\}/gi, leadPainPoint || 'burning rookie leads on manual dials')
+      .replace(/\{\{outsourcer\}\}/gi, leadOutsourcer || 'Titan BPO Solutions')
+      .replace(/\{\{signals\}\}/gi, primarySignal)
+      .replace(/\{\{buying_signals\}\}/gi, primarySignal)
+      .replace(/\{\{loom_link\}\}/gi, 'https://loom.com/share/bpo-arm-qa-demo')
+      .replace(/\{\{active_service\}\}/gi, getActiveServiceLabel());
+  };
+
   // Injected Spoken Opener (Interpolates lead variables into the exact email-context script)
-  const getInjectedOpenerText = () => {
-    return currentPhoneConfig.spokenOpenerEmailInjected
-      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
-      .replace(/\{\{rep_name\}\}/g, repName)
-      .replace(/\{\{company\}\}/g, partnerName);
-  };
-
-  const getInjectedVerificationText = () => {
-    return currentPhoneConfig.spokenVerification
-      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
-      .replace(/\{\{rep_name\}\}/g, repName)
-      .replace(/\{\{department\}\}/g, department)
-      .replace(/\{\{title\}\}/g, title)
-      .replace(/\{\{company\}\}/g, partnerName);
-  };
-
-  const getInjectedVoicemailText = () => {
-    return (currentPhoneConfig.voicemailScript || '')
-      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
-      .replace(/\{\{rep_name\}\}/g, repName)
-      .replace(/\{\{company\}\}/g, partnerName);
-  };
+  const getInjectedOpenerText = () => replaceLeadVariables(currentPhoneConfig.spokenOpenerEmailInjected);
+  const getInjectedVerificationText = () => replaceLeadVariables(currentPhoneConfig.spokenVerification);
+  const getInjectedVoicemailText = () => replaceLeadVariables(currentPhoneConfig.voicemailScript || '');
 
   // Interpolated Cadence Email Text
-  const getInterpolatedEmailSubject = () => {
-    return (currentCadenceTouch.subject || 'quick question on {{company}} ramp time')
-      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
-      .replace(/\{\{rep_name\}\}/g, repName)
-      .replace(/\{\{company\}\}/g, partnerName);
-  };
+  const getInterpolatedEmailSubject = () => replaceLeadVariables(currentCadenceTouch.subject || 'quick question on {{company}} ramp time');
+  const getInterpolatedEmailBody = () => replaceLeadVariables(currentCadenceTouch.body || '');
 
-  const getInterpolatedEmailBody = () => {
-    return (currentCadenceTouch.body || '')
-      .replace(/\{\{first_name\}\}/g, customerName.split(' ')[0] || 'there')
-      .replace(/\{\{rep_name\}\}/g, repName)
-      .replace(/\{\{company\}\}/g, partnerName)
-      .replace(/\{\{loom_link\}\}/g, 'https://loom.com/share/bpo-arm-qa-demo')
-      .replace(/\{\{active_service\}\}/g, getActiveServiceLabel());
+  // Rep Cadence Step Completion Handler (Feeds into Daily Activity Report)
+  const handleCompleteCadenceTouch = (channelOverride?: 'Phone' | 'Email' | 'LinkedIn') => {
+    const channel = channelOverride || currentCadenceTouch.channel;
+    const dispName = disposition || (channel === 'Email' ? 'Follow-Up Email' : channel === 'LinkedIn' ? 'LinkedIn Touch Completed' : 'Call Completed');
+    
+    logCadenceActivity({
+      repName,
+      prospectName: customerName,
+      companyName: partnerName,
+      channel,
+      cadenceDay: currentCadenceDay,
+      touchNumber: activeCadenceTouchNumber,
+      stepName: currentCadenceTouch.stepName,
+      disposition: dispName,
+      notesSnippet: notesDraft || `Completed ${currentCadenceTouch.stepName} for ${partnerName}`,
+      signalsContext: leadBuyingSignals,
+      website: leadWebsite,
+      linkedinUrl: leadLinkedinUrl
+    });
+
+    setCompletedActivityCount(prev => prev + 1);
+    setActivityToast(`✓ Completed "${currentCadenceTouch.stepName}". Logged to your Daily Activity Report!`);
+    setTimeout(() => setActivityToast(null), 3500);
   };
 
   // Handle Cadence Touchpoint Selection
@@ -569,6 +646,29 @@ export default function BorisCallingCockpit() {
     setNotesDraft(buildNotes({ disp: d }));
 
     if (!d) return;
+
+    // Automatically record into Daily Activity Report
+    try {
+      logCadenceActivity({
+        repName,
+        prospectName: customerName,
+        companyName: partnerName,
+        channel: currentCadenceTouch.channel,
+        cadenceDay: currentCadenceDay,
+        touchNumber: activeCadenceTouchNumber,
+        stepName: currentCadenceTouch.stepName,
+        disposition: d,
+        notesSnippet: buildNotes({ disp: d }),
+        signalsContext: leadBuyingSignals,
+        website: leadWebsite,
+        linkedinUrl: leadLinkedinUrl
+      });
+      setCompletedActivityCount(prev => prev + 1);
+      setActivityToast(`✓ Disposition "${d}" logged to Daily Activity Report.`);
+      setTimeout(() => setActivityToast(null), 3000);
+    } catch (err) {
+      console.warn('[Activity Log Notice]', err);
+    }
 
     // Find configured disposition in persistent store
     const matched = availableDispositions.find(item => item.name === d || item.code === d);
@@ -925,27 +1025,45 @@ export default function BorisCallingCockpit() {
             </div>
 
             {/* Top Action Bar */}
-            <div className="flex items-center gap-2">
-              {/* View Full Cadence Tool Modal Button (Spec Section 3) */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Upload Leads CSV Button */}
               <button
+                type="button"
+                onClick={() => setIsCsvModalOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2F0EF] text-[#222021] border border-[#222021]/15 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                title="Upload custom .csv file with Website, LinkedIn, and buying signals"
+              >
+                <span className="text-[#ED1C24]">📁</span>
+                <span>Upload Leads CSV</span>
+              </button>
+
+              {/* Rep Daily Activity Report Button */}
+              <button
+                type="button"
+                onClick={() => setIsDailyReportOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2F0EF] text-[#222021] border border-[#222021]/15 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                title="View today's completed cadence activities and export report"
+              >
+                <span className="text-[#ED1C24]">📊</span>
+                <span>Daily Activity Report</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-[#ED1C24] text-white text-[10px] font-mono font-bold leading-none">
+                  {completedActivityCount}
+                </span>
+              </button>
+
+              {/* View Full Cadence Tool Modal Button */}
+              <button
+                type="button"
                 onClick={() => setIsCadenceModalOpen(true)}
                 className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2F0EF] text-[#222021] border border-[#222021]/15 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
               >
                 <Calendar className="h-3.5 w-3.5 text-[#ED1C24]" />
-                <span>📋 View Full Cadence</span>
-              </button>
-
-              {/* Playbook Architecture Spec Modal Button */}
-              <button
-                onClick={() => setShowPlaybookModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2F0EF] text-[#222021] border border-[#222021]/15 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-              >
-                <FileText className="h-3.5 w-3.5 text-[#ED1C24]" />
-                <span>BPO Playbook Spec</span>
+                <span>📋 Full Cadence</span>
               </button>
 
               {/* Direct Calendly Modal Button */}
               <button
+                type="button"
                 onClick={() => setShowCalendlyModal(true)}
                 className="px-3 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
               >
@@ -973,6 +1091,23 @@ export default function BorisCallingCockpit() {
               </div>
             </div>
           </div>
+
+          {/* REAL-TIME ACTIVITY & IMPORT TOAST BANNER */}
+          {activityToast && (
+            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-950 text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>{activityToast}</span>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setActivityToast(null)} 
+                className="text-emerald-700 hover:text-emerald-900 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
 
           {/* SEARCH BAR */}
           <div className="relative">
@@ -1024,7 +1159,7 @@ export default function BorisCallingCockpit() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968]">
-                      Lead {currentLeadIndex + 1} of {DEMO_CADENCE_LEADS.length}
+                      Lead {currentLeadIndex + 1} of {leadsQueue.length}
                     </span>
                     <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#F2F0EF] text-[#222021] border border-[#222021]/10">
                       {activeLead.isCarryOver ? 'Prior-Week Carry-Over' : 'Fresh Intake'}
@@ -1309,6 +1444,97 @@ export default function BorisCallingCockpit() {
                       {isQuarantined ? <Ban className="h-3.5 w-3.5 text-white" /> : <PhoneCall className="h-3.5 w-3.5 text-white transition-transform group-hover:scale-110" />}
                       <span>{isQuarantined ? 'DNC QUARANTINED' : `Click to Call (${phone || 'No Number'})`}</span>
                     </a>
+                  </div>
+                </div>
+
+                {/* Target Account Intelligence & Live Signals HUD */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-[#222021] flex items-center gap-1.5 uppercase font-mono tracking-tight">
+                      <span className="text-[#ED1C24]">🎯</span>
+                      <span>Account Signals</span>
+                    </span>
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      LIVE IN SCRIPT
+                    </span>
+                  </div>
+
+                  {/* 1-Click External Research Links */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {leadWebsite ? (
+                      <a
+                        href={leadWebsite.startsWith('http') ? leadWebsite : `https://${leadWebsite}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] text-[11px] font-bold flex items-center gap-1.5 border border-[#222021]/10 transition-colors truncate"
+                        title={leadWebsite}
+                      >
+                        <Globe className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                        <span className="truncate">Website ↗</span>
+                      </a>
+                    ) : (
+                      <div className="px-2.5 py-1.5 rounded-xl bg-stone-100 text-stone-400 text-[11px] font-medium flex items-center gap-1.5 border border-stone-200 truncate">
+                        <Globe className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">No Website</span>
+                      </div>
+                    )}
+
+                    {leadLinkedinUrl ? (
+                      <a
+                        href={leadLinkedinUrl.startsWith('http') ? leadLinkedinUrl : `https://${leadLinkedinUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 rounded-xl bg-[#0077b5] hover:bg-[#006097] text-white text-[11px] font-bold flex items-center gap-1.5 shadow-2xs transition-colors truncate"
+                        title={leadLinkedinUrl}
+                      >
+                        <LinkedinIcon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">LinkedIn ↗</span>
+                      </a>
+                    ) : (
+                      <a
+                        href={`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(customerName + ' ' + partnerName)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#222021] text-[11px] font-semibold flex items-center gap-1.5 border border-stone-200 transition-colors truncate"
+                      >
+                        <LinkedinIcon className="h-3.5 w-3.5 text-stone-500 shrink-0" />
+                        <span className="truncate">Search LI ↗</span>
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Key Injected Signals & Buying Triggers */}
+                  <div className="space-y-1.5 text-xs">
+                    <div className="p-2 rounded-xl bg-[#F2F0EF] border border-[#222021]/10">
+                      <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] block">💻 TECH STACK</span>
+                      <span className="text-[11px] font-bold text-[#222021]">{leadTechStack}</span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-rose-50/60 border border-rose-200">
+                      <span className="text-[10px] font-mono font-bold uppercase text-rose-800 block">⚠️ PAIN POINT / BOTTLENECK</span>
+                      <span className="text-[11px] font-semibold text-rose-950">{leadPainPoint}</span>
+                    </div>
+
+                    {leadOutsourcer && (
+                      <div className="p-2 rounded-xl bg-[#F2F0EF] border border-[#222021]/10">
+                        <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] block">🏢 INCUMBENT / OUTSOURCER</span>
+                        <span className="text-[11px] font-bold text-[#222021]">{leadOutsourcer}</span>
+                      </div>
+                    )}
+
+                    {leadBuyingSignals.length > 0 && (
+                      <div className="pt-1">
+                        <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] block mb-1">⚡ BUYING SIGNALS</span>
+                        <div className="space-y-1">
+                          {leadBuyingSignals.map((sig, sIdx) => (
+                            <div key={sIdx} className="text-[10px] font-medium text-[#222021] bg-stone-50 p-1.5 rounded-lg border border-[#222021]/10 flex items-start gap-1.5">
+                              <span className="text-[#ED1C24] font-bold">•</span>
+                              <span>{sig}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2993,6 +3219,31 @@ export default function BorisCallingCockpit() {
                   </button>
                 </div>
 
+                {/* 1-Click Cadence Step Completion & Tracking */}
+                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#6b6968] block">
+                      CADENCE ACTIVITY LOGGING
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-[#F2F0EF] px-2 py-0.5 rounded text-[#222021] border border-[#222021]/10">
+                      Day {currentCadenceDay} • Touch #{activeCadenceTouchNumber}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-[#6b6968] leading-snug">
+                    Reps must mark touches as completed on their end to generate the daily activity report.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCompleteCadenceTouch()}
+                    className="w-full py-2.5 px-3 rounded-xl bg-[#222021] hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <span>✓ Mark Cadence Step Completed</span>
+                  </button>
+                </div>
+
                 {/* Call Disposition Dropdown List */}
                 <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
@@ -3490,6 +3741,20 @@ export default function BorisCallingCockpit() {
         currentDay={currentCadenceDay}
         contactName={customerName}
         companyName={partnerName}
+        repName={repName}
+      />
+
+      {/* Dynamic CSV Leads Ingestion Modal */}
+      <UploadLeadsCsvModal
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        onLeadsImported={handleLeadsImported}
+      />
+
+      {/* Official Rep Daily Activity Report Modal */}
+      <DailyActivityReportModal
+        isOpen={isDailyReportOpen}
+        onClose={() => setIsDailyReportOpen(false)}
         repName={repName}
       />
 

@@ -63,6 +63,13 @@ export async function POST(req: NextRequest) {
       const firstNameKey = findKey('first name', 'firstname', 'first', 'fname');
       const lastNameKey = findKey('last name', 'lastname', 'last', 'lname');
       const fullNameKey = findKey('name', 'full name', 'contact name');
+      const websiteKey = findKey('website', 'site', 'url', 'domain', 'company url', 'web', 'homepage');
+      const linkedinKey = findKey('linkedin', 'linkedin url', 'person linkedin', 'profile', 'linkedin profile', 'contact linkedin', 'social');
+      const signalKey = findKey('signal', 'buying signal', 'signals', 'buying signals', 'triggers', 'trigger', 'recent news', 'notes', 'intel', 'context');
+      const techStackKey = findKey('tech stack', 'tech', 'crm', 'technologies', 'sales tools', 'software', 'dialer');
+      const painPointKey = findKey('pain point', 'pain', 'challenge', 'bottleneck', 'problem', 'objection');
+      const outsourcerKey = findKey('outsourcer', 'vendor', 'current agency', 'agency', 'competitor', 'incumbent');
+      const headcountKey = findKey('headcount', 'seats', 'team size', 'employees', 'company size');
 
       let firstName = firstNameKey ? row[firstNameKey] : '';
       let lastName = lastNameKey ? row[lastNameKey] : '';
@@ -73,7 +80,7 @@ export async function POST(req: NextRequest) {
         lastName = parts.slice(1).join(' ') || '';
       }
 
-      // Collect custom variables
+      // Collect custom variables & ensure website, linkedin, signals are stored
       const standardKeys = [emailKey, companyKey, titleKey, phoneKey, firstNameKey, lastNameKey, fullNameKey].filter(Boolean);
       const customVars: Record<string, string> = {};
       for (const k of keys) {
@@ -81,6 +88,14 @@ export async function POST(req: NextRequest) {
           customVars[k] = row[k];
         }
       }
+
+      if (websiteKey && row[websiteKey]) customVars['website'] = row[websiteKey];
+      if (linkedinKey && row[linkedinKey]) customVars['linkedin_url'] = row[linkedinKey];
+      if (signalKey && row[signalKey]) customVars['buying_signals'] = row[signalKey];
+      if (techStackKey && row[techStackKey]) customVars['tech_stack'] = row[techStackKey];
+      if (painPointKey && row[painPointKey]) customVars['pain_point'] = row[painPointKey];
+      if (outsourcerKey && row[outsourcerKey]) customVars['outsourcer'] = row[outsourcerKey];
+      if (headcountKey && row[headcountKey]) customVars['headcount'] = row[headcountKey];
 
       return {
         id: `lead-${Date.now()}-${index}`,
@@ -93,6 +108,9 @@ export async function POST(req: NextRequest) {
         company: (companyKey ? row[companyKey] : '') || 'Target Account',
         title: (titleKey ? row[titleKey] : '') || 'Executive',
         status: 'new',
+        website: websiteKey ? row[websiteKey] : undefined,
+        linkedin_url: linkedinKey ? row[linkedinKey] : undefined,
+        signals: signalKey ? row[signalKey] : undefined,
         custom_variables: customVars,
         created_at: new Date().toISOString()
       };

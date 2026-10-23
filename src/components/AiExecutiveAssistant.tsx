@@ -19,6 +19,8 @@ import {
   Copy,
   Check
 } from 'lucide-react';
+import BorisOperationsIcon from '@/components/icons/BorisOperationsIcon';
+import ExecutiveReportRenderer from '@/components/assistant/ExecutiveReportRenderer';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
 
@@ -146,8 +148,8 @@ Select a prompt below or type your question:`,
           <div className="flex items-center justify-between pb-3 border-b border-[#222021]/10 shrink-0">
             <div>
               <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-[#ED1C24] text-white">
-                  <Sparkles className="h-5 w-5" />
+                <span className="p-1.5 rounded-lg bg-[#222021] text-white">
+                  <BorisOperationsIcon className="h-5 w-5 text-[#ED1C24]" />
                 </span>
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#ED1C24]">
                   AI BORIS OPERATIONS INTELLIGENCE
@@ -179,36 +181,70 @@ Select a prompt below or type your question:`,
                 className={`flex gap-3 text-xs ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.sender === 'assistant' && (
-                  <div className="w-8 h-8 rounded-xl bg-slate-900 text-[#ED1C24] flex items-center justify-center shrink-0 shadow-xs mt-0.5 border border-slate-800">
-                    <Sparkles className="h-4 w-4" />
+                  <div className="w-8 h-8 rounded-xl bg-[#222021] text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 border border-[#222021]/10">
+                    <BorisOperationsIcon className="h-4 w-4 text-[#ED1C24]" />
                   </div>
                 )}
 
                 <div
-                  className={`max-w-[85%] rounded-2xl p-4 shadow-xs relative group ${
+                  className={`max-w-[92%] rounded-2xl p-5 shadow-xs relative group ${
                     msg.sender === 'user'
-                      ? 'bg-[#ED1C24] text-white font-medium'
-                      : 'bg-white border border-[#222021]/15 text-[#222021] space-y-2'
+                      ? 'bg-[#ED1C24] text-white font-medium self-end ml-auto'
+                      : 'bg-white border border-[#222021]/15 text-[#222021] shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 pb-1 text-[10px] font-mono opacity-70 border-b border-white/20 mb-1">
-                    <span>{msg.sender === 'user' ? 'You (Admin)' : 'Boris AI Intelligence'}</span>
-                    <span>{msg.timestamp}</span>
-                  </div>
+                  {msg.sender === 'user' ? (
+                    <div>
+                      <div className="flex items-center justify-between gap-2 pb-1 text-[10px] font-mono opacity-80 border-b border-white/20 mb-2">
+                        <span>Supervisor Inquiry</span>
+                        <span>{msg.timestamp}</span>
+                      </div>
+                      <div className="text-xs font-semibold leading-relaxed">
+                        {msg.content}
+                      </div>
+                    </div>
+                  ) : msg.id === 'welcome' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-[#222021]/10">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded bg-[#ED1C24] text-white text-[10px] font-mono font-bold uppercase">
+                            ACTIVE COPILOT
+                          </span>
+                          <span className="text-xs font-bold text-[#222021]">
+                            AI Boris Executive Operations Intelligence
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-mono text-[#6b6968]">{msg.timestamp}</span>
+                      </div>
 
-                  <div className="whitespace-pre-wrap leading-relaxed select-text font-sans text-xs">
-                    {msg.content}
-                  </div>
+                      <p className="text-xs text-[#333130] leading-relaxed">
+                        I am your <strong>AI Operations & Floor Intelligence Copilot</strong>. I synthesize call telemetry, auto-notetaker summaries, rep cadence activities, and CRM dispositions across all your campaigns into executive-ready email reports.
+                      </p>
 
-                  {msg.sender === 'assistant' && (
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(msg.content, msg.id)}
-                      className="absolute top-3 right-3 text-slate-400 hover:text-[#ED1C24] opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-slate-50 border border-slate-200"
-                      title="Copy response"
-                    >
-                      {copiedId === msg.id ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-                    </button>
+                      <div className="pt-2 border-t border-[#222021]/10">
+                        <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] block mb-2">
+                          Click any question below to generate an instant email report:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {DEFAULT_PROMPTS.map((p, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => handleSendMessage(p.query)}
+                              className="text-left p-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 border border-[#222021]/10 text-xs font-medium text-[#222021] transition-all hover:border-[#ED1C24] flex items-center justify-between group/btn cursor-pointer"
+                            >
+                              <span>{p.label}</span>
+                              <Sparkles className="h-3 w-3 text-[#ED1C24] opacity-0 group-hover/btn:opacity-100 transition-opacity shrink-0 ml-1" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <ExecutiveReportRenderer 
+                      content={msg.content} 
+                      timestamp={msg.timestamp} 
+                    />
                   )}
                 </div>
 

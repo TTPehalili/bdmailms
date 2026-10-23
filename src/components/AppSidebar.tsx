@@ -19,6 +19,7 @@ import {
   BarChart3,
   Sparkles
 } from 'lucide-react';
+import BorisOperationsIcon from '@/components/icons/BorisOperationsIcon';
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -109,11 +110,11 @@ export default function AppSidebar() {
       tag: 'METRICS' 
     },
     { 
-      label: 'AI Assistant', 
+      label: 'Operations Intel', 
       href: '/assistant', 
-      icon: Sparkles, 
+      icon: BorisOperationsIcon, 
       isActive: pathname.startsWith('/assistant'), 
-      tag: 'COPILOT' 
+      tag: 'AI' 
     },
     { 
       label: 'Admin Control', 
@@ -151,15 +152,19 @@ export default function AppSidebar() {
         {/* Brand Header */}
         <div className={`flex items-center ${isExpanded ? 'justify-between px-1' : 'justify-center'}`}>
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="h-9 w-9 rounded-xl bg-[#ED1C24] flex items-center justify-center text-white font-black text-base shadow-md group-hover:scale-105 transition-transform shrink-0">
-              <span>⚡</span>
+            <div className="h-9 w-9 rounded-xl overflow-hidden bg-black flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0 border border-white/10">
+              <img 
+                src="/boris-operations-icon.jpg" 
+                alt="Appointmentlyy SDR Logo" 
+                className="h-full w-full object-cover" 
+              />
             </div>
             {isExpanded && (
               <div className="flex flex-col leading-none overflow-hidden">
                 <span className="font-black text-sm text-[#F2F0EF] tracking-tight truncate">
                   APPOINTMENTLYY
                 </span>
-                <span className="text-[10px] text-[#6b6968] font-mono mt-0.5">
+                <span className="text-[10px] text-[#ED1C24] font-mono font-bold mt-0.5">
                   BORIS SDR INTELLIGENCE
                 </span>
               </div>

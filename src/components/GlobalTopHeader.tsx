@@ -37,8 +37,22 @@ export default function GlobalTopHeader() {
   return (
     <header className="h-14 bg-white border-b border-[#222021]/10 px-5 flex items-center justify-between shrink-0 select-none z-30">
       
-      {/* Left: Brisbane Time Badge & Quick Search */}
+      {/* Left: Official Appointmentlyy SDR Logo & Brisbane Time */}
       <div className="flex items-center gap-3">
+        {/* Official Appointmentlyy Logo Mark */}
+        <div className="flex items-center gap-2 pr-2 border-r border-[#222021]/10">
+          <div className="h-7 w-7 rounded-lg overflow-hidden bg-black flex items-center justify-center shrink-0 border border-black/10">
+            <img 
+              src="/boris-operations-icon.jpg" 
+              alt="Appointmentlyy SDR Logo" 
+              className="h-full w-full object-cover" 
+            />
+          </div>
+          <span className="font-black text-xs text-[#222021] tracking-tight hidden sm:inline">
+            APPOINTMENTLYY <span className="text-[#ED1C24]">SDR</span>
+          </span>
+        </div>
+
         {/* Brisbane Time Pill */}
         <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#F2F0EF] border border-[#222021]/10 text-xs font-mono font-semibold text-[#222021]">
           <span className="text-[10px] uppercase font-bold text-[#6b6968]">BNE</span>

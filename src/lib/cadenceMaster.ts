@@ -243,6 +243,13 @@ export interface CadenceLeadRecord {
   email: string;
   phone: string;
   headcount: string;
+  website?: string;
+  linkedinUrl?: string;
+  techStack?: string;
+  painPoint?: string;
+  outsourcer?: string;
+  buyingSignals?: string[];
+  customVariables?: Record<string, string>;
   cadenceDay: number;
   touchNumber: number;
   isCarryOver: boolean;
@@ -260,6 +267,23 @@ export const DEMO_CADENCE_LEADS: CadenceLeadRecord[] = [
     email: 'julian@apexglobalbpo.com',
     phone: '+1 (415) 890-2341',
     headcount: '65 seats',
+    website: 'https://apexglobalbpo.ph',
+    linkedinUrl: 'https://www.linkedin.com/in/julian-vance-bpo',
+    techStack: 'HubSpot & Apollo.io',
+    painPoint: 'outbound hold rate and objection hesitation on shared lead lists',
+    outsourcer: 'Titan BPO Solutions',
+    buyingSignals: [
+      'Hiring 15 Outbound SDRs (Manila & Cebu)',
+      'Tech Stack: HubSpot CRM + Apollo.io Power Dialer',
+      'Recent News: Expanding into US Healthcare & FinTech appointment setting',
+      'Current Problem: 30% show-up drop-off from junior rep objection stumbling'
+    ],
+    customVariables: {
+      'Lead Source': 'Directory Intake (Outsource Accelerator)',
+      'Target Geography': 'US & Canada Enterprise',
+      'Average Deal Size': '$45,000 ARR',
+      'Incumbent Dialer': 'Apollo / Twilio BYOT'
+    },
     cadenceDay: 2,
     touchNumber: 3,
     isCarryOver: false,
@@ -274,6 +298,21 @@ export const DEMO_CADENCE_LEADS: CadenceLeadRecord[] = [
     email: 'mbrody@nexuscall.com',
     phone: '+1 (312) 555-0198',
     headcount: '120 seats',
+    website: 'https://nexuscallsolutions.com',
+    linkedinUrl: 'https://www.linkedin.com/in/marcus-brody-cx',
+    techStack: 'Salesforce & Outreach.io',
+    painPoint: 'rep ramp time and objection handling drop-offs',
+    outsourcer: 'Agency Partner BPO',
+    buyingSignals: [
+      'Migrated outbound telephony from legacy VICIdial to Twilio SIP',
+      'Open Job Postings: 8 Senior Outbound BDRs',
+      'LinkedIn Post: Emphasizing live AI coaching to reduce ramp time from 6 weeks to 10 days'
+    ],
+    customVariables: {
+      'Campaign': 'Enterprise Outbound Q4',
+      'Seat Quota Target': '4 Bookings/day/rep',
+      'Current Hold Rate': '54%'
+    },
     cadenceDay: 9,
     touchNumber: 8,
     isCarryOver: true,
@@ -289,6 +328,20 @@ export const DEMO_CADENCE_LEADS: CadenceLeadRecord[] = [
     email: 'elena@cleardial.io',
     phone: '+1 (646) 772-9102',
     headcount: '45 seats',
+    website: 'https://cleardial.io',
+    linkedinUrl: 'https://www.linkedin.com/in/elena-rostova-sales',
+    techStack: 'Salesloft & ZoomInfo',
+    painPoint: 'qualified discovery conversions and broker margin squeeze',
+    outsourcer: 'Internal 6-person SDR Team',
+    buyingSignals: [
+      'Attended Outsource Accelerator Global Summit',
+      'Publicly criticized $8/hr rate erosion on commoditized voice calls',
+      'Actively piloting AI copilots for cold call objection reversal'
+    ],
+    customVariables: {
+      'Pilot Budget': '$12,000 allocated for Q4 AI tool enablement',
+      'CRM': 'Salesforce Enterprise'
+    },
     cadenceDay: 15,
     touchNumber: 10,
     isCarryOver: true,
@@ -304,6 +357,20 @@ export const DEMO_CADENCE_LEADS: CadenceLeadRecord[] = [
     email: 'dchen@omnibpo.com',
     phone: '+1 (212) 449-3381',
     headcount: '210 seats',
+    website: 'https://omnibpo.com',
+    linkedinUrl: 'https://www.linkedin.com/in/david-chen-bpo',
+    techStack: 'Apollo & Outreach',
+    painPoint: 'acoustic compliance and deliverability on cold dials',
+    outsourcer: 'Burned domain previous vendor',
+    buyingSignals: [
+      'Seeking AI training software for 200+ agents',
+      'Evaluating LMS certification gates before letting reps take live calls',
+      'High turnover on outbound phone reps (34% quarterly churn)'
+    ],
+    customVariables: {
+      'Floor Locations': 'Cebu IT Park & Clark Freeport Zone',
+      'Average Talk Time': '42 seconds (Early Hangup Problem)'
+    },
     cadenceDay: 1,
     touchNumber: 1,
     isCarryOver: false,

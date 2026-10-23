@@ -148,45 +148,107 @@ Here is the verified data for your sales organization across your requested time
 
     // 2. CALL DRIVERS & BOOKING RATE IMPACT (based on call notes & dispositions)
     if (qLower.includes('driver') || qLower.includes('booking rate') || qLower.includes('impact') || qLower.includes('call notes') || qLower.includes('disposition') || qLower.includes('why') || qLower.includes('leak')) {
-      const responseMarkdown = `### 🔍 Call Drivers Analysis Impacting Booking Rate Performance
-*(Synthesized from 1,400+ recent call notes, objection patterns, and teleprompter dispositions)*
-
-Our AI analysis of recent call notes and telemetry reveals **3 major positive performance drivers** and **3 primary conversion bottlenecks**:
-
----
-
-#### 🚀 Top 3 Positive Call Drivers (Boosting Booking Rate):
-
-1. **Immediate Email Context Injection (+22.2% Hold Rate Lift)**:
-   * **Mechanism**: Reps who open calls referencing the exact prior email subject line (*"Sent an email yesterday titled 'quick question on {{company}} ramp time'..."*) cut initial prospect hang-ups by more than half.
-   * **Data Evidence**: Calls using the email-injected opener achieved a **36.2% connect-to-conversation rate**, compared to only 14.1% for standard generic openers.
-
-2. **Zero-Prep Guarantee & Screen Share Setup (88.9% Calendar Show-Up)**:
-   * **Mechanism**: Walking the prospect through Screen 6 expectations (*"Emil will share his screen directly, zero preparation needed on your end"*) and waiting for them to accept the invite while on the phone resulted in near-zero demo ghosting.
-
-3. **Chris Voss Accusation Audit on Day 15 & Day 24**:
-   * **Mechanism**: Using negative reverse selling (*"Usually when I haven't connected, it means reps are already crushing quota or you're swamped"*) yielded **14 high-ticket callbacks** from previously unresponsive BPO directors.
+      const responseMarkdown = `### 📊 EXECUTIVE QA & OUTBOUND OPERATIONS INTELLIGENCE BRIEFING
+**Subject:** Root-Cause Call Drivers Impacting Outbound Booking Rate & Floor Velocity  
+**Analyst:** Senior Outbound Operations, QA & Telemetry Systems Specialist  
+**Data Scope:** 1,482 Live Outbound Dials • 426 Conversations • 84 Dispositioned Call Notes Across 5 SDRs  
 
 ---
 
-#### ⚠️ Top 3 Conversion Leaks (Impacting Booking Rates Negatively):
+### 📈 EXECUTIVE SUMMARY: PERFORMANCE CORRELATION MATRIX
 
-1. **Price Resistance on Hourly Rates (Accounts for 48% of Lost Calls)**:
-   * **Root Cause**: When prospects mention offshore vendor rates ($8–$10/hr), reps who debate price instead of pivoting to **shared lead waste** immediately trigger an objection freeze.
-   * **Action Item**: Drill reps in the AI Sparring Arena on the **ARM Rebuttal: Lead Vendor Exclusivity**.
-
-2. **Premature Closing without Role Verification (24% Disqualification Rate)**:
-   * **Root Cause**: Reps rushing to calendar booking before completing Screen 1 role verification frequently pitch managers who lack budget authority.
-
-3. **Unrecorded Voicemail Drops on Day 3**:
-   * **Root Cause**: Reps hanging up unanswered dials without triggering the 15-second voicemail drop reduce the open rate of Email #2 by **15%**.
+| Operational Driver | High-Performing Cohort | Floor Average / Lagging | Net Booking Impact | Action Priority |
+| :--- | :--- | :--- | :--- | :--- |
+| **Email Context Opener (Screen 1)** | 91.4% Adherence | 34.2% Adherence | **+22.2% Hold Rate** | **CRITICAL (P0)** |
+| **Price Pivot to Shared Lead Waste** | 82.5% Rebuttal Use | 19.8% Rebuttal Use | **+18.6% Reversal Rate** | **HIGH (P1)** |
+| **Calendar Screen-Share Lock (Screen 6)** | 94.1% Live Verification | 41.0% Premature Push | **+36.8% Show-Up Rate** | **HIGH (P1)** |
+| **Day 3 Voicemail Drop Trigger** | 88.0% Audio Drop Rate | 32.5% Manual Hang-Up | **+15.0% Email #2 Opens** | **MEDIUM (P2)** |
+| **Premature Closing w/o Role Check** | 4.2% Occurrence | 28.6% Occurrence | **-24.0% Disqualification** | **CRITICAL (P0)** |
 
 ---
 
-#### 📝 Representative Excerpts from Live Call Notes:
-* *"Apex Global BPO (Julian Vance): Booked immediately after rep explained the 3-day ramp sparring simulation without burning client leads."*
-* *"ClearDial (Elena Rostova): Callback scheduled for Day 15 reverse sell; buyer responded positively to eliminating broker margin skims."*
-* *"OmniBPO (Disqualified): Rep pushed meeting time before confirming department head; prospect hung up."*`;
+### 🚀 POSITIVE CALL DRIVERS (ACCELERATING BOOKING RATE)
+
+#### 1. Immediate Prior-Email Context Injection in Opening 7 Seconds
+* **📊 The Data:**
+  * Dials opening with the exact prior email subject (*"Sent an email yesterday titled 'quick question on {{company}} ramp time'..."*) registered a **36.2% connect-to-conversation hold rate** vs. only **14.0%** on generic cold openers.
+  * Prospect instant hang-up rate dropped from **68.4% to 26.1%** across 420 verified recordings.
+* **🧠 Why It's Impacting:**
+  * Executive buyers receive 40+ vendor solicitations daily. Referencing an existing subject line shifts the prospect's mental frame from "unwanted telemarketing ambush" to "administrative follow-up to written correspondence," neutralizing immediate threat detection.
+* **🎯 Recommended Steps to Increase Performance:**
+  * **Floor Rule:** Mandate Screen 1 Teleprompter email injection as a binary pass/fail QA parameter.
+  * **Sparring Drill:** Have reps complete 5 rounds in the AI Sparring Arena on "The 5-Second Email Hook" before signing into live dial queues.
+
+#### 2. Dual-Confirmation Desktop Screen Share Lock (Screen 6 Gate)
+* **📊 The Data:**
+  * Verified calendar acceptance hold rate reached **88.9% (32 attended out of 36 booked demos)** when reps enforced the Screen 6 zero-prep desktop check, compared to **52.1%** when reps simply emailed a calendar invite post-call.
+* **🧠 Why It's Impacting:**
+  * Prospects agree to meetings casually to exit cold calls. Forcing them to confirm whether they will be at their laptop and having them accept the Google/Outlook calendar invite while on the phone locks psychological commitment and secures calendar real estate.
+* **🎯 Recommended Steps to Increase Performance:**
+  * **Workflow Update:** Update Cockpit CRM sync button to require checking "Zero-Prep Confirmed" and "Calendar Invitation Accepted Live on Call" before dispositioning as "Meeting Booked."
+
+#### 3. Chris Voss Accusation Audit on Stalled Cadence Dials (Day 15 & Day 24)
+* **📊 The Data:**
+  * Negative reverse selling (*"Usually when I haven't connected by now, it means either reps are crushing quotas with zero shared leads or you're swamped"*) yielded **14 high-intent callbacks** and **4 direct meetings** from previously cold accounts.
+* **🧠 Why It's Impacting:**
+  * Executives resist high-pressure sales persistence. Giving the prospect permission to say "no" or acknowledge they are swamped triggers autonomy, prompting honest disclosure of their actual operational bottlenecks.
+* **🎯 Recommended Steps to Increase Performance:**
+  * **Cadence Audit:** Ensure all Day 15 and Day 24 phone touches strictly deploy the Voss Accusation script instead of generic sales pitches.
+
+---
+
+### ⚠️ PRIMARY CONVERSION BOTTLENECKS (LEAKING BOOKINGS)
+
+#### 1. Price Resistance Freeze on Commodity Offshore Rates ($8–$10/hr)
+* **📊 The Data:**
+  * Accounts for **48.2% of all lost calls (54 out of 112 failed objections)** across call telemetry.
+  * Average call duration on price-objection losses is **42 seconds**, showing instant drop-off.
+* **🧠 Why It's Impacting:**
+  * Green reps make the mistake of debating hourly billable rates ($24/hr vs $8/hr) or defending margins. This validates the buyer's commodity view and forces a race-to-the-bottom comparison.
+* **🎯 Recommended Steps to Increase Performance:**
+  * **QA Refocus:** Train reps on the **ARM Rebuttal: Lead Vendor Exclusivity**. Shift the narrative immediately to: *"It's not about the hourly rep rate; it's about paying $8/hr for reps who burn through $6,000 of paid client leads because they stumble on objections."*
+  * **Arena Sparring:** Require reps with under 25% price reversal to run the "Commodity Broker Pushback" simulation until reaching a QA Sparring score >90.
+
+#### 2. Premature Calendly Push without Role Authority Verification
+* **📊 The Data:**
+  * Caused **24.0% of all disqualified bookings** (18 calendar slots canceled or rejected by founder/AE).
+  * 72% of these calls were pitched to team leads or supervisors who lacked budget signing authority.
+* **🧠 Why It's Impacting:**
+  * Reps anxious to hit daily appointment targets rush through Screen 1 without verifying whether the contact owns vendor procurement or P&L budget for the floor.
+* **🎯 Recommended Steps to Increase Performance:**
+  * **Cockpit Gate:** Enforce the "Role Verification" dropdown on Screen 1. If role is not verified as VP, Director, CRO, or Head of Ops, lock the "Screen Share Booking" screen and reroute the rep to "Referral / Contact Update."
+
+#### 3. Dropping Day 3 Calls without Triggering Voicemail Drop Audio
+* **📊 The Data:**
+  * Out of 164 unanswered dials on Day 3, reps skipped the 15-second Voicemail Drop button on **42% of calls**.
+  * Email #2 open rate dropped from **48.4% (with VM drop)** down to **33.1% (without VM drop)**.
+* **🧠 Why It's Impacting:**
+  * The Day 3 voicemail is designed as an auditory curiosity trailer for the email arriving 120 seconds later. Without the voicemail, Email #2 appears as unsolicited cold inbound.
+* **🎯 Recommended Steps to Increase Performance:**
+  * **Telephony Automation:** Configure the Boris phone engine to auto-play the 15s pre-recorded audio snippet whenever a dial hits an answering machine tone.
+
+---
+
+### 📝 REPRESENTATIVE CALL NOTES AUDIT EXCERPTS
+
+* **Julian Vance (Director, Apex Global BPO) • DISPOSITION: Meeting Booked (Thursday 2:00 PM)**
+  * *QA Note:* "Exemplary Screen 1 execution. Rep opened with Day 1 email subject. Prospect immediately lowered guard: 'Oh yeah, I saw that. We do have an issue with new reps burning leads.' Rep pivoted to 3-day sparring simulation and locked laptop invite on call."
+* **Elena Rostova (CRO, ClearDial Telephony) • DISPOSITION: Callback Scheduled (Day 15)**
+  * *QA Note:* "Rep utilized Chris Voss negative reverse selling on broker margin skim. Elena confirmed they are losing 35% margin to overseas brokers. Scheduled high-priority callback."
+* **David Chen (Managing Director, OmniBPO) • DISPOSITION: Disqualified / Wrong Desk**
+  * *QA Note:* "Rep skipped Screen 1 role check and pitched demo immediately. Prospect stated: 'I run HR compliance, not sales operations' and ended call."
+
+---
+
+### 📋 SUPERVISOR & QA IMMEDIATE 24-HOUR ACTION PLAN
+
+1. **Morning Floor Huddle (15 Mins):**
+   * Review the 5-second Email Context Opener audio recording from Alex Mercer (Apex Global).
+   * Review the Price Objection failure recording from OmniBPO to demonstrate the danger of debating hourly rates.
+2. **AI Sparring Certification:**
+   * Reps with <30% connect hold rate must complete 3 sparring rounds on **"Price Pushback & Lead Burn Pivot"** before 10:00 AM dial block.
+3. **End-of-Day QA Audit:**
+   * Supervisors to audit 5 calls per rep specifically grading: Email Subject Mention (Yes/No), Role Authority Check (Yes/No), and Live Screen 6 Calendar Lock (Yes/No).`;
 
       return NextResponse.json({
         answer: responseMarkdown,
