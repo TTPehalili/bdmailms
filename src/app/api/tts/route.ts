@@ -20,8 +20,7 @@ export async function POST(req: NextRequest) {
     // Default to Eric (conversational executive male) if voiceId not provided
     const targetVoiceId = voiceId || 'cjVigY5qzO86Huf0OWal';
 
-    const preferredModel = modelId || 'eleven_multilingual_v2';
-    const fallbackModel = preferredModel === 'eleven_multilingual_v2' ? 'eleven_turbo_v2_5' : 'eleven_multilingual_v2';
+    const preferredModel = modelId || 'eleven_v4_turbo';
 
     const candidateModels = [
       {
@@ -33,12 +32,30 @@ export async function POST(req: NextRequest) {
           use_speaker_boost: true
         }
       },
+      ...(preferredModel !== 'eleven_v4' ? [{
+        id: 'eleven_v4',
+        settings: {
+          stability: voiceSettings?.stability ?? 0.50,
+          similarity_boost: voiceSettings?.similarity_boost ?? 0.75,
+          style: voiceSettings?.style ?? 0.08,
+          use_speaker_boost: true
+        }
+      }] : []),
       {
-        id: fallbackModel,
+        id: 'eleven_multilingual_v2',
         settings: {
           stability: voiceSettings?.stability ?? 0.50,
           similarity_boost: voiceSettings?.similarity_boost ?? 0.75,
           style: voiceSettings?.style ?? 0.10,
+          use_speaker_boost: true
+        }
+      },
+      {
+        id: 'eleven_turbo_v2_5',
+        settings: {
+          stability: voiceSettings?.stability ?? 0.48,
+          similarity_boost: voiceSettings?.similarity_boost ?? 0.75,
+          style: voiceSettings?.style ?? 0.08,
           use_speaker_boost: true
         }
       }

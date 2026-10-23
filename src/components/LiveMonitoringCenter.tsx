@@ -30,19 +30,19 @@ import { PERSONA_VOICE_MAP, SparringCountry } from '@/lib/personas';
 
 const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
-// Dedicated Filipino BPO SDR Voice Profiles (Authentic neutral Philippine English)
+// Dedicated Filipino BPO SDR Voice Profiles (Authentic neutral Philippine English phone call voices)
 export const FILIPINO_REP_VOICES = {
   male: {
-    voiceId: 'TxGEqnHWrfWFTfGW9XjX', // Josh - Warm, clear, authentic Filipino neutral SDR cadence
-    label: 'Filipino Male SDR',
-    hub: 'Manila Floor',
-    accentBadge: '🇵🇭 Filipino Accent (Manila BPO Hub)'
+    voiceId: 'qh4NDtUSop0caPSI9C7m', // Jo - Articulate, confident Filipino male SDR phone delivery
+    label: 'Filipino Male SDR (Paolo)',
+    hub: 'Ortigas BPO Floor',
+    accentBadge: '🇵🇭 Filipino BPO Accent (Ortigas Hub)'
   },
   female: {
-    voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel - Crisp, empathetic Filipino neutral SDR cadence
-    label: 'Filipino Female SDR',
-    hub: 'Cebu Hub',
-    accentBadge: '🇵🇭 Filipino Accent (Cebu Tech Hub)'
+    voiceId: '4IYgKf4EiI6yTfzwgjC2', // Lovely - MGC x CallView (Authentic Filipino BPO Female SDR)
+    label: 'Filipino Female SDR (Lovely)',
+    hub: 'Manila Outbound Floor',
+    accentBadge: '🇵🇭 Filipino BPO Accent (Manila Floor)'
   }
 };
 
@@ -472,7 +472,7 @@ export default function LiveMonitoringCenter() {
         body: JSON.stringify({
           text: turn.text,
           voiceId: turn.voiceId,
-          modelId: 'eleven_multilingual_v2', // enforce high-fidelity regional accent synthesis
+          modelId: 'eleven_v4_turbo', // ElevenLabs V4 Turbo: ultra-low latency & native phone accent nuances
           voiceSettings: {
             stability: turn.role === 'rep' ? 0.52 : 0.45,
             similarity_boost: 0.75,
@@ -755,7 +755,7 @@ export default function LiveMonitoringCenter() {
             {/* Rep Voice Identity Badge */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-[11px] font-mono font-bold">
               <span>🇵🇭</span>
-              <span>REP VOICE: FILIPINO BPO ACCENT</span>
+              <span>REP VOICE: FILIPINO PHONE ACCENT (LOVELY & PAOLO • V4 TURBO)</span>
             </div>
           </div>
 
@@ -856,8 +856,8 @@ export default function LiveMonitoringCenter() {
 
         <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
           <span className="text-[10px] font-mono uppercase text-[#6b6968] block">Audio Stream Engine</span>
-          <span className="text-2xl font-black text-blue-600 font-mono">ElevenLabs</span>
-          <p className="text-[11px] text-[#6b6968]">Multilingual v2 Low-Latency</p>
+          <span className="text-2xl font-black text-blue-600 font-mono">ElevenLabs V4</span>
+          <p className="text-[11px] text-[#6b6968]">V4 Turbo Sub-100ms Latency</p>
         </div>
 
         <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-1">
