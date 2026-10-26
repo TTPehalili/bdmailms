@@ -41,12 +41,20 @@ const DEFAULT_PROMPTS = [
     query: 'Tell what our call drivers are that are impacting our booking rate performance based on all call notes and dispositions.'
   },
   {
-    label: '🔮 Next Week Follow-Up Forecast',
-    query: 'What is our scheduled follow-up and carry-over backlog forecast for next week?'
+    label: '🎯 Julian Vance Call Deep-Dive (Apex Global)',
+    query: 'What were the exact objections and conversation details on Julian Vance call?'
   },
   {
-    label: '🚫 Disqualifiers & Objection Breakdown',
-    query: 'What are the main objections and reasons causing disqualified calls across all call notes?'
+    label: '🛡️ ARM Objection Battlecards & Rebuttals',
+    query: 'Show me the ARM battlecards and rebuttal scripts for price and competitor objections.'
+  },
+  {
+    label: '🏆 Floor Rep Leaderboard & Quotas',
+    query: 'Who are our top performing reps today and what is their script adherence?'
+  },
+  {
+    label: '🔮 Next Week Follow-Up Forecast',
+    query: 'What is our scheduled follow-up and carry-over backlog forecast for next week?'
   }
 ];
 
