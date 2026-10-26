@@ -150,6 +150,29 @@ export default function BorisCallingCockpit() {
     const unsubscribe = subscribeToDispositions((updated) => {
       setAvailableDispositions(updated);
     });
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const companyParam = params.get('company');
+      const repParam = params.get('rep') || params.get('email');
+      const headcountParam = params.get('seats');
+
+      if (companyParam) setPartnerName(companyParam);
+      if (repParam) {
+        if (repParam.includes('@')) {
+          const namePart = repParam.split('@')[0].replace(/[._-]/g, ' ');
+          const formatted = namePart
+            .split(' ')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
+          setRepName(formatted);
+        } else {
+          setRepName(repParam);
+        }
+      }
+      if (headcountParam) setHeadcount(headcountParam);
+    }
+
     return unsubscribe;
   }, []);
 
