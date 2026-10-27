@@ -341,6 +341,98 @@ export function sanitizeColdEmail(text: string): { cleanText: string; emDashesCo
 }
 
 // =========================================================================
+// STRICT SUBJECT LINE HELPER (ENFORCES MAXIMUM OF 3 WORDS ONLY)
+// =========================================================================
+export function enforceMaxThreeWords(text: string): string {
+  if (!text) return 'quick question';
+  const clean = text
+    .toLowerCase()
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2B50}\u{200D}\u{FE0F}]/gu, '')
+    .replace(/[—–]/g, ' ')
+    .replace(/[^\w\s?]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const words = clean.split(' ').filter(Boolean);
+  if (words.length === 0) return 'quick question';
+  return words.slice(0, 3).join(' ');
+}
+
+/**
+ * Generates 3 suggested subject lines based on the end user's idea,
+ * strictly enforcing the maximum 3 words rule.
+ */
+export function suggestSubjectLinesFromIdea(
+  idea: string,
+  targetProspect?: { name?: string; company?: string; title?: string }
+): { label: string; text: string; angle: string }[] {
+  const shortCompany = (targetProspect?.company || 'Apex')
+    .replace(/BPO|Solutions|Inc|LLC|Corp|Group|Services/gi, '')
+    .trim()
+    .split(/\s+/)[0]
+    .toLowerCase() || 'apex';
+
+  const lowerIdea = (idea || '').toLowerCase().trim();
+
+  // Angle 1: Derived from user's idea (Friction Hook)
+  let variation1 = `${shortCompany} lead burn`;
+  if (lowerIdea.includes('broker') || lowerIdea.includes('middleman') || lowerIdea.includes('margin')) {
+    variation1 = 'broker margin leak';
+  } else if (lowerIdea.includes('ramp') || lowerIdea.includes('rookie') || lowerIdea.includes('onboard')) {
+    variation1 = 'rookie ramp time';
+  } else if (lowerIdea.includes('hesitation') || lowerIdea.includes('freeze') || lowerIdea.includes('stumble')) {
+    variation1 = 'caller freeze rate';
+  } else if (lowerIdea.includes('seat') || lowerIdea.includes('floor') || lowerIdea.includes('scale')) {
+    variation1 = `${shortCompany} seat scale`;
+  } else if (lowerIdea.includes('script') || lowerIdea.includes('teleprompt')) {
+    variation1 = 'scriptless caller test';
+  } else if (lowerIdea.length > 0) {
+    variation1 = enforceMaxThreeWords(lowerIdea);
+  }
+
+  // Angle 2: Low-Friction / Casual Internal Note
+  let variation2 = 'quick question';
+  if (lowerIdea.includes('direct') || lowerIdea.includes('contract')) {
+    variation2 = 'direct contract question';
+  } else if (lowerIdea.includes('time') || lowerIdea.includes('bad')) {
+    variation2 = 'bad timing?';
+  } else if (lowerIdea.includes('video') || lowerIdea.includes('demo')) {
+    variation2 = 'quick 2min video?';
+  } else {
+    variation2 = 'quick question';
+  }
+
+  // Angle 3: Seat Economics / Metric Focus
+  let variation3 = `${shortCompany} conversion leak`;
+  if (lowerIdea.includes('apollo') || lowerIdea.includes('hubspot') || lowerIdea.includes('stack')) {
+    variation3 = `${shortCompany} apollo list`;
+  } else if (lowerIdea.includes('churn') || lowerIdea.includes('attrition') || lowerIdea.includes('burnout')) {
+    variation3 = 'setter churn leak';
+  } else if (lowerIdea.includes('objection') || lowerIdea.includes('sparring')) {
+    variation3 = 'objection win rate';
+  } else {
+    variation3 = `${shortCompany} seat margins`;
+  }
+
+  return [
+    {
+      label: 'Friction Hook',
+      text: enforceMaxThreeWords(variation1),
+      angle: 'Based on your idea • Max 3 words'
+    },
+    {
+      label: 'Low Friction',
+      text: enforceMaxThreeWords(variation2),
+      angle: 'Casual internal peer note'
+    },
+    {
+      label: 'Seat Economics',
+      text: enforceMaxThreeWords(variation3),
+      angle: 'Account & metric observation'
+    }
+  ];
+}
+
+// =========================================================================
 // DETERMINISTIC COLD EMAIL GENERATOR (FOR IMMEDIATE OFFLINE & INSTANT UI)
 // =========================================================================
 export function getDeterministicColdEmail(
@@ -350,6 +442,11 @@ export function getDeterministicColdEmail(
 ): ColdEmailGeneratedDraft {
   const name = targetProspect?.name?.split(' ')[0] || 'Julian';
   const company = targetProspect?.company || 'Apex BPO';
+  const shortCompany = (company || 'Apex')
+    .replace(/BPO|Solutions|Inc|LLC|Corp|Group|Services/gi, '')
+    .trim()
+    .split(/\s+/)[0]
+    .toLowerCase() || 'apex';
   const idea = userIdea || 'I want to reach out to an operations leader whose SDRs are burning client leads because reps freeze on competitor price objections.';
 
   if (frameworkId === 'radical-transparency') {
@@ -364,8 +461,8 @@ If this earned 10 seconds of your attention, would you be open to a 2-minute loo
     return {
       id: 'draft-rt-default',
       subjectLines: [
-        { label: 'Radical Transparency', text: '10 seconds transparency', angle: 'Disarming pattern interrupt' },
-        { label: 'Direct Operational', text: `${company.toLowerCase()} rep conversion`, angle: 'Executive curiosity' },
+        { label: 'Radical Transparency', text: enforceMaxThreeWords('10 seconds transparency'), angle: 'Disarming pattern interrupt' },
+        { label: 'Direct Operational', text: enforceMaxThreeWords(`${shortCompany} rep conversion`), angle: 'Executive curiosity' },
         { label: 'No-Pressure', text: 'quick question', angle: 'Low friction lowercase' }
       ],
       selectedSubjectIndex: 0,
@@ -409,7 +506,7 @@ Worth a 2-minute look at how we fix that live, or bad timing?`;
       id: 'draft-allred-default',
       subjectLines: [
         { label: 'Lavender 2-Word', text: 'quick question', angle: 'Frictionless lowercase' },
-        { label: 'Specific Target', text: `${company.toLowerCase()} callers`, angle: 'Direct observation' },
+        { label: 'Specific Target', text: enforceMaxThreeWords(`${shortCompany} callers`), angle: 'Direct observation' },
         { label: 'Timing Check', text: 'bad timing?', angle: 'No-oriented' }
       ],
       selectedSubjectIndex: 0,
@@ -451,7 +548,7 @@ Curious if you have completely given up on stopping reps from getting shopped on
       id: 'draft-voss-default',
       subjectLines: [
         { label: 'No-Oriented', text: 'bad timing?', angle: 'Negative constraint psychology' },
-        { label: 'Protection', text: `${company.toLowerCase()} seat margins`, angle: 'Peer diagnostic' },
+        { label: 'Protection', text: enforceMaxThreeWords(`${shortCompany} seat margins`), angle: 'Peer diagnostic' },
         { label: 'Direct', text: 'completely off base?', angle: 'Low defense posture' }
       ],
       selectedSubjectIndex: 0,
@@ -496,7 +593,7 @@ Open to a 2-minute video showing how we insulate margins, or totally off base?`;
   return {
     id: 'draft-braun-default',
     subjectLines: [
-      { label: 'Friction Hook', text: `${company.toLowerCase()} lead burn`, angle: 'Uncovers hidden leak' },
+      { label: 'Friction Hook', text: enforceMaxThreeWords(`${shortCompany} lead burn`), angle: 'Uncovers hidden leak' },
       { label: 'Low Friction', text: 'quick question', angle: 'Under 3 words lowercase' },
       { label: 'Seat Economics', text: 'caller conversion leak', angle: 'Operational focus' }
     ],

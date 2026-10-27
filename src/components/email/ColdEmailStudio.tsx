@@ -32,7 +32,9 @@ import {
   ColdEmailFramework,
   ColdEmailGeneratedDraft,
   sanitizeColdEmail,
-  getDeterministicColdEmail
+  getDeterministicColdEmail,
+  enforceMaxThreeWords,
+  suggestSubjectLinesFromIdea
 } from '@/lib/coldEmailStudio';
 import { CadenceLeadRecord } from '@/lib/cadenceMaster';
 
@@ -42,6 +44,10 @@ export default function ColdEmailStudio() {
   const [userIdea, setUserIdea] = useState<string>(
     'I want to tell a BPO operations director that their 250 SDRs are wasting 4 hours a day on dead leads from shared broker lists where competitors already called 5 times. I want to invite them to see how we qualify leads live without buying more bloated Apollo lists.'
   );
+
+  // End User Subject Line Idea State
+  const [subjectLineIdea, setSubjectLineIdea] = useState<string>('');
+  const [isAnalyzingSubjectIdea, setIsAnalyzingSubjectIdea] = useState<boolean>(false);
 
   // Prospect Context State
   const [leads, setLeads] = useState<CadenceLeadRecord[]>([]);
@@ -163,6 +169,79 @@ export default function ColdEmailStudio() {
       setCurrentDraft(fallback);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Analyze Subject Line Idea Handler (Enforcing Maximum 3 Words ONLY)
+  const handleAnalyzeSubjectIdea = async (ideaOverride?: string) => {
+    const ideaToUse = (ideaOverride !== undefined ? ideaOverride : subjectLineIdea).trim();
+    if (!ideaToUse) return;
+
+    setIsAnalyzingSubjectIdea(true);
+    try {
+      const res = await fetch('/api/ai/cold-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'suggest-subject-lines',
+          subjectLineIdea: ideaToUse,
+          prospect: {
+            name: prospectName,
+            company: prospectCompany,
+            title: prospectTitle,
+            techStack: prospectTech,
+            painPoint: prospectPain
+          },
+          emailBody: editableBody,
+          frameworkId: selectedFrameworkId
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.subjectLines && Array.isArray(data.subjectLines) && data.subjectLines.length > 0) {
+          const strictlyEnforced = data.subjectLines.map((s: any) => ({
+            label: s.label || 'Subject',
+            text: enforceMaxThreeWords(s.text || ''),
+            angle: s.angle || 'Max 3 words lowercase'
+          }));
+          setCurrentDraft(prev => ({
+            ...prev,
+            subjectLines: strictlyEnforced,
+            selectedSubjectIndex: 0
+          }));
+          setSelectedSubjectIdx(0);
+          return;
+        }
+      }
+
+      // Intelligent Fallback with Strict 3-Word Limit
+      const fallbackSubjects = suggestSubjectLinesFromIdea(ideaToUse, {
+        name: prospectName,
+        company: prospectCompany,
+        title: prospectTitle
+      });
+      setCurrentDraft(prev => ({
+        ...prev,
+        subjectLines: fallbackSubjects,
+        selectedSubjectIndex: 0
+      }));
+      setSelectedSubjectIdx(0);
+    } catch (err) {
+      console.error('Failed to analyze subject line idea:', err);
+      const fallbackSubjects = suggestSubjectLinesFromIdea(ideaToUse, {
+        name: prospectName,
+        company: prospectCompany,
+        title: prospectTitle
+      });
+      setCurrentDraft(prev => ({
+        ...prev,
+        subjectLines: fallbackSubjects,
+        selectedSubjectIndex: 0
+      }));
+      setSelectedSubjectIdx(0);
+    } finally {
+      setIsAnalyzingSubjectIdea(false);
     }
   };
 
@@ -589,14 +668,20 @@ export default function ColdEmailStudio() {
             </div>
 
             {/* =================================================================== */}
-            {/* 1. SUBJECT LINE SELECTOR & EDITOR                                   */}
+            {/* 1. SUBJECT LINE SELECTOR, IDEA BOX & VARIATIONS (MAX 3 WORDS)       */}
             {/* =================================================================== */}
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-zinc-700 uppercase tracking-wider flex items-center gap-1">
-                  <span>Subject Line Variations</span>
-                  <span className="text-[10px] text-zinc-400 font-normal lowercase">(strictly under 4 words)</span>
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Subject Line Variations</span>
+                  </label>
+                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Check className="h-2.5 w-2.5 text-emerald-600" />
+                    Rule: Maximum 3 Words ONLY
+                  </span>
+                </div>
+
                 <button
                   onClick={() => copyToClipboard(currentDraft.subjectLines[selectedSubjectIdx]?.text || '', 'subject')}
                   className="text-[11px] text-zinc-600 hover:text-zinc-900 flex items-center gap-1 font-semibold"
@@ -615,37 +700,130 @@ export default function ColdEmailStudio() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {currentDraft.subjectLines.map((s, idx) => (
+              {/* End User Subject Line Idea Box */}
+              <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/90 space-y-2 text-left">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-zinc-800 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Subject Line Idea Box</span>
+                    <span className="text-[10px] text-zinc-500 font-normal">
+                      (Type your angle or pain point, AI analyzes and suggests 3 variations)
+                    </span>
+                  </span>
+                  <span className="text-[9px] font-mono text-zinc-400">
+                    Max 3 Words Rule
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={subjectLineIdea}
+                      onChange={(e) => setSubjectLineIdea(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAnalyzeSubjectIdea();
+                        }
+                      }}
+                      placeholder="e.g. broker margin leaks, 65 seats scaling, rep objection freeze, quick question..."
+                      className="w-full text-xs py-1.5 px-3 rounded-lg border border-zinc-300 bg-white placeholder:text-zinc-400 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-800"
+                    />
+                  </div>
+
                   <button
-                    key={idx}
-                    onClick={() => setSelectedSubjectIdx(idx)}
-                    className={`p-2.5 rounded-lg border text-left transition-all ${
-                      selectedSubjectIdx === idx
-                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-2xs ring-2 ring-zinc-900/10'
-                        : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-800 border-zinc-200'
-                    }`}
+                    type="button"
+                    onClick={() => handleAnalyzeSubjectIdea()}
+                    disabled={isAnalyzingSubjectIdea || !subjectLineIdea.trim()}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 transition-colors shadow-2xs whitespace-nowrap"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                        selectedSubjectIdx === idx ? 'text-amber-400' : 'text-zinc-500'
-                      }`}>
-                        {s.label}
-                      </span>
-                      {selectedSubjectIdx === idx && (
-                        <CheckCircle2 className="h-3 w-3 text-amber-400" />
-                      )}
-                    </div>
-                    <div className="font-mono text-xs font-bold truncate">
-                      {s.text}
-                    </div>
-                    <div className={`text-[10px] mt-1 line-clamp-1 ${
-                      selectedSubjectIdx === idx ? 'text-zinc-300' : 'text-zinc-400'
-                    }`}>
-                      {s.angle}
-                    </div>
+                    {isAnalyzingSubjectIdea ? (
+                      <>
+                        <RotateCw className="h-3 w-3 animate-spin text-amber-300" />
+                        <span>Analyzing Idea...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3 w-3 text-amber-400" />
+                        <span>Suggest Subject Lines</span>
+                      </>
+                    )}
                   </button>
-                ))}
+                </div>
+
+                {/* Quick Inspiration Angle Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <span className="text-[10px] text-zinc-400 font-medium">Quick Inspiration:</span>
+                  {[
+                    'broker margin leak',
+                    '65 seat scale',
+                    'lead list fatigue',
+                    'rep freeze rate',
+                    'quick question',
+                    'direct contract win'
+                  ].map((pill, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => {
+                        setSubjectLineIdea(pill);
+                        handleAnalyzeSubjectIdea(pill);
+                      }}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 transition-colors font-mono"
+                    >
+                      {pill}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3 Suggested Subject Line Variation Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {currentDraft.subjectLines.map((s, idx) => {
+                  const words = (s.text || '').trim().split(/\s+/).filter(Boolean);
+                  const wordCount = words.length;
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedSubjectIdx(idx)}
+                      className={`p-2.5 rounded-lg border text-left transition-all ${
+                        selectedSubjectIdx === idx
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow-2xs ring-2 ring-zinc-900/10'
+                          : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-800 border-zinc-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                          selectedSubjectIdx === idx ? 'text-amber-400' : 'text-zinc-500'
+                        }`}>
+                          {s.label}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[9px] font-mono px-1 py-0.2 rounded font-bold ${
+                            wordCount <= 3 
+                              ? (selectedSubjectIdx === idx ? 'bg-emerald-950 text-emerald-300' : 'bg-emerald-100 text-emerald-800')
+                              : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {wordCount}/3 words
+                          </span>
+                          {selectedSubjectIdx === idx && (
+                            <CheckCircle2 className="h-3 w-3 text-amber-400" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="font-mono text-xs font-bold truncate">
+                        {s.text}
+                      </div>
+                      <div className={`text-[10px] mt-1 line-clamp-1 ${
+                        selectedSubjectIdx === idx ? 'text-zinc-300' : 'text-zinc-400'
+                      }`}>
+                        {s.angle}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
