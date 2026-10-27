@@ -20,7 +20,8 @@ import {
   Radio,
   Workflow,
   BarChart3,
-  Check
+  Check,
+  Film
 } from 'lucide-react';
 import { useSession, UserRole } from '@/lib/session';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
@@ -33,6 +34,7 @@ interface NavCommand {
 }
 
 const COMMANDS: NavCommand[] = [
+  { title: 'GTM Video Teaser Cinema', category: 'Showcase', href: '/teaser', icon: Film },
   { title: 'AI Boris Calling Cockpit', category: 'Calling Floor', href: '/cockpit', icon: Swords },
   { title: 'AI Sparring Arena', category: 'Training', href: '/sparring', icon: Headphones },
   { title: 'LinkedIn Thought Leadership & Viral Studio', category: 'Social Outbound', href: '/linkedin', icon: LinkedinIcon },
@@ -223,6 +225,16 @@ export default function GlobalTopHeader() {
           >
             <Search className="h-4 w-4" />
           </button>
+
+          {/* GTM Teaser Shortcut */}
+          <Link
+            href="/teaser"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100/80 border border-rose-200/80 transition-colors shadow-2xs"
+            title="Watch 60-Second GTM Video Teaser"
+          >
+            <Film className="h-3 w-3 text-rose-600" />
+            <span>GTM Teaser</span>
+          </Link>
 
           {/* Guide Shortcut */}
           <Link

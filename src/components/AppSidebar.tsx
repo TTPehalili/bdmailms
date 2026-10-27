@@ -17,7 +17,8 @@ import {
   Bot,
   Building2,
   Lock,
-  Mail
+  Mail,
+  Film
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
@@ -44,6 +45,7 @@ export default function AppSidebar() {
 
   // Nav Groups
   const frontlineItems = [
+    { label: 'GTM Video Teaser', href: '/teaser', icon: Film },
     { label: 'Calling Floor', href: '/cockpit', icon: Swords },
     { label: 'Sparring Arena', href: '/sparring', icon: Headphones },
     { label: 'LinkedIn Studio', href: '/linkedin', icon: LinkedinIcon },
