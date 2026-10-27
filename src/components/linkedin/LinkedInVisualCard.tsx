@@ -43,12 +43,54 @@ export default function LinkedInVisualCard({
   // Visual Photo Variant (Primary vs Alternative e.g. Broker Devil)
   const [activeVariant, setActiveVariant] = useState<'primary' | 'alternative'>('primary');
 
-  // Fallback realistic photo URL
-  const defaultPhotoUrl = realisticImageUrl || `/images/linkedin/episode-${((episodeNumber - 1) % 3) + 1}-realistic.jpg`;
+  // Curated Library of 100% Local High-Resolution 35mm Photos (0ms latency, zero rate limits)
+  const LOCAL_AUTHENTIC_PHOTOS = [
+    {
+      url: '/images/linkedin/episode-1-realistic.jpg',
+      label: 'Manila BGC SDR Desk (Dual Monitors)',
+      badge: '🇵🇭 Filipino Talent'
+    },
+    {
+      url: '/images/linkedin/episode-2-realistic.jpg',
+      label: 'Manila BPO Team Leader & Rep Mentorship',
+      badge: '🇵🇭 Filipino Talent'
+    },
+    {
+      url: '/images/linkedin/episode-3-realistic.jpg',
+      label: 'Foreign Client & Filipino Ops Director Boardroom',
+      badge: '🤝 Client & PH Talent'
+    },
+    {
+      url: '/images/linkedin/episode-4-realistic.jpg',
+      label: 'Filipino Male SDR on BGC Outbound Floor',
+      badge: '🇵🇭 Filipino Talent'
+    },
+    {
+      url: '/images/linkedin/episode-5-realistic.jpg',
+      label: 'Filipino Operations Director Training Workshop',
+      badge: '🇵🇭 Filipino Talent'
+    },
+    {
+      url: '/images/linkedin/episode-6-realistic.jpg',
+      label: 'Foreign Client & Barong Tagalog BPO Founder Retainer',
+      badge: '🤝 Client & PH Talent'
+    }
+  ];
+
+  // Default realistic photo URL calculated from local pool
+  const defaultPhotoIndex = ((episodeNumber - 1) % LOCAL_AUTHENTIC_PHOTOS.length);
+  const defaultPhotoUrl = realisticImageUrl || LOCAL_AUTHENTIC_PHOTOS[defaultPhotoIndex].url;
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(defaultPhotoIndex);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>(defaultPhotoUrl);
-  const [isGeneratingFreshPhoto, setIsGeneratingFreshPhoto] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Safety: auto-sanitize away any third-party rate-limited URLs
+  React.useEffect(() => {
+    if (currentPhotoUrl && currentPhotoUrl.includes('pollinations.ai')) {
+      setCurrentPhotoUrl(defaultPhotoUrl);
+    }
+  }, [currentPhotoUrl, defaultPhotoUrl]);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -75,6 +117,19 @@ export default function LinkedInVisualCard({
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Cycle to next authentic photo in the curated local pool
+  const handleCycleAuthenticPhoto = () => {
+    const nextIndex = (currentPhotoIndex + 1) % LOCAL_AUTHENTIC_PHOTOS.length;
+    setCurrentPhotoIndex(nextIndex);
+    setCurrentPhotoUrl(LOCAL_AUTHENTIC_PHOTOS[nextIndex].url);
+  };
+
+  // Reset to default photo
+  const handleResetDefaultPhoto = () => {
+    setCurrentPhotoIndex(defaultPhotoIndex);
+    setCurrentPhotoUrl(defaultPhotoUrl);
   };
 
   // Download the realistic JPG photo directly
@@ -108,36 +163,6 @@ export default function LinkedInVisualCard({
       document.body.removeChild(link);
     } finally {
       setDownloading(false);
-    }
-  };
-
-  // Generate a fresh realistic photographic image using the Gemini prompt
-  const handleGenerateFreshPhoto = async () => {
-    setIsGeneratingFreshPhoto(true);
-    try {
-      // Clean and encode the prompt for FLUX photorealistic engine
-      const cleaned = encodeURIComponent(
-        activePhotoPrompt
-          .replace(/[\n\r]+/g, ' ')
-          .slice(0, 300)
-      );
-      const seed = Math.floor(Math.random() * 100000);
-      const freshUrl = `https://image.pollinations.ai/prompt/${cleaned}?width=1080&height=1080&nologo=true&seed=${seed}&model=flux`;
-      
-      // Preload image
-      const img = new Image();
-      img.onload = () => {
-        setCurrentPhotoUrl(freshUrl);
-        setIsGeneratingFreshPhoto(false);
-      };
-      img.onerror = () => {
-        console.warn('Fresh photo generation fallback to default');
-        setIsGeneratingFreshPhoto(false);
-      };
-      img.src = freshUrl;
-    } catch (err) {
-      console.error('Failed to generate fresh photo:', err);
-      setIsGeneratingFreshPhoto(false);
     }
   };
 
@@ -294,14 +319,6 @@ export default function LinkedInVisualCard({
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
 
-            {/* Loading Overlay */}
-            {isGeneratingFreshPhoto && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs gap-2 z-20">
-                <RotateCw className="h-5 w-5 animate-spin text-emerald-400" />
-                <span className="font-semibold text-[11px]">Generating Realistic Photo...</span>
-              </div>
-            )}
-
             {/* Episode & Aesthetic / Demographics Badge */}
             <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-between gap-1 pointer-events-none">
               <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-black/75 text-emerald-300 backdrop-blur-xs border border-white/10">
@@ -367,16 +384,15 @@ export default function LinkedInVisualCard({
             </p>
           </div>
 
-          {/* Action Buttons: Download Photo & Generate Fresh Photo */}
+          {/* Action Buttons: Download Photo & Cycle Curated Photos */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
-              onClick={handleGenerateFreshPhoto}
-              disabled={isGeneratingFreshPhoto}
+              onClick={handleCycleAuthenticPhoto}
               className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300 transition-colors"
-              title="Generate fresh realistic photo variation"
+              title="Cycle through curated authentic 35mm photos"
             >
-              <RefreshCw className={`h-3 w-3 ${isGeneratingFreshPhoto ? 'animate-spin' : ''}`} />
-              <span>Regenerate</span>
+              <RefreshCw className="h-3 w-3 text-zinc-600" />
+              <span>Switch Photo</span>
             </button>
 
             <button
@@ -388,6 +404,17 @@ export default function LinkedInVisualCard({
               <span>{downloading ? 'Saving...' : 'Download JPG'}</span>
             </button>
           </div>
+
+          {currentPhotoIndex !== defaultPhotoIndex && (
+            <div className="text-center pt-0.5">
+              <button
+                onClick={handleResetDefaultPhoto}
+                className="text-[10px] text-zinc-400 hover:text-zinc-700 underline transition-colors"
+              >
+                Reset to Episode {episodeNumber} Default
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         /* =================================================================== */

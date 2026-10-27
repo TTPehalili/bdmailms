@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Target, 
   Swords, 
   Headphones, 
   BookOpen, 
@@ -49,7 +48,6 @@ export default function AppSidebar() {
     { label: 'Sparring Arena', href: '/sparring', icon: Headphones },
     { label: 'LinkedIn Studio', href: '/linkedin', icon: LinkedinIcon },
     { label: 'Cold Email Studio', href: '/email', icon: Mail },
-    { label: 'Mission Overview', href: '/', icon: Target },
     { label: 'Performance', href: '/analytics', icon: BarChart3 },
     { label: 'Playbooks & Guide', href: '/guide', icon: BookOpen },
   ];
