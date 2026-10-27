@@ -31,12 +31,12 @@ export const POV_IMAGE_CATALOG: PovPhotoItem[] = [
   {
     id: 'broker-devil',
     url: '/images/linkedin/broker-middleman-devil.jpg',
-    headline: 'THE BROKER TAX: Margin Skim',
-    subtitle: 'Predatory Lead Broker • Devil in Disguise Archetype',
+    headline: 'THE BROKER TAX: 60% Cut & OPEX Drain',
+    subtitle: 'Predatory Middleman • 60% Skim & Floor Control Takeover',
     badge: '⚠️ Devil in Disguise',
     badgeType: 'devil',
-    buttonLabel: '⚠️ The Broker Tax',
-    prompt: 'A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 35% margin fees. Chiaroscuro dramatic lighting with subtle crimson rim light, psychological thriller tone, zero corporate cheer.'
+    buttonLabel: '⚠️ 60% Broker Tax',
+    prompt: 'A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 60% broker cut and cheap pay-per-performance terms. Chiaroscuro dramatic lighting with subtle crimson rim light, psychological thriller tone, zero corporate cheer.'
   },
   {
     id: 'script-discard-sparring',

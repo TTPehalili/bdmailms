@@ -43,7 +43,7 @@ export interface LinkedInPost {
 export const IMAGE_DEMOGRAPHIC_RULES = {
   filipinoTalentMandate: 'All individual SDRs, callers, setters, team leads, QA coaches, and operations managers must be authentic Filipino professionals with Southeast Asian features in contemporary Manila BGC, Makati, or Cebu tech workspaces.',
   foreignClientCollabRule: 'Foreign / Caucasian characters are strictly reserved for depicting the collaborative peer partnership between a foreign enterprise client and Filipino offshore talent.',
-  brokerDevilArchetype: 'When depicting lead brokers, commodity outsourcers, or middlemen siphoning margins, portray them as an arrogant, manipulative "devil in disguise" in a slick bespoke suit, calculating smirk, shadowy high-rise boardroom, with 35% margin markup paperwork.'
+  brokerDevilArchetype: 'When depicting lead brokers, commodity outsourcers, or middlemen siphoning margins, portray them as an arrogant, manipulative "devil in disguise" in a slick bespoke suit, calculating smirk, shadowy high-rise boardroom, with paperwork taking up to 60% cuts on cheap pay-per-performance tasks while completely disregarding BPO OPEX and operational control.'
 };
 
 export interface LinkedInSeries {
@@ -157,10 +157,10 @@ export const CONTINUITY_SERIES_PRESETS: ContinuityPreset[] = [
   {
     id: 'broker-margin-continuity',
     weekNumber: 1,
-    title: 'Broker Margin & Shared List Elimination Arc',
+    title: 'The 60% Broker Skim & OPEX Exploitation Arc',
     episodesRange: 'Episodes 1 - 3',
-    recapHook: 'Last week we broke down why paying brokers 35% margin skims for recycled leads destroys BPO profitability. This week, we go deeper into building direct-to-contract pipelines.',
-    theme: 'Direct Enterprise Contracts vs Commodity Broker Dependency',
+    recapHook: 'Last week we exposed why letting brokers take up to a 60% cut on cheap pay-per-performance tasks while the BPO shoulders 100% of the OPEX burden keeps floors trapped in cheap profits. This week, we dismantle the middleman control trap.',
+    theme: 'Taking Internal Acquisition Back: Eliminating 60% Broker Margin Skims and Taking Back Operational Sovereignty',
     nextPresetId: 'ramp-time-continuity',
     nextWeekTitle: 'Week 2: 72-Hour Rep Ramp & Voice Sparring Arc (Episodes 4-6)'
   },
@@ -169,7 +169,7 @@ export const CONTINUITY_SERIES_PRESETS: ContinuityPreset[] = [
     weekNumber: 2,
     title: '72-Hour Rep Ramp & Voice Sparring Arc',
     episodesRange: 'Episodes 4 - 6',
-    recapHook: 'Following up on last week\'s discussion about broker margins and lead fatigue: why do floors still let new reps burn 500 client accounts during 3 weeks of classroom onboarding?',
+    recapHook: 'Following up on last week\'s discussion about taking internal acquisition back from brokers: why do floors still let new reps burn 500 client accounts during 3 weeks of classroom onboarding?',
     theme: 'Eliminating the 3-Week Classroom Onboarding Tax',
     nextPresetId: 'objection-stumble-continuity',
     nextWeekTitle: 'Week 3: Sub-180ms Objection Handling Arc (Episodes 7-9)'
@@ -189,10 +189,10 @@ export const CONTINUITY_SERIES_PRESETS: ContinuityPreset[] = [
     weekNumber: 4,
     title: 'Enterprise Retainers & $24/hr Seats Arc',
     episodesRange: 'Episodes 10 - 12',
-    recapHook: 'Last week we mastered live objection recovery and consultative questioning. This week: the CRO\'s ultimate lever of breaking away from $8/hr rate wars into direct $24/hr retainers.',
+    recapHook: 'Last week we mastered live objection recovery and consultative questioning. This week: the CRO\'s ultimate lever of breaking away from cheap broker pay-per-performance into direct $24/hr retainers.',
     theme: 'Direct Enterprise Pricing & 500-Seat Floor Flywheel',
     nextPresetId: 'broker-margin-continuity',
-    nextWeekTitle: 'Week 1: Cycle back to List Enriched Pipeline'
+    nextWeekTitle: 'Week 1: Cycle back to Internal Acquisition Engine'
   }
 ];
 
@@ -205,34 +205,40 @@ export interface LinkedInIdeaPreset {
 
 export const LINKEDIN_IDEA_PRESETS: LinkedInIdeaPreset[] = [
   {
-    id: 'broker-margin-skim',
-    label: '35% Broker Margin Skim',
-    idea: 'I want to post about how BPOs lose 35% margin to lead brokers who resell recycled Apollo lists, and why direct client acquisition is the only way to protect seat gross margin.',
+    id: '60pct-broker-cut-opex',
+    label: '60% Broker Cut vs 100% BPO OPEX',
+    idea: 'Brokers take up to a 60% cut on cheap pay-per-performance campaigns while the BPO carries 100% of the OPEX burden. They take over operations without risking any capital. It is time to take internal acquisition back to all BPOs.',
     frameworkId: 'contrarian-truth'
   },
   {
+    id: 'pay-per-performance-trap',
+    label: 'Pay-Per-Performance & Control Loss',
+    idea: 'Middlemen hand BPOs cheap pay-per-performance appointment setting and leadgen campaigns, then micromanage and take over floor operations. They dictate your team while taking zero liability for overhead. Why BPOs must own their direct client acquisition.',
+    frameworkId: 'unspoken-blindspot'
+  },
+  {
+    id: '17yr-bdm-perspective',
+    label: '17-Year BDM Truth: End Middleman Mercy',
+    idea: '17 years ago when I worked as a BDM, BPOs were trapped under the mercy of brokers. Today, startup and mid-size BPOs are still surrendering their margins and operational sovereignty. Direct internal acquisition is the only real escape.',
+    frameworkId: 'frontline-floor-lesson'
+  },
+  {
+    id: 'sovereign-valuation-debate',
+    label: 'Broker Dependency vs Direct Equity',
+    idea: 'Would you rather keep 40 seats filled through broker pay-per-performance contracts at razor-thin margins with zero control, or build an autonomous 2-rep internal acquisition pod and command direct $24/hr enterprise retainers?',
+    frameworkId: 'two-way-debate'
+  },
+  {
     id: '72hr-ramp-classroom',
-    label: '72-Hour Ramp vs 4-Week Classrooms',
-    idea: 'Why traditional 4-week classroom SDR onboarding is a waste of money, and how live AI voice sparring transitions new hires to live dials in 72 hours.',
-    frameworkId: 'teardown-playbook'
+    label: '72-Hour Ramp vs 3-Week Classrooms',
+    idea: 'Why traditional 3-week classroom SDR onboarding burns client accounts, and how live AI voice sparring transitions new hires to live dials in 72 hours.',
+    frameworkId: 'under-90-data-teardown'
   },
   {
     id: 'sub-180ms-objection',
     label: 'Sub-180ms Live Objection Handling',
-    idea: 'Reps lose deals in the first 20 seconds when buyers bring up competitor pricing. Real-time consultative rebuttals in 150ms prevent hesitation.',
-    frameworkId: 'executive-paradox'
-  },
-  {
-    id: 'filipino-talent-robots',
-    label: 'Filipino Talent vs Script Robots',
-    idea: 'Foreign clients are terrified of hiring offshore callers who sound like scripted telemarketers. When Filipino SDRs are empowered as consultative operators, client retention jumps.',
-    frameworkId: 'contrarian-truth'
-  },
-  {
-    id: 'radical-meta-proof',
-    label: 'Radical Transparency / Meta-Proof',
-    idea: 'The reason this outreach felt different is because we used our own tool on you. If it earned your attention, it will earn your buyers attention on client campaigns.',
-    frameworkId: 'contrarian-truth'
+    idea: 'Reps lose deals in the first 20 seconds when buyers bring up competitor pricing. Real-time consultative teleprompting in 150ms prevents hesitation and closes direct enterprise contracts.',
+    frameworkId: 'under-90-data-teardown'
   }
 ];
 
@@ -651,81 +657,81 @@ export function getDeterministicLinkedInSeries(
     };
   }
 
-  // DEFAULT: WEEK 1: Broker Margins & Shared List Elimination Arc (Episodes 1 - 3)
+  // DEFAULT: WEEK 1: The 60% Broker Skim & OPEX Exploitation Arc (Episodes 1 - 3)
   return {
     seriesTitle: `The Autonomous BPO Outbound Series: Week 1 (Episodes 1-3)`,
     seriesHookRecap: preset.recapHook,
-    targetBottleneckSummary: `Grounded in ${summary.totalLeads} accounts: Tackling ${primaryPain} across ${summary.dominantHeadcount} floors.`,
+    targetBottleneckSummary: `Grounded in ${summary.totalLeads} accounts: Eliminating 60% broker margin skims and taking back operational sovereignty across ${summary.dominantHeadcount} floors.`,
     targetAudience: `BPO Founders, Managing Directors, CROs & Outbound Operations Leaders`,
     posts: [
       {
         id: 'post-ep1',
         episodeNumber: 1,
         dayLabel: 'Tuesday • Episode 1',
-        title: 'The Bottleneck Unveiled: The Incumbent Lead Trap',
-        hook: `Most BPOs think adding 15 more SDRs solves revenue slumps.\nIn reality, it just burns your paid prospect list 3x faster.`,
-        body: `When we look at ${summary.dominantHeadcount} contact centers, the bottleneck is rarely rep activity.\n\nIt is lead fatigue. Reps are handed identical directory lists that 4 other BPOs called this morning.\n\nProspects do not hate outbound. They hate answering the same generic script 5 times before lunch.`,
-        cta: `Curious: is your floor running private enriched lists right now, or still battling shared directory databases?`,
-        wordCount: 68,
-        estimatedReadSeconds: 18,
-        hashtags: ['#BPOOperations', '#ClientAcquisition', '#SalesDevelopment', '#OutboundStrategy', '#InsideSales'],
-        imagePrompt: `Minimalist high-contrast dark graphite infographic showing a 2-way split diagram: Left side labeled "The Shared Lead Trap" with red downward margin curve, Right side labeled "Proprietary Enriched Pipeline" with steady emerald growth line. Clean Swiss typography, zero clutter, 4k editorial graphic.`,
-        realisticPhotoPrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 35% margin fees. Chiaroscuro dramatic lighting with subtle crimson rim light, psychological thriller tone, zero corporate cheer.`,
+        title: 'The 60% Broker Skim: Who Really Carries Your OPEX?',
+        hook: `Brokers love offering cheap pay-per-performance campaigns to BPOs.\nWhat they never mention is that they take home up to a 60% cut while you carry 100% of the OPEX burden.`,
+        body: `Think about your monthly floor expenses: fiber, workstations, software seats, supervisor salaries, agent benefits, and attrition.\n\nThe middleman risks zero capital. They collect the majority of the margin, take over control of your operations, and leave you with razor-thin profits.\n\nIt is time to take internal acquisition back to all BPOs.`,
+        cta: `What percentage of your floor revenue is currently trapped under broker or third-party middleman contracts?`,
+        wordCount: 71,
+        estimatedReadSeconds: 19,
+        hashtags: ['#BPOOperations', '#ClientAcquisition', '#SalesDevelopment', '#OutboundStrategy', '#DealEconomics'],
+        imagePrompt: `Minimalist high-contrast dark graphite infographic showing a 2-way split diagram: Left side labeled "The 60% Broker Skim & 100% BPO OPEX Burden", Right side labeled "Internal Acquisition Engine (100% Retained Margin)". Clean Swiss typography, zero clutter, 4k editorial graphic.`,
+        realisticPhotoPrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 60% broker cut and cheap pay-per-performance terms. Dramatic chiaroscuro lighting with subtle crimson rim light, psychological thriller tone, zero corporate cheer.`,
         realisticImageUrl: '/images/linkedin/broker-middleman-devil.jpg',
         alternativeImageUrl: '/images/linkedin/script-discard-sparring.jpg',
         alternativeImageLabel: '⚡ Direct Outbound Engine',
         alternativeImagePrompt: `Authentic candid 35mm photojournalism in a high-tech Manila BGC outbound center: An articulate young Filipino male SDR wearing an ergonomic headset, intensely engaged in live consultative calling. Dual screens display "LIVE OBJECTION TELEPROMPTER CUES - 150ms LATENCY" and real-time prospect telemetry. On the desk next to him, a crumpled static PDF script sits discarded in a recycling bin, symbolizing the transition from rigid scripts to agile voice sparring. Modern glass architecture, warm natural daylight, Kodak Portra 400 aesthetic, authentic Filipino BPO setting.`,
         visualCard: {
           type: 'metric_callout',
-          headline: 'The Shared Lead Trap vs Proprietary Pipeline',
-          subheadline: 'Why adding more reps burns lists faster instead of filling seats',
-          metric: '35%',
-          metricLabel: 'Average margin skim paid to middlemen',
-          tag: 'EPISODE 01 • THE BOTTLENECK'
+          headline: 'The 60% Broker Skim vs 100% BPO OPEX Burden',
+          subheadline: 'Middlemen take 60% cuts while BPOs shoulder 100% of operational risk',
+          metric: '60%',
+          metricLabel: 'Cut taken by brokers on outsourced campaigns',
+          tag: 'EPISODE 01 • THE 60% SKIM'
         },
         injectedComments: [
-          'First comment for context: we audited 500k dials across mid-market BPOs and found that 82% of prospect hang-ups occur within the first 15 seconds due to generic script phrasing.',
-          'Curious to hear from other floor managers. How often are your reps encountering prospects who were already pitched by a competitor that same morning?'
+          '17 years ago BPOs were struggling with broker markups, and today startups are still carrying all the operational risk for cheap margins.',
+          'Curious how other BPO founders calculate their true net margin on broker-supplied pay-per-performance campaigns once seat OPEX is factored in.'
         ]
       },
       {
         id: 'post-ep2',
         episodeNumber: 2,
         dayLabel: 'Thursday • Episode 2',
-        title: 'The Tactical Playbook: 72-Hour Ramp Without Burning Client Leads',
-        hook: `The single most expensive tax in outbound is the "rookie ramp."\nLetting new SDRs practice on live client prospects.`,
-        body: `Instead of 3 weeks in a classroom reading PDF scripts, high-performing floors run sub-180ms voice AI sparring.\n\nNew hires face 40 simulated hostile calls on Day 1. By Day 3, they hit live dials with zero hesitation and zero list burning.\n\nConfidence is not taught in a slide deck. It is built through reps.`,
-        cta: `How many days does it take your new hires to book their first verified sit?`,
-        wordCount: 71,
+        title: 'The Pay-Per-Performance Trap: Reclaiming Operational Sovereignty',
+        hook: `When a broker hands you a cheap pay-per-performance campaign, they are not your partner.\nThey are a middleman taking over control of your floor operations without risking a single dollar of overhead.`,
+        body: `Brokers dictate your metrics, demand uncompensated overtime, and withhold client contact, all while keeping 50% to 60% of the contract value.\n\nWhen BPOs deploy their own internal outbound pod, they deal directly with North American and European enterprise decision-makers.\n\nControl your acquisition, and you control your operations.`,
+        cta: `Have you ever had a broker try to dictate your floor processes while paying rock-bottom performance rates?`,
+        wordCount: 70,
         estimatedReadSeconds: 19,
-        hashtags: ['#SalesEnablement', '#SDRTraining', '#BPOLeadership', '#ContactCenter', '#OutboundSales'],
-        imagePrompt: `Clean modern editorial diagram on dark zinc backdrop showing a 3-day timeline: Day 1 (AI Voice Sparring 40+ drills), Day 2 (Live Teleprompter Context), Day 3 (Production Dials). Modern tech aesthetic, sleek data points, 8k resolution.`,
+        hashtags: ['#BPOLeadership', '#OperationalSovereignty', '#OutsourcingStrategy', '#ContactCenter', '#DealEconomics'],
+        imagePrompt: `Clean modern editorial diagram on dark zinc backdrop showing the comparison: Broker Control Model (High OPEX Burden, 60% Skim, Zero Control) vs Sovereign Acquisition Model (Direct Contracts, Full Control, $24/hr Seats). Modern tech aesthetic, sleek data points, 8k resolution.`,
         realisticPhotoPrompt: `Authentic candid 35mm photojournalism in a high-tech Manila BGC outbound center: An articulate young Filipino male SDR wearing an ergonomic headset, intensely engaged in live consultative calling. Dual screens display "LIVE OBJECTION TELEPROMPTER CUES - 150ms LATENCY" and real-time prospect telemetry. On the desk next to him, a crumpled static PDF script sits discarded in a recycling bin, symbolizing the transition from rigid scripts to agile voice sparring. Modern glass architecture, warm natural daylight, Kodak Portra 400 aesthetic, authentic Filipino BPO setting.`,
         realisticImageUrl: '/images/linkedin/script-discard-sparring.jpg',
         alternativeImageUrl: '/images/linkedin/broker-middleman-devil.jpg',
         alternativeImageLabel: '⚠️ The Middleman Trap',
-        alternativeImagePrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 35% margin fees.`,
+        alternativeImagePrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 60% margin fees.`,
         visualCard: {
           type: 'process_flow',
-          headline: 'The 72-Hour Production Ramp Framework',
-          subheadline: 'Day 1 Sparring -> Day 2 Teleprompter -> Day 3 Production',
-          metric: '72 hrs',
-          metricLabel: 'Time to live production without burning leads',
-          tag: 'EPISODE 02 • THE PLAYBOOK'
+          headline: 'The Pay-Per-Performance Trap vs Sovereign Operations',
+          subheadline: 'Reclaiming floor control from predatory middleman campaigns',
+          metric: '100%',
+          metricLabel: 'BPO OPEX burden carried vs 0% broker risk',
+          tag: 'EPISODE 02 • THE CONTROL TRAP'
         },
         injectedComments: [
-          'Dropping a quick operational stat here: floors that practice objection sparring prior to live dials report a 40% reduction in first-week agent churn.',
-          'Would love to hear how operations teams currently evaluate whether a new setter is truly ready for live dials.'
+          'The moment a broker starts micromanaging your floor supervisors without paying for seat overhead, you are subsidizing their agency.',
+          'Direct client acquisition is the only moat that prevents brokers from pulling campaigns without warning.'
         ]
       },
       {
         id: 'post-ep3',
         episodeNumber: 3,
         dayLabel: 'Friday • Episode 3',
-        title: 'The Unspoken Dilemma & Series Bridge: Direct Contracts vs Broker Commissions',
-        hook: `Next week we are diving into billable seat economics.\nBefore we do, I want to pose an uncomfortable question to BPO leaders:`,
-        body: `Why are so many floors still content surrendering 30% to 35% of their revenue to lead brokers and middlemen?\n\nDirect US and European enterprise contracts exist. The hurdle is not quality of delivery. It is having an internal client acquisition engine you control.\n\nWhen you own your pipeline, you own your pricing.`,
-        cta: `Would you rather have 10 seats filled through a broker at $14/hr, or 6 seats filled direct at $24/hr?`,
+        title: 'Taking Internal Acquisition Back: 17 Years of Middleman Mercy Ends Now',
+        hook: `17 years ago as a BDM, I watched BPOs slave away on cheap broker deals.\nToday, too many startup to mid-sized BPOs are still at the mercy of middlemen.`,
+        body: `Brokers will tell you that finding direct US enterprise clients is too hard and that you should stick to delivery.\n\nThat is how they protect their 60% cut. The reality? With a modern autonomous outbound engine, two Filipino SDRs can generate all the direct enterprise sits your floor needs.\n\nOwn the pipeline. Keep the equity.`,
+        cta: `Would you rather run 30 brokered seats at cheap margins, or 15 direct enterprise seats at $24/hr with 100% control?`,
         wordCount: 74,
         estimatedReadSeconds: 20,
         hashtags: ['#BPOStrategy', '#BusinessDevelopment', '#RevenueGrowth', '#OutsourcingLeadership', '#DealEconomics'],
@@ -734,18 +740,18 @@ export function getDeterministicLinkedInSeries(
         realisticImageUrl: '/images/linkedin/direct-partnership-equity.jpg',
         alternativeImageUrl: '/images/linkedin/broker-middleman-devil.jpg',
         alternativeImageLabel: '⚠️ The Middleman Trap (Devil in Disguise)',
-        alternativeImagePrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 35% margin fees. Dramatic chiaroscuro lighting, subtle devilish amber and crimson rim light, psychological thriller tone.`,
+        alternativeImagePrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 60% margin fees. Dramatic chiaroscuro lighting, subtle devilish amber and crimson rim light, psychological thriller tone.`,
         visualCard: {
           type: 'comparison_grid',
           headline: 'Broker Dependency vs Direct Pipeline Ownership',
           subheadline: 'Comparing billable rates and margin retention',
           metric: '$24/hr',
           metricLabel: 'Direct enterprise contract billable rate',
-          tag: 'EPISODE 03 • THE DEBATE'
+          tag: 'EPISODE 03 • THE BRIDGE'
         },
         injectedComments: [
-          'To clarify, brokers have their place for immediate floor fill, but over-relying on them leaves BPOs vulnerable to sudden margin cuts.',
-          'Next Tuesday we will break down the exact list-building filters top BDM teams use to bypass middlemen entirely.'
+          'Brokers will always push cheap pay-per-performance over direct retainers because that is how their margin skim survives.',
+          'Next Tuesday we will break down the exact 72-hour rep ramp protocol top floors use to run their own internal acquisition.'
         ]
       }
     ]
@@ -763,29 +769,29 @@ export function getDeterministicViralComments(viralPostText: string): ViralComme
     {
       id: 'viral-cmt-1',
       angle: 'Counter-Perspective',
-      comment: 'Interesting take, but in BPO operations we usually see the opposite. Activity numbers mean nothing if the list has already been fatigued by three other agencies. List exclusivity beats call volume every time.',
-      wordCount: 33,
+      comment: 'Interesting take, but in BPO operations the real margin killer is middleman broker dependency. Brokers take a 60% cut on cheap pay-per-performance while the BPO carries 100% of the OPEX burden. Direct acquisition always beats broker scraps.',
+      wordCount: 36,
       intent: 'Challenges conventional wisdom respectfully with operational reality.'
     },
     {
       id: 'viral-cmt-2',
       angle: 'Consultative Question',
-      comment: 'Curious how you track this across junior versus senior reps. We find newer reps stumble on objections in the first 20 seconds, which skews the whole data set. What is your benchmark for call hold time?',
-      wordCount: 36,
+      comment: 'Curious how this aligns with your seat economics. When we audit contact centers, outsourced campaigns with middlemen yield less than 15% net after seat OPEX. What is your floor benchmark for direct vs brokered revenue?',
+      wordCount: 34,
       intent: 'Prompts the creator and other executives to reply by asking a sharp operational question.'
     },
     {
       id: 'viral-cmt-3',
       angle: 'Frontline BPO Operator',
-      comment: 'Spot on. On our outbound floors, once reps stopped reading rigid PDF scripts and treated calls as diagnostic conversations, qualified sits increased significantly. The script is usually the real bottleneck.',
+      comment: 'Spot on. On our outbound floors, once we built an internal acquisition pod and bypassed brokers, agent retention jumped and seat rates climbed from $8 to $24/hr. Owning acquisition changes everything.',
       wordCount: 30,
       intent: 'Shares verified frontline experience without promoting or selling.'
     },
     {
       id: 'viral-cmt-4',
       angle: 'Punchy 20-Word',
-      comment: 'Execution always trumps script length. When reps sound like consultants instead of telemarketers, gatekeepers let their guard down immediately.',
-      wordCount: 19,
+      comment: 'Brokers do not pay for your floor OPEX. When BPOs own their internal acquisition, they own their destiny.',
+      wordCount: 18,
       intent: 'Under 20 words. Clean, punchy agreement that gets pinned by the author.'
     }
   ];
@@ -808,21 +814,21 @@ export function getDeterministicThreadFollowUps(authorReplyText: string): Thread
     {
       id: 'thread-reply-1',
       stage: 'Deepen Dialogue',
-      reply: 'Fair point on that distinction. We noticed that when reps switch to permission openers, conversion doubles even on the same headcount. Have you tested varying the first fifteen seconds?',
-      wordCount: 30,
+      reply: 'Fair point on that distinction. We noticed that when BPOs stop relying on broker campaigns and run direct internal acquisition, client retention triples. Have you tested direct client outreach recently?',
+      wordCount: 31,
       strategicGoal: 'Validates their reply while introducing a specific operational test.'
     },
     {
       id: 'thread-reply-2',
       stage: 'Nuanced Counter',
-      reply: 'Completely agree on the quality side. The dilemma most founders face is balancing lead volume against rep idle time. How does your floor protect against burning fresh accounts during ramp?',
-      wordCount: 30,
-      strategicGoal: 'Keeps the public dialogue thought-provoking and positions you as a peer.'
+      reply: 'Completely agree on quality. The dilemma most founders face is carrying 100% OPEX while brokers take 60% of the cut. How does your floor protect seat margins on performance deals?',
+      wordCount: 29,
+      strategicGoal: 'Keeps the public dialogue thought-provoking and positions you as an operational peer.'
     },
     {
       id: 'thread-reply-3',
       stage: 'Relationship Bridge to DM',
-      reply: 'Appreciate the thoughtful exchange on this. Sent you a connection request so we can stay in touch as the Q3 outbound landscape evolves.',
+      reply: 'Appreciate the thoughtful exchange on this. Sent you a connection request so we can stay in touch as the BPO outbound landscape evolves.',
       wordCount: 23,
       strategicGoal: 'Natural, zero-pressure invitation to connect and transition into direct messaging.'
     }

@@ -57,7 +57,7 @@ export default function LinkedInCreatorStudio() {
   const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>('contrarian-truth');
   const [selectedPresetId, setSelectedPresetId] = useState<string>('broker-margin-continuity');
   const [customTopic, setCustomTopic] = useState<string>(
-    'I want to post about how BPOs lose 35% margin to lead brokers who resell recycled Apollo lists, and why direct client acquisition is the only way to protect seat gross margin.'
+    'Brokers take up to a 60% cut on cheap pay-per-performance campaigns while the BPO carries 100% of the OPEX burden. They take over operations without risking any capital. It is time to take internal acquisition back to all BPOs.'
   );
   const [isGeneratingSeries, setIsGeneratingSeries] = useState(false);
   const [seriesData, setSeriesData] = useState<LinkedInSeries>(() => 
@@ -436,9 +436,17 @@ export default function LinkedInCreatorStudio() {
                 rows={3}
                 value={customTopic}
                 onChange={(e) => setCustomTopic(e.target.value)}
-                placeholder="Type your raw thought, experience, or observation here. For example: 'I want to call out middleman brokers who mark up BPO seats by 300% without providing any training or QA, and explain why direct contracts always win'..."
+                placeholder="Type your raw thought, experience, or observation here. For example: 'Brokers take up to a 60% cut on cheap pay-per-performance campaigns while BPO carries 100% OPEX burden. They take over operations without risking capital. It is time to take internal acquisition back to all BPOs'..."
                 className="w-full text-xs bg-white border border-amber-200 rounded-lg p-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-amber-500 shadow-2xs leading-relaxed"
               />
+
+              {/* AI Logic & Framework Intelligence Confirmation */}
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-100/70 border border-amber-300/80 text-[11px] text-amber-950 leading-tight">
+                <Sparkles className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                <span>
+                  <strong>AI Idea Engine Active:</strong> Anchors 3 episodes directly to your Idea Box • Applies <em>{LINKEDIN_FRAMEWORKS.find(f => f.id === selectedFrameworkId)?.name}</em> • Enforces 17-Year BDM POV: 60% broker cut vs 100% BPO OPEX burden &amp; taking internal acquisition back.
+                </span>
+              </div>
 
               {/* Quick Idea Starters */}
               <div className="space-y-1.5 pt-1">
