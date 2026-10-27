@@ -23,6 +23,7 @@ import {
   Check
 } from 'lucide-react';
 import { useSession, UserRole } from '@/lib/session';
+import LinkedinIcon from '@/components/icons/LinkedinIcon';
 
 interface NavCommand {
   title: string;
@@ -34,6 +35,7 @@ interface NavCommand {
 const COMMANDS: NavCommand[] = [
   { title: 'AI Boris Calling Cockpit', category: 'Calling Floor', href: '/cockpit', icon: Swords },
   { title: 'AI Sparring Arena', category: 'Training', href: '/sparring', icon: Headphones },
+  { title: 'LinkedIn Thought Leadership & Viral Studio', category: 'Social Outbound', href: '/linkedin', icon: LinkedinIcon },
   { title: 'Live Floor Monitoring', category: 'Supervision', href: '/monitoring', icon: Radio },
   { title: 'Mission & Targets Hub', category: 'Overview', href: '/', icon: Target },
   { title: 'Workflow Automation Studio', category: 'Automation', href: '/workflows', icon: Workflow },
