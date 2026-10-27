@@ -385,8 +385,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 04 • THE ONBOARDING TRAP'
           },
           injectedComments: [
-            'We audited SDR attrition across mid-market contact centers and found that 40 percent of reps who quit do so because of classroom roleplay anxiety.',
-            'Would love to hear how operations teams currently evaluate when an agent is genuinely ready for live client leads.'
+            'Paying junior reps for 3 weeks of classroom roleplay is pure executive cowardice. It is subsidizing hesitation while fresh leads rot.',
+            'If your SDRs cannot handle live buyer hostility after 3 days of voice sparring, no 60-page PDF script is going to save them.'
           ]
         },
         {
@@ -415,8 +415,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 05 • THE PROTOCOL'
           },
           injectedComments: [
-            'Our data shows that reps who complete 40 objection drills prior to live dials retain 3x more prospects in the first 20 seconds.',
-            'Curious what the hardest objection for your callers to disarm is right now.'
+            'Reps do not burn out from dialing. They burn out from freezing on live objections because management never forced them to spar before touching live leads.',
+            'Practicing sales pitches on live paying clients should be considered operational malpractice. Spar with hostile AI first.'
           ]
         },
         {
@@ -445,8 +445,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 06 • THE BENCHMARK'
           },
           injectedComments: [
-            'Next week we will break down the exact sub-180ms conversational frameworks top reps use to disarm price pushback in real time.',
-            'To clarify, speed to production does not mean rushing agents; it means replacing passive lectures with active sparring.'
+            'A 21-day onboarding ramp is a tax on incompetence. In 2026, any floor taking longer than 72 hours to get an SDR production-ready is bleeding capital.',
+            'How much money is your agency secretly losing every month paying reps who are terrified of picking up the phone?'
           ]
         }
       ]
@@ -487,8 +487,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 07 • LATENCY'
           },
           injectedComments: [
-            'Auditing 100k call recordings proved that any hesitation over 1.2 seconds triggers an immediate defensive response from enterprise buyers.',
-            'Curious if other operations teams coach micro-pacing in their QA scorecards.'
+            'That two-second silence when a buyer objects is where deals go to die. It instantly screams scripted telemarketer to any intelligent executive.',
+            'Static scripts belong in a museum. If your reps do not have real-time objection cues in under 180ms, you are setting them up for failure.'
           ]
         },
         {
@@ -517,8 +517,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 08 • THE OPENER'
           },
           injectedComments: [
-            'Granting the buyer permission to hang up is the single fastest way to disarm sales defensiveness we have ever tested.',
-            'Would love to hear how fellow outbound leaders coach reps on handling impatient prospects.'
+            'Opening a cold dial with "How are you today?" is an insult to the prospect intelligence. Everyone knows you do not care.',
+            'Giving a prospect full permission to hang up in the first 20 seconds separates sovereign consultants from desperate callers. Why are most floors terrified to do it?'
           ]
         },
         {
@@ -547,8 +547,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 09 • THE BRIDGE'
           },
           injectedComments: [
-            'Next Tuesday we break down how top Philippine operations scale from $8/hr rate wars into direct $24/hr multi-seat retainers.',
-            'Brokers will always push volume over exclusivity because that is how their commission model survives.'
+            'Brokers resell the exact same exhausted Apollo list to five competing agencies. You are literally paying to have your reps abused on the phone.',
+            'Exclusivity is the only reason direct enterprise clients pay $24/hr. Why keep dialing shared lists that destroy your brand?'
           ]
         }
       ]
@@ -589,8 +589,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 10 • THE MARGIN TRAP'
           },
           injectedComments: [
-            'Floors that command $24/hr retain their top 10% of reps 4x longer than commodity floors competing for $8/hr contracts.',
-            'Curious what percentage of your floor revenue currently comes from direct contracts versus sub-contracted agency work.'
+            'Selling seats at $8/hr is a race to the bottom that you win by going bankrupt. You cannot retain tier-one talent on broker commodity crumbs.',
+            'If your floor has a 60% quarterly rep turnover, stop blaming the recruiters. Your rock-bottom billable rates are the disease.'
           ]
         },
         {
@@ -619,8 +619,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 11 • THE POD MODEL'
           },
           injectedComments: [
-            'A 2-rep internal acquisition pod generates on average 12 direct enterprise sits per month when using exclusive enriched lists.',
-            'Would love to hear how fellow BPO founders structure incentives for internal BDMs.'
+            'Philippine delivery floors are world-class, yet founders still beg US middlemen for deals. Build a two-rep internal acquisition pod and take your sovereignty back.',
+            'Why let an American broker charge the client $35/hr and pay you $12? Cut them out and negotiate direct.'
           ]
         },
         {
@@ -649,8 +649,8 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 12 • THE VALUATION SHIFT'
           },
           injectedComments: [
-            'Next month we will begin a brand-new 4-week series on AI-Assisted QA scorecards and floor retention strategies.',
-            'Direct contracts give BPO operators the pricing stability needed to invest heavily in agent retention and training.'
+            'Brokered revenue is worthless to private equity investors. If middlemen can cancel your campaigns tomorrow, your BPO has zero enterprise multiple.',
+            'A 50-seat floor on direct client contracts is worth triple a 200-seat floor surviving on broker subcontract crumbs. Change my mind.'
           ]
         }
       ]
@@ -690,8 +690,8 @@ export function getDeterministicLinkedInSeries(
           tag: 'EPISODE 01 • THE 60% SKIM'
         },
         injectedComments: [
-          '17 years ago BPOs were struggling with broker markups, and today startups are still carrying all the operational risk for cheap margins.',
-          'Curious how other BPO founders calculate their true net margin on broker-supplied pay-per-performance campaigns once seat OPEX is factored in.'
+          'Unpopular truth: If your BPO relies on broker pay-per-performance deals to survive, you do not own an agency. You own a rented floor subsidizing someone else margin.',
+          'Brokers pocket 60% while you pay the electric bill, workstations, and HMOs. Why do BPO owners accept being treated like disposable commodity labor?'
         ]
       },
       {
@@ -720,8 +720,8 @@ export function getDeterministicLinkedInSeries(
           tag: 'EPISODE 02 • THE CONTROL TRAP'
         },
         injectedComments: [
-          'The moment a broker starts micromanaging your floor supervisors without paying for seat overhead, you are subsidizing their agency.',
-          'Direct client acquisition is the only moat that prevents brokers from pulling campaigns without warning.'
+          'Pay-per-performance is the biggest scam in outsourcing. It forces the BPO to carry 100% of the operational risk while the middleman collects risk-free profit.',
+          'The moment a broker dictates your team KPIs while paying cheap lead rates, they stole your operations. When will BPO founders learn to say no?'
         ]
       },
       {
@@ -750,8 +750,8 @@ export function getDeterministicLinkedInSeries(
           tag: 'EPISODE 03 • THE BRIDGE'
         },
         injectedComments: [
-          'Brokers will always push cheap pay-per-performance over direct retainers because that is how their margin skim survives.',
-          'Next Tuesday we will break down the exact 72-hour rep ramp protocol top floors use to run their own internal acquisition.'
+          'Hard take: Most BPO founders complain about low margins but refuse to hire even one internal SDR to hunt direct clients. The broker dependency is self-inflicted.',
+          'Would love someone to justify this: why surrender 60% of your revenue to a broker when two internal SDRs can land direct $24/hr retainers?'
         ]
       }
     ]

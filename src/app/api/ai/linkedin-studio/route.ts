@@ -370,7 +370,17 @@ MANDATORY RULES:
 1. ZERO EM DASHES: Do NOT use em dashes ("—" or "–" or "--"). Use commas, periods, or clean short clauses instead.
 2. ZERO EMOJIS: Do NOT use a single emoji anywhere in the post body, hooks, CTAs, or comments.
 3. BODY LENGTH: Strictly under 90 words per post body.
-4. INJECTED COMMENTS: Exactly 2 pre-drafted comments under 35 words each that the SDR/BDM can post as comments 1 and 2 to ignite dialogue. Strictly ZERO em dashes and ZERO emojis.
+4. INJECTED DISCUSSION COMMENTS (MUST BE BOLD, CONTROVERSIAL & ENGAGEMENT-IGNITING):
+   The primary purpose of injected comments is to provide the creator with spicy, high-leverage follow-up comments to post beneath their own post immediately after publishing. This continues the engagement, provokes strong emotional reactions, and compels readers (BPO founders, CROs, brokers, and floor directors) to comment their thoughts.
+   - THEY MUST BE BOLD, CONTROVERSIAL, AND UNAPOLOGETIC.
+   - Strictly NO polite, bland corporate PR platitudes or timid questions.
+   - DIRECTLY POKE THE SACRED COWS OF THE INDUSTRY:
+     * Comment 1 (Bold Truth Bomb / Hard Operational Take): An unapologetic stance that exposes an uncomfortable truth about broker exploitation, OPEX subsidization, or operational delusions. (e.g. "Unpopular truth: If your BPO relies on broker pay-per-performance deals to survive, you do not own an agency. You own a rented floor subsidizing someone else's margin.")
+     * Comment 2 (Controversial Debate Flame / Direct Call-Out): A spicy challenge or polarizing question that forces founders, brokers, and ops leaders to defend their position or confess their frustration in the comments. (e.g. "Brokers pocket 60% while you carry 100% of the rent and payroll. At what point does accepting pay-per-performance become self-inflicted exploitation?")
+   - MANDATORY RESTRICTIONS:
+     * Strictly ZERO EM DASHES (no "—", "–", or "--").
+     * Strictly ZERO EMOJIS (no icons or smileys).
+     * Keep each comment punchy (between 18 and 38 words).
 5. HASHTAGS: Exactly 4 to 5 hyper-targeted hashtags (e.g. #BPOOperations #ClientAcquisition #DealEconomics #OperationalSovereignty #OutboundStrategy).
 6. GEMINI IMAGE GENERATION PROMPT: Clean minimalist editorial visual or infographic card on dark graphite/zinc backdrop with crisp typography and metric callout.
 7. GEMINI REALISTIC & RELATABLE PHOTO PROMPT (STRICT TOPIC & POV ALIGNMENT):
@@ -406,8 +416,8 @@ Return strictly a valid JSON object with the following schema:
         "tag": "EPISODE 01 • THE BOTTLENECK"
       },
       "injectedComments": [
-        "Comment 1 under 35 words without em dashes and without emojis",
-        "Comment 2 under 35 words without em dashes and without emojis"
+        "Comment 1 under 35 words: bold provocative truth bomb without em dashes and without emojis",
+        "Comment 2 under 35 words: controversial debate flame without em dashes and without emojis"
       ]
     }
   ]
@@ -509,13 +519,13 @@ Output ONLY valid JSON. No markdown ticks, no preamble.`;
                   type: p.visualCard?.type || 'metric_callout',
                   headline: p.visualCard?.headline || p.title || 'Operational Metric',
                   subheadline: p.visualCard?.subheadline || 'Key takeaway for outbound leaders',
-                  metric: p.visualCard?.metric || '35%',
-                  metricLabel: p.visualCard?.metricLabel || 'Margin efficiency',
+                  metric: p.visualCard?.metric || '60%',
+                  metricLabel: p.visualCard?.metricLabel || 'Broker margin skim vs BPO OPEX burden',
                   tag: p.visualCard?.tag || `EPISODE 0${idx + 1}`
                 },
                 injectedComments: cleanComments.length > 0 ? cleanComments : [
-                  'Auditing our own campaigns showed that conversational pacing consistently beats script compliance by over 30 percent.',
-                  'Curious how other operations leaders manage lead fatigue when scaling outbound lines.'
+                  'Unpopular truth: If your BPO relies on broker pay-per-performance deals to survive, you do not own an agency. You own a rented floor subsidizing someone else margin.',
+                  'Brokers pocket 60% while you carry 100% of the OPEX burden. Why accept being treated like disposable commodity labor?'
                 ]
               };
             });

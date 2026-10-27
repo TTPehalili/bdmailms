@@ -130,8 +130,8 @@ export default function LinkedInCreatorStudio() {
     }));
   };
 
-  // Update post field directly (Hook, Body, CTA, Hashtags)
-  const handleUpdatePostField = (postId: string, field: 'hook' | 'body' | 'cta' | 'hashtags', value: any) => {
+  // Update post field directly (Hook, Body, CTA, Hashtags, InjectedComments)
+  const handleUpdatePostField = (postId: string, field: 'hook' | 'body' | 'cta' | 'hashtags' | 'injectedComments', value: any) => {
     setSeriesData(prev => {
       const updatedPosts = prev.posts.map(p => {
         if (p.id === postId) {
@@ -156,11 +156,13 @@ export default function LinkedInCreatorStudio() {
           const cleanHook = sanitizeTextForLinkedIn(p.hook);
           const cleanBody = sanitizeTextForLinkedIn(p.body);
           const cleanCta = sanitizeTextForLinkedIn(p.cta);
+          const cleanComments = (p.injectedComments || []).map(c => sanitizeTextForLinkedIn(c));
           return {
             ...p,
             hook: cleanHook,
             body: cleanBody,
             cta: cleanCta,
+            injectedComments: cleanComments,
             wordCount: `${cleanHook} ${cleanBody} ${cleanCta}`.trim().split(/\s+/).filter(Boolean).length
           };
         }
@@ -749,6 +751,45 @@ export default function LinkedInCreatorStudio() {
                             />
                           </div>
 
+                          {/* Injected Comments Editing */}
+                          <div className="space-y-2 pt-2 border-t border-amber-200">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1">
+                                <Flame className="h-3 w-3 text-rose-500" />
+                                <span>Injected Comments (Bold &amp; Controversial)</span>
+                              </label>
+                              <span className="text-[9px] font-mono text-zinc-500">Stoke Reader Discussion</span>
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-mono font-semibold text-zinc-600 block mb-0.5">
+                                Comment 1 (Bold Provocative Truth Bomb):
+                              </span>
+                              <textarea
+                                rows={2}
+                                value={post.injectedComments[0] || ''}
+                                onChange={(e) => {
+                                  const updated = [e.target.value, post.injectedComments[1] || ''];
+                                  handleUpdatePostField(post.id, 'injectedComments', updated);
+                                }}
+                                className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 text-[11px] focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-mono font-semibold text-zinc-600 block mb-0.5">
+                                Comment 2 (Controversial Debate Flame):
+                              </span>
+                              <textarea
+                                rows={2}
+                                value={post.injectedComments[1] || ''}
+                                onChange={(e) => {
+                                  const updated = [post.injectedComments[0] || '', e.target.value];
+                                  handleUpdatePostField(post.id, 'injectedComments', updated);
+                                }}
+                                className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 text-[11px] focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
+                              />
+                            </div>
+                          </div>
+
                           <div className="pt-2 border-t border-amber-200 flex items-center justify-between">
                             <button
                               type="button"
@@ -838,30 +879,34 @@ export default function LinkedInCreatorStudio() {
                       />
                     </div>
 
-                    {/* Injected Comments Tray (Zero em dashes, Zero emojis) */}
-                    <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2 text-left">
+                    {/* Injected Comments Tray (Bold, Controversial & Engagement-Igniting) */}
+                    <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2.5 text-left">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-800 flex items-center gap-1 uppercase tracking-wider">
-                          <MessageSquare className="h-3 w-3 text-zinc-500" />
-                          Injected Discussion Comments (2)
+                        <span className="text-[10px] font-bold text-zinc-900 flex items-center gap-1.5 uppercase tracking-wider">
+                          <Flame className="h-3.5 w-3.5 text-rose-500" />
+                          <span>Injected Engagement Starters (Bold &amp; Controversial)</span>
                         </span>
-                        <span className="text-[9px] font-mono text-zinc-400">
+                        <span className="text-[9px] font-mono text-zinc-600 bg-zinc-200/70 px-1.5 py-0.5 rounded">
                           0 Emojis • 0 Em Dashes
                         </span>
                       </div>
+                      <p className="text-[10px] text-zinc-500 leading-tight">
+                        Post these follow-up comments right after publishing to provoke strong reactions and compel founders, CROs, and operators to debate in the thread.
+                      </p>
 
                       {post.injectedComments.map((comment, cIdx) => (
                         <div
                           key={cIdx}
-                          className="p-2 rounded-lg bg-white border border-zinc-200 space-y-1"
+                          className="p-2.5 rounded-lg bg-white border border-zinc-200 space-y-1.5 shadow-2xs"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-mono font-semibold text-zinc-500">
-                              {cIdx === 0 ? 'Comment 1 (First Comment)' : 'Comment 2 (Follow-up)'}
+                            <span className="text-[9px] font-mono font-bold text-rose-800 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <Flame className="h-2.5 w-2.5 text-rose-600" />
+                              {cIdx === 0 ? 'Comment 1 (Bold Truth Bomb)' : 'Comment 2 (Controversial Debate Flame)'}
                             </span>
                             <button
                               onClick={() => copyToClipboard(comment, `post-${post.id}-cmt-${cIdx}`)}
-                              className="text-[10px] font-medium text-zinc-600 hover:text-zinc-950 flex items-center gap-1"
+                              className="text-[10px] font-medium text-zinc-600 hover:text-zinc-950 flex items-center gap-1 cursor-pointer"
                             >
                               {copiedKey === `post-${post.id}-cmt-${cIdx}` ? (
                                 <>
@@ -876,8 +921,8 @@ export default function LinkedInCreatorStudio() {
                               )}
                             </button>
                           </div>
-                          <p className="text-[11px] text-zinc-700 leading-snug">
-                            {comment}
+                          <p className="text-[11px] font-medium text-zinc-800 leading-snug">
+                            "{comment}"
                           </p>
                         </div>
                       ))}
