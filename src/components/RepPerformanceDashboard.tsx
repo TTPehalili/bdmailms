@@ -24,10 +24,14 @@ import {
   RotateCcw,
   Target,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  Lock,
+  Building2,
+  UserCheck
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
+import { useSession } from '@/lib/session';
 
 export type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 
@@ -37,6 +41,7 @@ export interface RepMetric {
   role: string;
   avatar: string;
   status: 'Online' | 'In Call' | 'Break' | 'Offline';
+  tenant: string;
   campaign: string;
   callsMade: number;
   connectRate: number; // percentage
@@ -55,6 +60,7 @@ export interface RepMetric {
 export interface ActivityLogItem {
   id: string;
   timestamp: string;
+  tenant: string;
   repName: string;
   prospectName: string;
   companyName: string;
@@ -63,15 +69,17 @@ export interface ActivityLogItem {
   notesSnippet: string;
 }
 
-// Master Raw Rep Performance Data Across Timeframes
+// Master Raw Rep Performance Data Across All Tenants and Timeframes
 const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
   daily: [
+    // Apex Global BPO
     {
       id: 'rep_1',
       name: 'Alex Mercer',
       role: 'Senior Outbound SDR',
       avatar: 'AM',
       status: 'In Call',
+      tenant: 'Apex Global BPO',
       campaign: 'Apex Global BPO',
       callsMade: 58,
       connectRate: 36.2,
@@ -87,11 +95,55 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 94
     },
     {
+      id: 'rep_5',
+      name: 'Marcus Brody',
+      role: 'Junior SDR',
+      avatar: 'MB',
+      status: 'In Call',
+      tenant: 'Apex Global BPO',
+      campaign: 'Apex Global BPO',
+      callsMade: 66,
+      connectRate: 25.7,
+      emailsSent: 25,
+      linkedInTouches: 8,
+      appointmentsBooked: 1,
+      quotaTarget: 2,
+      quotaAttainment: 50,
+      dncFlagged: 1,
+      notInterested: 9,
+      callbacksScheduled: 2,
+      avgTalkTimeSec: 138,
+      qaSparringScore: 85
+    },
+    {
+      id: 'rep_6',
+      name: 'Carlo Reyes',
+      role: 'Appointment Setter',
+      avatar: 'CR',
+      status: 'Online',
+      tenant: 'Apex Global BPO',
+      campaign: 'APAC Expansion',
+      callsMade: 48,
+      connectRate: 33.3,
+      emailsSent: 30,
+      linkedInTouches: 14,
+      appointmentsBooked: 2,
+      quotaTarget: 2,
+      quotaAttainment: 100,
+      dncFlagged: 0,
+      notInterested: 6,
+      callbacksScheduled: 3,
+      avgTalkTimeSec: 165,
+      qaSparringScore: 90
+    },
+    // ShorePartners BPO
+    {
       id: 'rep_2',
       name: 'Sarah Jenkins',
       role: 'Outbound Appointment Setter',
       avatar: 'SJ',
       status: 'Online',
+      tenant: 'ShorePartners BPO',
       campaign: 'Enterprise Outbound',
       callsMade: 64,
       connectRate: 31.8,
@@ -107,11 +159,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 91
     },
     {
+      id: 'rep_7',
+      name: 'Liam Torres',
+      role: 'Senior SDR',
+      avatar: 'LT',
+      status: 'In Call',
+      tenant: 'ShorePartners BPO',
+      campaign: 'ShorePartners Cloud Leads',
+      callsMade: 55,
+      connectRate: 34.5,
+      emailsSent: 38,
+      linkedInTouches: 16,
+      appointmentsBooked: 2,
+      quotaTarget: 3,
+      quotaAttainment: 66.7,
+      dncFlagged: 1,
+      notInterested: 7,
+      callbacksScheduled: 5,
+      avgTalkTimeSec: 172,
+      qaSparringScore: 93
+    },
+    // CloudStaff Outsourcing
+    {
       id: 'rep_3',
       name: 'David Vance',
       role: 'B2B Sales Representative',
       avatar: 'DV',
       status: 'Online',
+      tenant: 'CloudStaff Outsourcing',
       campaign: 'FinTech Call Center',
       callsMade: 52,
       connectRate: 28.8,
@@ -127,11 +202,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 88
     },
     {
+      id: 'rep_8',
+      name: 'Camille Santos',
+      role: 'Outbound Setter',
+      avatar: 'CS',
+      status: 'Break',
+      tenant: 'CloudStaff Outsourcing',
+      campaign: 'CloudStaff SaaS Pipeline',
+      callsMade: 46,
+      connectRate: 32.6,
+      emailsSent: 32,
+      linkedInTouches: 14,
+      appointmentsBooked: 1,
+      quotaTarget: 2,
+      quotaAttainment: 50,
+      dncFlagged: 0,
+      notInterested: 6,
+      callbacksScheduled: 4,
+      avgTalkTimeSec: 160,
+      qaSparringScore: 89
+    },
+    // Vanguard BPO Solutions
+    {
       id: 'rep_4',
       name: 'Elena Gomez',
       role: 'Outbound Specialist',
       avatar: 'EG',
       status: 'Break',
+      tenant: 'Vanguard BPO Solutions',
       campaign: 'Medical BPO',
       callsMade: 44,
       connectRate: 40.9,
@@ -147,33 +245,36 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 96
     },
     {
-      id: 'rep_5',
-      name: 'Marcus Brody',
-      role: 'Junior SDR',
-      avatar: 'MB',
-      status: 'In Call',
-      campaign: 'Apex Global BPO',
-      callsMade: 66,
-      connectRate: 25.7,
-      emailsSent: 25,
-      linkedInTouches: 8,
-      appointmentsBooked: 1,
+      id: 'rep_9',
+      name: 'Michael Chang',
+      role: 'B2B SDR',
+      avatar: 'MC',
+      status: 'Online',
+      tenant: 'Vanguard BPO Solutions',
+      campaign: 'Vanguard Healthcare Outbound',
+      callsMade: 50,
+      connectRate: 36.0,
+      emailsSent: 34,
+      linkedInTouches: 12,
+      appointmentsBooked: 2,
       quotaTarget: 2,
-      quotaAttainment: 50,
+      quotaAttainment: 100,
       dncFlagged: 1,
-      notInterested: 9,
-      callbacksScheduled: 2,
-      avgTalkTimeSec: 138,
-      qaSparringScore: 85
+      notInterested: 5,
+      callbacksScheduled: 4,
+      avgTalkTimeSec: 175,
+      qaSparringScore: 92
     }
   ],
   weekly: [
+    // Apex Global BPO
     {
       id: 'rep_1',
       name: 'Alex Mercer',
       role: 'Senior Outbound SDR',
       avatar: 'AM',
       status: 'In Call',
+      tenant: 'Apex Global BPO',
       campaign: 'Apex Global BPO',
       callsMade: 278,
       connectRate: 35.6,
@@ -189,11 +290,55 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 94
     },
     {
+      id: 'rep_5',
+      name: 'Marcus Brody',
+      role: 'Junior SDR',
+      avatar: 'MB',
+      status: 'In Call',
+      tenant: 'Apex Global BPO',
+      campaign: 'Apex Global BPO',
+      callsMade: 320,
+      connectRate: 26.3,
+      emailsSent: 110,
+      linkedInTouches: 40,
+      appointmentsBooked: 6,
+      quotaTarget: 10,
+      quotaAttainment: 60.0,
+      dncFlagged: 4,
+      notInterested: 42,
+      callbacksScheduled: 11,
+      avgTalkTimeSec: 142,
+      qaSparringScore: 85
+    },
+    {
+      id: 'rep_6',
+      name: 'Carlo Reyes',
+      role: 'Appointment Setter',
+      avatar: 'CR',
+      status: 'Online',
+      tenant: 'Apex Global BPO',
+      campaign: 'APAC Expansion',
+      callsMade: 245,
+      connectRate: 33.8,
+      emailsSent: 150,
+      linkedInTouches: 65,
+      appointmentsBooked: 9,
+      quotaTarget: 10,
+      quotaAttainment: 90.0,
+      dncFlagged: 2,
+      notInterested: 28,
+      callbacksScheduled: 16,
+      avgTalkTimeSec: 168,
+      qaSparringScore: 91
+    },
+    // ShorePartners BPO
+    {
       id: 'rep_2',
       name: 'Sarah Jenkins',
       role: 'Outbound Appointment Setter',
       avatar: 'SJ',
       status: 'Online',
+      tenant: 'ShorePartners BPO',
       campaign: 'Enterprise Outbound',
       callsMade: 312,
       connectRate: 32.1,
@@ -209,11 +354,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 91
     },
     {
+      id: 'rep_7',
+      name: 'Liam Torres',
+      role: 'Senior SDR',
+      avatar: 'LT',
+      status: 'In Call',
+      tenant: 'ShorePartners BPO',
+      campaign: 'ShorePartners Cloud Leads',
+      callsMade: 280,
+      connectRate: 34.0,
+      emailsSent: 175,
+      linkedInTouches: 70,
+      appointmentsBooked: 11,
+      quotaTarget: 15,
+      quotaAttainment: 73.3,
+      dncFlagged: 3,
+      notInterested: 30,
+      callbacksScheduled: 22,
+      avgTalkTimeSec: 170,
+      qaSparringScore: 92
+    },
+    // CloudStaff Outsourcing
+    {
       id: 'rep_3',
       name: 'David Vance',
       role: 'B2B Sales Representative',
       avatar: 'DV',
       status: 'Online',
+      tenant: 'CloudStaff Outsourcing',
       campaign: 'FinTech Call Center',
       callsMade: 264,
       connectRate: 29.5,
@@ -229,11 +397,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 88
     },
     {
+      id: 'rep_8',
+      name: 'Camille Santos',
+      role: 'Outbound Setter',
+      avatar: 'CS',
+      status: 'Break',
+      tenant: 'CloudStaff Outsourcing',
+      campaign: 'CloudStaff SaaS Pipeline',
+      callsMade: 230,
+      connectRate: 32.0,
+      emailsSent: 140,
+      linkedInTouches: 55,
+      appointmentsBooked: 8,
+      quotaTarget: 10,
+      quotaAttainment: 80.0,
+      dncFlagged: 1,
+      notInterested: 25,
+      callbacksScheduled: 19,
+      avgTalkTimeSec: 162,
+      qaSparringScore: 90
+    },
+    // Vanguard BPO Solutions
+    {
       id: 'rep_4',
       name: 'Elena Gomez',
       role: 'Outbound Specialist',
       avatar: 'EG',
       status: 'Break',
+      tenant: 'Vanguard BPO Solutions',
       campaign: 'Medical BPO',
       callsMade: 228,
       connectRate: 41.2,
@@ -249,33 +440,36 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 96
     },
     {
-      id: 'rep_5',
-      name: 'Marcus Brody',
-      role: 'Junior SDR',
-      avatar: 'MB',
-      status: 'In Call',
-      campaign: 'Apex Global BPO',
-      callsMade: 320,
-      connectRate: 26.3,
-      emailsSent: 110,
-      linkedInTouches: 40,
-      appointmentsBooked: 6,
+      id: 'rep_9',
+      name: 'Michael Chang',
+      role: 'B2B SDR',
+      avatar: 'MC',
+      status: 'Online',
+      tenant: 'Vanguard BPO Solutions',
+      campaign: 'Vanguard Healthcare Outbound',
+      callsMade: 250,
+      connectRate: 35.2,
+      emailsSent: 155,
+      linkedInTouches: 62,
+      appointmentsBooked: 9,
       quotaTarget: 10,
-      quotaAttainment: 60.0,
-      dncFlagged: 4,
-      notInterested: 42,
-      callbacksScheduled: 11,
-      avgTalkTimeSec: 142,
-      qaSparringScore: 85
+      quotaAttainment: 90.0,
+      dncFlagged: 2,
+      notInterested: 24,
+      callbacksScheduled: 20,
+      avgTalkTimeSec: 178,
+      qaSparringScore: 92
     }
   ],
   monthly: [
+    // Apex Global BPO
     {
       id: 'rep_1',
       name: 'Alex Mercer',
       role: 'Senior Outbound SDR',
       avatar: 'AM',
       status: 'In Call',
+      tenant: 'Apex Global BPO',
       campaign: 'Apex Global BPO',
       callsMade: 1140,
       connectRate: 36.8,
@@ -291,11 +485,55 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 94
     },
     {
+      id: 'rep_5',
+      name: 'Marcus Brody',
+      role: 'Junior SDR',
+      avatar: 'MB',
+      status: 'In Call',
+      tenant: 'Apex Global BPO',
+      campaign: 'Apex Global BPO',
+      callsMade: 1310,
+      connectRate: 27.2,
+      emailsSent: 460,
+      linkedInTouches: 165,
+      appointmentsBooked: 26,
+      quotaTarget: 40,
+      quotaAttainment: 65.0,
+      dncFlagged: 15,
+      notInterested: 175,
+      callbacksScheduled: 48,
+      avgTalkTimeSec: 145,
+      qaSparringScore: 85
+    },
+    {
+      id: 'rep_6',
+      name: 'Carlo Reyes',
+      role: 'Appointment Setter',
+      avatar: 'CR',
+      status: 'Online',
+      tenant: 'Apex Global BPO',
+      campaign: 'APAC Expansion',
+      callsMade: 980,
+      connectRate: 34.2,
+      emailsSent: 620,
+      linkedInTouches: 270,
+      appointmentsBooked: 37,
+      quotaTarget: 40,
+      quotaAttainment: 92.5,
+      dncFlagged: 7,
+      notInterested: 112,
+      callbacksScheduled: 68,
+      avgTalkTimeSec: 170,
+      qaSparringScore: 91
+    },
+    // ShorePartners BPO
+    {
       id: 'rep_2',
       name: 'Sarah Jenkins',
       role: 'Outbound Appointment Setter',
       avatar: 'SJ',
       status: 'Online',
+      tenant: 'ShorePartners BPO',
       campaign: 'Enterprise Outbound',
       callsMade: 1260,
       connectRate: 33.2,
@@ -311,11 +549,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 91
     },
     {
+      id: 'rep_7',
+      name: 'Liam Torres',
+      role: 'Senior SDR',
+      avatar: 'LT',
+      status: 'In Call',
+      tenant: 'ShorePartners BPO',
+      campaign: 'ShorePartners Cloud Leads',
+      callsMade: 1120,
+      connectRate: 34.5,
+      emailsSent: 710,
+      linkedInTouches: 280,
+      appointmentsBooked: 45,
+      quotaTarget: 60,
+      quotaAttainment: 75.0,
+      dncFlagged: 10,
+      notInterested: 125,
+      callbacksScheduled: 88,
+      avgTalkTimeSec: 172,
+      qaSparringScore: 92
+    },
+    // CloudStaff Outsourcing
+    {
       id: 'rep_3',
       name: 'David Vance',
       role: 'B2B Sales Representative',
       avatar: 'DV',
       status: 'Online',
+      tenant: 'CloudStaff Outsourcing',
       campaign: 'FinTech Call Center',
       callsMade: 1080,
       connectRate: 30.1,
@@ -331,11 +592,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 88
     },
     {
+      id: 'rep_8',
+      name: 'Camille Santos',
+      role: 'Outbound Setter',
+      avatar: 'CS',
+      status: 'Break',
+      tenant: 'CloudStaff Outsourcing',
+      campaign: 'CloudStaff SaaS Pipeline',
+      callsMade: 940,
+      connectRate: 32.5,
+      emailsSent: 560,
+      linkedInTouches: 220,
+      appointmentsBooked: 33,
+      quotaTarget: 40,
+      quotaAttainment: 82.5,
+      dncFlagged: 5,
+      notInterested: 104,
+      callbacksScheduled: 76,
+      avgTalkTimeSec: 164,
+      qaSparringScore: 90
+    },
+    // Vanguard BPO Solutions
+    {
       id: 'rep_4',
       name: 'Elena Gomez',
       role: 'Outbound Specialist',
       avatar: 'EG',
       status: 'Break',
+      tenant: 'Vanguard BPO Solutions',
       campaign: 'Medical BPO',
       callsMade: 940,
       connectRate: 42.1,
@@ -351,33 +635,36 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 96
     },
     {
-      id: 'rep_5',
-      name: 'Marcus Brody',
-      role: 'Junior SDR',
-      avatar: 'MB',
-      status: 'In Call',
-      campaign: 'Apex Global BPO',
-      callsMade: 1310,
-      connectRate: 27.2,
-      emailsSent: 460,
-      linkedInTouches: 165,
-      appointmentsBooked: 26,
+      id: 'rep_9',
+      name: 'Michael Chang',
+      role: 'B2B SDR',
+      avatar: 'MC',
+      status: 'Online',
+      tenant: 'Vanguard BPO Solutions',
+      campaign: 'Vanguard Healthcare Outbound',
+      callsMade: 1020,
+      connectRate: 35.8,
+      emailsSent: 630,
+      linkedInTouches: 250,
+      appointmentsBooked: 37,
       quotaTarget: 40,
-      quotaAttainment: 65.0,
-      dncFlagged: 15,
-      notInterested: 175,
-      callbacksScheduled: 48,
-      avgTalkTimeSec: 145,
-      qaSparringScore: 85
+      quotaAttainment: 92.5,
+      dncFlagged: 7,
+      notInterested: 98,
+      callbacksScheduled: 80,
+      avgTalkTimeSec: 180,
+      qaSparringScore: 92
     }
   ],
   quarterly: [
+    // Apex Global BPO
     {
       id: 'rep_1',
       name: 'Alex Mercer',
       role: 'Senior Outbound SDR',
       avatar: 'AM',
       status: 'In Call',
+      tenant: 'Apex Global BPO',
       campaign: 'Apex Global BPO',
       callsMade: 3350,
       connectRate: 36.5,
@@ -393,11 +680,55 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 94
     },
     {
+      id: 'rep_5',
+      name: 'Marcus Brody',
+      role: 'Junior SDR',
+      avatar: 'MB',
+      status: 'In Call',
+      tenant: 'Apex Global BPO',
+      campaign: 'Apex Global BPO',
+      callsMade: 3880,
+      connectRate: 26.9,
+      emailsSent: 1350,
+      linkedInTouches: 490,
+      appointmentsBooked: 76,
+      quotaTarget: 120,
+      quotaAttainment: 63.3,
+      dncFlagged: 44,
+      notInterested: 515,
+      callbacksScheduled: 140,
+      avgTalkTimeSec: 144,
+      qaSparringScore: 85
+    },
+    {
+      id: 'rep_6',
+      name: 'Carlo Reyes',
+      role: 'Appointment Setter',
+      avatar: 'CR',
+      status: 'Online',
+      tenant: 'Apex Global BPO',
+      campaign: 'APAC Expansion',
+      callsMade: 2920,
+      connectRate: 34.0,
+      emailsSent: 1840,
+      linkedInTouches: 790,
+      appointmentsBooked: 110,
+      quotaTarget: 120,
+      quotaAttainment: 91.7,
+      dncFlagged: 20,
+      notInterested: 330,
+      callbacksScheduled: 202,
+      avgTalkTimeSec: 171,
+      qaSparringScore: 91
+    },
+    // ShorePartners BPO
+    {
       id: 'rep_2',
       name: 'Sarah Jenkins',
       role: 'Outbound Appointment Setter',
       avatar: 'SJ',
       status: 'Online',
+      tenant: 'ShorePartners BPO',
       campaign: 'Enterprise Outbound',
       callsMade: 3720,
       connectRate: 32.9,
@@ -413,11 +744,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 91
     },
     {
+      id: 'rep_7',
+      name: 'Liam Torres',
+      role: 'Senior SDR',
+      avatar: 'LT',
+      status: 'In Call',
+      tenant: 'ShorePartners BPO',
+      campaign: 'ShorePartners Cloud Leads',
+      callsMade: 3310,
+      connectRate: 34.2,
+      emailsSent: 2100,
+      linkedInTouches: 830,
+      appointmentsBooked: 133,
+      quotaTarget: 180,
+      quotaAttainment: 73.9,
+      dncFlagged: 28,
+      notInterested: 370,
+      callbacksScheduled: 260,
+      avgTalkTimeSec: 173,
+      qaSparringScore: 92
+    },
+    // CloudStaff Outsourcing
+    {
       id: 'rep_3',
       name: 'David Vance',
       role: 'B2B Sales Representative',
       avatar: 'DV',
       status: 'Online',
+      tenant: 'CloudStaff Outsourcing',
       campaign: 'FinTech Call Center',
       callsMade: 3190,
       connectRate: 29.8,
@@ -433,11 +787,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 88
     },
     {
+      id: 'rep_8',
+      name: 'Camille Santos',
+      role: 'Outbound Setter',
+      avatar: 'CS',
+      status: 'Break',
+      tenant: 'CloudStaff Outsourcing',
+      campaign: 'CloudStaff SaaS Pipeline',
+      callsMade: 2800,
+      connectRate: 32.2,
+      emailsSent: 1650,
+      linkedInTouches: 650,
+      appointmentsBooked: 98,
+      quotaTarget: 120,
+      quotaAttainment: 81.7,
+      dncFlagged: 16,
+      notInterested: 305,
+      callbacksScheduled: 220,
+      avgTalkTimeSec: 164,
+      qaSparringScore: 90
+    },
+    // Vanguard BPO Solutions
+    {
       id: 'rep_4',
       name: 'Elena Gomez',
       role: 'Outbound Specialist',
       avatar: 'EG',
       status: 'Break',
+      tenant: 'Vanguard BPO Solutions',
       campaign: 'Medical BPO',
       callsMade: 2780,
       connectRate: 41.8,
@@ -453,33 +830,36 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 96
     },
     {
-      id: 'rep_5',
-      name: 'Marcus Brody',
-      role: 'Junior SDR',
-      avatar: 'MB',
-      status: 'In Call',
-      campaign: 'Apex Global BPO',
-      callsMade: 3880,
-      connectRate: 26.9,
-      emailsSent: 1350,
-      linkedInTouches: 490,
-      appointmentsBooked: 76,
+      id: 'rep_9',
+      name: 'Michael Chang',
+      role: 'B2B SDR',
+      avatar: 'MC',
+      status: 'Online',
+      tenant: 'Vanguard BPO Solutions',
+      campaign: 'Vanguard Healthcare Outbound',
+      callsMade: 3020,
+      connectRate: 35.5,
+      emailsSent: 1860,
+      linkedInTouches: 740,
+      appointmentsBooked: 110,
       quotaTarget: 120,
-      quotaAttainment: 63.3,
-      dncFlagged: 44,
-      notInterested: 515,
-      callbacksScheduled: 140,
-      avgTalkTimeSec: 144,
-      qaSparringScore: 85
+      quotaAttainment: 91.7,
+      dncFlagged: 21,
+      notInterested: 290,
+      callbacksScheduled: 235,
+      avgTalkTimeSec: 181,
+      qaSparringScore: 92
     }
   ],
   yearly: [
+    // Apex Global BPO
     {
       id: 'rep_1',
       name: 'Alex Mercer',
       role: 'Senior Outbound SDR',
       avatar: 'AM',
       status: 'In Call',
+      tenant: 'Apex Global BPO',
       campaign: 'Apex Global BPO',
       callsMade: 13200,
       connectRate: 36.2,
@@ -495,11 +875,55 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 94
     },
     {
+      id: 'rep_5',
+      name: 'Marcus Brody',
+      role: 'Junior SDR',
+      avatar: 'MB',
+      status: 'In Call',
+      tenant: 'Apex Global BPO',
+      campaign: 'Apex Global BPO',
+      callsMade: 15300,
+      connectRate: 26.8,
+      emailsSent: 5350,
+      linkedInTouches: 1940,
+      appointmentsBooked: 302,
+      quotaTarget: 480,
+      quotaAttainment: 62.9,
+      dncFlagged: 172,
+      notInterested: 2040,
+      callbacksScheduled: 550,
+      avgTalkTimeSec: 143,
+      qaSparringScore: 85
+    },
+    {
+      id: 'rep_6',
+      name: 'Carlo Reyes',
+      role: 'Appointment Setter',
+      avatar: 'CR',
+      status: 'Online',
+      tenant: 'Apex Global BPO',
+      campaign: 'APAC Expansion',
+      callsMade: 11600,
+      connectRate: 34.1,
+      emailsSent: 7300,
+      linkedInTouches: 3120,
+      appointmentsBooked: 435,
+      quotaTarget: 480,
+      quotaAttainment: 90.6,
+      dncFlagged: 80,
+      notInterested: 1310,
+      callbacksScheduled: 790,
+      avgTalkTimeSec: 171,
+      qaSparringScore: 91
+    },
+    // ShorePartners BPO
+    {
       id: 'rep_2',
       name: 'Sarah Jenkins',
       role: 'Outbound Appointment Setter',
       avatar: 'SJ',
       status: 'Online',
+      tenant: 'ShorePartners BPO',
       campaign: 'Enterprise Outbound',
       callsMade: 14650,
       connectRate: 32.6,
@@ -515,11 +939,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 91
     },
     {
+      id: 'rep_7',
+      name: 'Liam Torres',
+      role: 'Senior SDR',
+      avatar: 'LT',
+      status: 'In Call',
+      tenant: 'ShorePartners BPO',
+      campaign: 'ShorePartners Cloud Leads',
+      callsMade: 13100,
+      connectRate: 34.2,
+      emailsSent: 8350,
+      linkedInTouches: 3300,
+      appointmentsBooked: 526,
+      quotaTarget: 700,
+      quotaAttainment: 75.1,
+      dncFlagged: 110,
+      notInterested: 1480,
+      callbacksScheduled: 1040,
+      avgTalkTimeSec: 173,
+      qaSparringScore: 92
+    },
+    // CloudStaff Outsourcing
+    {
       id: 'rep_3',
       name: 'David Vance',
       role: 'B2B Sales Representative',
       avatar: 'DV',
       status: 'Online',
+      tenant: 'CloudStaff Outsourcing',
       campaign: 'FinTech Call Center',
       callsMade: 12600,
       connectRate: 29.6,
@@ -535,11 +982,34 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 88
     },
     {
+      id: 'rep_8',
+      name: 'Camille Santos',
+      role: 'Outbound Setter',
+      avatar: 'CS',
+      status: 'Break',
+      tenant: 'CloudStaff Outsourcing',
+      campaign: 'CloudStaff SaaS Pipeline',
+      callsMade: 11100,
+      connectRate: 32.3,
+      emailsSent: 6500,
+      linkedInTouches: 2600,
+      appointmentsBooked: 390,
+      quotaTarget: 480,
+      quotaAttainment: 81.3,
+      dncFlagged: 64,
+      notInterested: 1210,
+      callbacksScheduled: 870,
+      avgTalkTimeSec: 164,
+      qaSparringScore: 90
+    },
+    // Vanguard BPO Solutions
+    {
       id: 'rep_4',
       name: 'Elena Gomez',
       role: 'Outbound Specialist',
       avatar: 'EG',
       status: 'Break',
+      tenant: 'Vanguard BPO Solutions',
       campaign: 'Medical BPO',
       callsMade: 11000,
       connectRate: 41.6,
@@ -555,33 +1025,35 @@ const MASTER_PERFORMANCE_DATA: Record<TimePeriod, RepMetric[]> = {
       qaSparringScore: 96
     },
     {
-      id: 'rep_5',
-      name: 'Marcus Brody',
-      role: 'Junior SDR',
-      avatar: 'MB',
-      status: 'In Call',
-      campaign: 'Apex Global BPO',
-      callsMade: 15300,
-      connectRate: 26.8,
-      emailsSent: 5350,
-      linkedInTouches: 1940,
-      appointmentsBooked: 302,
+      id: 'rep_9',
+      name: 'Michael Chang',
+      role: 'B2B SDR',
+      avatar: 'MC',
+      status: 'Online',
+      tenant: 'Vanguard BPO Solutions',
+      campaign: 'Vanguard Healthcare Outbound',
+      callsMade: 11900,
+      connectRate: 35.4,
+      emailsSent: 7350,
+      linkedInTouches: 2940,
+      appointmentsBooked: 436,
       quotaTarget: 480,
-      quotaAttainment: 62.9,
-      dncFlagged: 172,
-      notInterested: 2040,
-      callbacksScheduled: 550,
-      avgTalkTimeSec: 143,
-      qaSparringScore: 85
+      quotaAttainment: 90.8,
+      dncFlagged: 82,
+      notInterested: 1150,
+      callbacksScheduled: 930,
+      avgTalkTimeSec: 181,
+      qaSparringScore: 92
     }
   ]
 };
 
-// Recent Live Activity Stream
+// Recent Live Activity Stream with Tenant Grounding
 const RECENT_ACTIVITY_STREAM: ActivityLogItem[] = [
   {
     id: 'act_1',
     timestamp: '2 mins ago',
+    tenant: 'Apex Global BPO',
     repName: 'Alex Mercer',
     prospectName: 'Julian Vance',
     companyName: 'Apex Global BPO',
@@ -591,7 +1063,53 @@ const RECENT_ACTIVITY_STREAM: ActivityLogItem[] = [
   },
   {
     id: 'act_2',
+    timestamp: '6 mins ago',
+    tenant: 'Apex Global BPO',
+    repName: 'Alex Mercer',
+    prospectName: 'Jonathan Duarte',
+    companyName: 'OmniCloud Technologies',
+    channel: 'Email',
+    disposition: 'Follow-Up Email',
+    notesSnippet: 'Dispatched custom cold email targeting their current outsourcer hold rate drop-off.'
+  },
+  {
+    id: 'act_3',
+    timestamp: '11 mins ago',
+    tenant: 'Apex Global BPO',
+    repName: 'Marcus Brody',
+    prospectName: 'Thomas Thorne',
+    companyName: 'Apex Virtual Centers',
+    channel: 'Phone',
+    disposition: 'Not Interested',
+    notesSnippet: 'Locked in 2-year broker contract with overseas aggregator. Disqualified for current quarter.'
+  },
+  {
+    id: 'act_4',
+    timestamp: '18 mins ago',
+    tenant: 'Apex Global BPO',
+    repName: 'Carlo Reyes',
+    prospectName: 'Denise Howard',
+    companyName: 'Pacific BPO Group',
+    channel: 'Phone',
+    disposition: 'Callback Scheduled',
+    notesSnippet: 'Managing Director in board review. Requested redial Monday morning 10:00 AM SGT.'
+  },
+  {
+    id: 'act_5',
+    timestamp: '25 mins ago',
+    tenant: 'Apex Global BPO',
+    repName: 'Alex Mercer',
+    prospectName: 'Robert Vance',
+    companyName: 'Alpha Health Center',
+    channel: 'Phone',
+    disposition: 'DNC Quarantined',
+    notesSnippet: 'Prospect requested Do Not Call. System-wide 100% suppression applied immediately.'
+  },
+  // ShorePartners BPO
+  {
+    id: 'act_6',
     timestamp: '7 mins ago',
+    tenant: 'ShorePartners BPO',
     repName: 'Sarah Jenkins',
     prospectName: 'Marcus Brody',
     companyName: 'Nexus Call Solutions',
@@ -600,8 +1118,21 @@ const RECENT_ACTIVITY_STREAM: ActivityLogItem[] = [
     notesSnippet: 'Dispatched Day 7 Email #3 with 90s Loom teardown link regarding 100% call QA.'
   },
   {
-    id: 'act_3',
+    id: 'act_7',
+    timestamp: '15 mins ago',
+    tenant: 'ShorePartners BPO',
+    repName: 'Liam Torres',
+    prospectName: 'Gordon Ramsey',
+    companyName: 'Enterprise Cloud Corp',
+    channel: 'Phone',
+    disposition: 'Meeting Booked',
+    notesSnippet: 'Secured 30-min discovery for Enterprise Cloud setter integration.'
+  },
+  // CloudStaff Outsourcing
+  {
+    id: 'act_8',
     timestamp: '14 mins ago',
+    tenant: 'CloudStaff Outsourcing',
     repName: 'David Vance',
     prospectName: 'Robert Sterling',
     companyName: 'BPO Alliance UK',
@@ -610,8 +1141,21 @@ const RECENT_ACTIVITY_STREAM: ActivityLogItem[] = [
     notesSnippet: 'Prospect explicitly requested Do Not Call. Organization-wide quarantine activated.'
   },
   {
-    id: 'act_4',
+    id: 'act_9',
+    timestamp: '20 mins ago',
+    tenant: 'CloudStaff Outsourcing',
+    repName: 'Camille Santos',
+    prospectName: 'Clara Oswald',
+    companyName: 'FinTech Growth Partners',
+    channel: 'LinkedIn',
+    disposition: 'Meeting Booked',
+    notesSnippet: 'Accepted connection and booked discovery call on anti-broker seat pricing.'
+  },
+  // Vanguard BPO Solutions
+  {
+    id: 'act_10',
     timestamp: '21 mins ago',
+    tenant: 'Vanguard BPO Solutions',
     repName: 'Elena Gomez',
     prospectName: 'Elena Rostova',
     companyName: 'ClearDial Telephony',
@@ -620,18 +1164,22 @@ const RECENT_ACTIVITY_STREAM: ActivityLogItem[] = [
     notesSnippet: 'In middle of client shift handover. Requested callback next Tuesday morning 9:00 AM.'
   },
   {
-    id: 'act_5',
-    timestamp: '32 mins ago',
-    repName: 'Marcus Brody',
-    prospectName: 'Thomas Thorne',
-    companyName: 'Apex Virtual Centers',
+    id: 'act_11',
+    timestamp: '29 mins ago',
+    tenant: 'Vanguard BPO Solutions',
+    repName: 'Michael Chang',
+    prospectName: 'Arthur Dent',
+    companyName: 'Vanguard MedCare BPO',
     channel: 'Phone',
-    disposition: 'Not Interested',
-    notesSnippet: 'Locked in 2-year broker contract with overseas aggregator. Disqualified for current quarter.'
+    disposition: 'Meeting Booked',
+    notesSnippet: 'HIPAA compliant SDR floor consultation booked for Thursday 3:00 PM.'
   }
 ];
 
 export default function RepPerformanceDashboard() {
+  const { session, role, isAdmin, tenantName, repName } = useSession();
+  const isRepMode = role === 'Rep';
+
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('weekly');
   const [selectedRepFilter, setSelectedRepFilter] = useState<string>('all');
   const [selectedCampaignFilter, setSelectedCampaignFilter] = useState<string>('all');
@@ -640,15 +1188,52 @@ export default function RepPerformanceDashboard() {
   const [sortField, setSortField] = useState<'appointmentsBooked' | 'callsMade' | 'quotaAttainment' | 'connectRate'>('appointmentsBooked');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
 
-  // Filtered Reps List
-  const rawReps = MASTER_PERFORMANCE_DATA[timePeriod] || MASTER_PERFORMANCE_DATA.weekly;
+  // 1. Get raw period data
+  const rawPeriodReps = MASTER_PERFORMANCE_DATA[timePeriod] || MASTER_PERFORMANCE_DATA.weekly;
 
+  // 2. Strict Tenant Scoping:
+  // Floor Admins, Tenant Managers, Admins, and Reps ONLY see stats of their organization!
+  const organizationReps = useMemo(() => {
+    const matched = rawPeriodReps.filter(
+      (r) => r.tenant.toLowerCase() === tenantName.toLowerCase()
+    );
+    // If tenant name has no preconfigured mock records, fall back gracefully to the current tenant name
+    if (matched.length === 0) {
+      return rawPeriodReps.map((r) => ({ ...r, tenant: tenantName }));
+    }
+    return matched;
+  }, [rawPeriodReps, tenantName]);
+
+  // Available campaigns in this specific organization
+  const availableCampaigns = useMemo(() => {
+    const set = new Set<string>();
+    organizationReps.forEach((r) => set.add(r.campaign));
+    return Array.from(set);
+  }, [organizationReps]);
+
+  // 3. Strict Rep Scoping:
+  // When the user is in Rep Mode, they MUST ONLY see their own personal stats!
+  const currentRepRecord = useMemo(() => {
+    const match = organizationReps.find(
+      (r) => r.name.toLowerCase() === repName.toLowerCase()
+    );
+    return match || organizationReps[0];
+  }, [organizationReps, repName]);
+
+  // 4. Filtered Reps List (Role & Tenant Enforced)
   const filteredReps = useMemo(() => {
-    return rawReps
-      .filter(r => {
+    if (isRepMode) {
+      // Rep Mode: Strictly locked to current logged-in rep
+      return currentRepRecord ? [currentRepRecord] : [];
+    }
+
+    // Floor Admin / Tenant Manager Mode: Filter within active organization
+    return organizationReps
+      .filter((r) => {
         const matchesRep = selectedRepFilter === 'all' || r.id === selectedRepFilter;
         const matchesCampaign = selectedCampaignFilter === 'all' || r.campaign === selectedCampaignFilter;
-        const matchesSearch = searchRepQuery.trim() === '' || 
+        const matchesSearch =
+          searchRepQuery.trim() === '' ||
           r.name.toLowerCase().includes(searchRepQuery.toLowerCase()) ||
           r.campaign.toLowerCase().includes(searchRepQuery.toLowerCase());
         return matchesRep && matchesCampaign && matchesSearch;
@@ -658,9 +1243,18 @@ export default function RepPerformanceDashboard() {
         const valB = b[sortField];
         return sortAsc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
       });
-  }, [rawReps, selectedRepFilter, selectedCampaignFilter, searchRepQuery, sortField, sortAsc]);
+  }, [
+    isRepMode,
+    currentRepRecord,
+    organizationReps,
+    selectedRepFilter,
+    selectedCampaignFilter,
+    searchRepQuery,
+    sortField,
+    sortAsc
+  ]);
 
-  // Aggregated Floor-Wide Metrics
+  // 5. Aggregated Metrics (Calculated Strictly for Rep or Scoped Organization)
   const aggregateStats = useMemo(() => {
     const list = filteredReps;
     const totalCalls = list.reduce((sum, r) => sum + r.callsMade, 0);
@@ -692,11 +1286,44 @@ export default function RepPerformanceDashboard() {
     };
   }, [filteredReps]);
 
+  // 6. Live Activity Stream Filtered by Role and Tenant
+  const filteredActivities = useMemo(() => {
+    return RECENT_ACTIVITY_STREAM.filter((act) => {
+      // Must match active tenant
+      const matchesTenant = act.tenant.toLowerCase() === tenantName.toLowerCase();
+      if (!matchesTenant) return false;
+
+      // In Rep mode: strictly only show current rep's activities
+      if (isRepMode) {
+        return act.repName.toLowerCase() === repName.toLowerCase();
+      }
+
+      // In Admin/Manager mode: allow rep filtering if selected
+      if (selectedRepFilter !== 'all') {
+        const repObj = organizationReps.find((r) => r.id === selectedRepFilter);
+        if (repObj && act.repName.toLowerCase() !== repObj.name.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Disposition filter
+      if (selectedDispositionFilter !== 'all') {
+        if (selectedDispositionFilter === 'Meeting Booked' && act.disposition !== 'Meeting Booked') return false;
+        if (selectedDispositionFilter === 'DNC Quarantined' && act.disposition !== 'DNC Quarantined') return false;
+        if (selectedDispositionFilter === 'Not Interested' && act.disposition !== 'Not Interested') return false;
+        if (selectedDispositionFilter === 'Callback Scheduled' && act.disposition !== 'Callback Scheduled') return false;
+      }
+
+      return true;
+    });
+  }, [tenantName, isRepMode, repName, selectedRepFilter, selectedDispositionFilter, organizationReps]);
+
   // Export CSV Report Action
   const handleExportCSV = () => {
-    const headers = ['Rep Name', 'Campaign', 'Calls Made', 'Connect Rate %', 'Emails Sent', 'LinkedIn Touches', 'Booked', 'Quota Target', 'Attainment %', 'DNC', 'Not Interested', 'Callbacks', 'QA Score'];
-    const rows = filteredReps.map(r => [
+    const headers = ['Rep Name', 'Tenant', 'Campaign', 'Calls Made', 'Connect Rate %', 'Emails Sent', 'LinkedIn Touches', 'Booked', 'Quota Target', 'Attainment %', 'DNC', 'Not Interested', 'Callbacks', 'QA Score'];
+    const rows = filteredReps.map((r) => [
       `"${r.name}"`,
+      `"${r.tenant}"`,
       `"${r.campaign}"`,
       r.callsMade,
       `${r.connectRate}%`,
@@ -711,11 +1338,11 @@ export default function RepPerformanceDashboard() {
       r.qaSparringScore
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `appointmently_sdr_performance_${timePeriod}_${Date.now()}.csv`);
+    link.setAttribute('download', `${isRepMode ? repName.replace(/\s+/g, '_') : tenantName.replace(/\s+/g, '_')}_performance_${timePeriod}_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -738,15 +1365,36 @@ export default function RepPerformanceDashboard() {
                   <BarChart3 className="h-5 w-5" />
                 </span>
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#ED1C24]">
-                  EXECUTIVE & REP PERFORMANCE INTELLIGENCE
+                  {isRepMode ? 'PERSONAL SDR CONVERSION INTELLIGENCE' : 'ORGANIZATION PERFORMANCE INTELLIGENCE'}
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-[#222021] tracking-tight mt-1">
-                SDR Activities & Conversion Dashboard
+                {isRepMode ? `${repName}'s Activity & Conversion Dashboard` : `${tenantName} Activities & Conversion Dashboard`}
               </h1>
-              <p className="text-xs text-[#6b6968] mt-0.5">
-                Real-time tracking of calls, emails, appointments booked, DNC compliance, and carry-over follow-ups.
-              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <p className="text-xs text-[#6b6968]">
+                  {isRepMode 
+                    ? `Personal performance metrics, quota attainment, and call telemetry for ${repName}.` 
+                    : `Tracking calls, emails, appointments booked, and DNC compliance across ${tenantName}.`}
+                </p>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                  isRepMode 
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                    : 'bg-zinc-200 text-zinc-800 border border-zinc-300'
+                }`}>
+                  {isRepMode ? (
+                    <>
+                      <Lock className="h-3 w-3" />
+                      <span>Rep Personal View ({repName})</span>
+                    </>
+                  ) : (
+                    <>
+                      <Building2 className="h-3 w-3" />
+                      <span>{tenantName} Floor ({role})</span>
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
 
             {/* Timeframe Selector Pills (Daily, Weekly, Monthly, Quarterly, Yearly) */}
@@ -783,20 +1431,24 @@ export default function RepPerformanceDashboard() {
             <div className="flex items-center justify-between text-xs font-bold text-[#222021]">
               <div className="flex items-center gap-1.5">
                 <Filter className="h-4 w-4 text-[#ED1C24]" />
-                <span>Multi-Dimensional Data Filters</span>
+                <span>
+                  {isRepMode ? 'Active Personal Scope (Role: Rep)' : `Organization Data Filters (${tenantName})`}
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRepFilter('all');
-                  setSelectedCampaignFilter('all');
-                  setSelectedDispositionFilter('all');
-                  setSearchRepQuery('');
-                }}
-                className="text-[11px] font-mono text-slate-500 hover:text-[#ED1C24] underline cursor-pointer"
-              >
-                Reset Filters
-              </button>
+              {!isRepMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedRepFilter('all');
+                    setSelectedCampaignFilter('all');
+                    setSelectedDispositionFilter('all');
+                    setSearchRepQuery('');
+                  }}
+                  className="text-[11px] font-mono text-slate-500 hover:text-[#ED1C24] underline cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
@@ -805,18 +1457,33 @@ export default function RepPerformanceDashboard() {
                 <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide block mb-1">
                   Filter by SDR Rep:
                 </label>
-                <select
-                  value={selectedRepFilter}
-                  onChange={(e) => setSelectedRepFilter(e.target.value)}
-                  className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-bold text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
-                >
-                  <option value="all">All Reps (Entire Team)</option>
-                  <option value="rep_1">Alex Mercer (Senior SDR)</option>
-                  <option value="rep_2">Sarah Jenkins (Setter)</option>
-                  <option value="rep_3">David Vance (Rep)</option>
-                  <option value="rep_4">Elena Gomez (Specialist)</option>
-                  <option value="rep_5">Marcus Brody (Junior SDR)</option>
-                </select>
+                {isRepMode ? (
+                  // LOCKED VIEW FOR REP: STRICT PERSONAL STATS ONLY
+                  <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border-2 border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-950">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                      <span className="truncate">{repName} (Personal Stats Only)</span>
+                    </div>
+                    <span className="text-[9px] font-mono bg-emerald-200 text-emerald-900 font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1">
+                      <Lock className="h-2.5 w-2.5" />
+                      <span>Rep Locked</span>
+                    </span>
+                  </div>
+                ) : (
+                  // ADMIN / MANAGER VIEW: SCOPED ONLY TO THIS TENANT'S REPS
+                  <select
+                    value={selectedRepFilter}
+                    onChange={(e) => setSelectedRepFilter(e.target.value)}
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-bold text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  >
+                    <option value="all">All {tenantName} Reps ({organizationReps.length})</option>
+                    {organizationReps.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} ({r.role})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Filter 2: By Campaign */}
@@ -824,17 +1491,27 @@ export default function RepPerformanceDashboard() {
                 <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide block mb-1">
                   Filter by Campaign / Tenant:
                 </label>
-                <select
-                  value={selectedCampaignFilter}
-                  onChange={(e) => setSelectedCampaignFilter(e.target.value)}
-                  className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-bold text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
-                >
-                  <option value="all">All Campaigns</option>
-                  <option value="Apex Global BPO">Apex Global BPO</option>
-                  <option value="Enterprise Outbound">Enterprise Outbound</option>
-                  <option value="FinTech Call Center">FinTech Call Center</option>
-                  <option value="Medical BPO">Medical BPO</option>
-                </select>
+                {isRepMode ? (
+                  // Rep View: Shows their active campaign
+                  <div className="px-3 py-2 bg-[#F2F0EF] border border-[#222021]/15 rounded-xl text-xs font-bold text-[#222021] truncate flex items-center justify-between">
+                    <span className="truncate">{currentRepRecord?.campaign || tenantName}</span>
+                    <span className="text-[10px] font-mono text-slate-500 shrink-0">Assigned</span>
+                  </div>
+                ) : (
+                  // Admin View: Strictly campaigns belonging to this organization
+                  <select
+                    value={selectedCampaignFilter}
+                    onChange={(e) => setSelectedCampaignFilter(e.target.value)}
+                    className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-bold text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                  >
+                    <option value="all">All {tenantName} Campaigns ({availableCampaigns.length})</option>
+                    {availableCampaigns.map((camp) => (
+                      <option key={camp} value={camp}>
+                        {camp}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Filter 3: By Disposition */}
@@ -858,7 +1535,7 @@ export default function RepPerformanceDashboard() {
               {/* Filter 4: Search Box */}
               <div>
                 <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide block mb-1">
-                  Search Rep or Account:
+                  Search Query:
                 </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -866,7 +1543,7 @@ export default function RepPerformanceDashboard() {
                     type="text"
                     value={searchRepQuery}
                     onChange={(e) => setSearchRepQuery(e.target.value)}
-                    placeholder="e.g. Alex, Apex, FinTech..."
+                    placeholder={isRepMode ? "Filter activities..." : "Search rep or account..."}
                     className="w-full pl-9 pr-3 py-2 bg-[#F2F0EF] border border-[#222021]/15 rounded-xl text-xs font-bold text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
                   />
                 </div>
@@ -879,7 +1556,7 @@ export default function RepPerformanceDashboard() {
             {/* Card 1: Appointments Booked */}
             <div className="bg-white border-2 border-emerald-500/30 rounded-2xl p-4 shadow-xs relative overflow-hidden">
               <div className="flex items-center justify-between text-xs font-bold text-emerald-900">
-                <span>APPOINTMENTS BOOKED</span>
+                <span>{isRepMode ? 'YOUR BOOKINGS' : 'APPOINTMENTS BOOKED'}</span>
                 <span className="p-1 rounded-lg bg-emerald-100 text-emerald-700">
                   <CheckCircle2 className="h-4 w-4" />
                 </span>
@@ -899,7 +1576,7 @@ export default function RepPerformanceDashboard() {
             {/* Card 2: Total Activities */}
             <div className="bg-white border border-[#222021]/15 rounded-2xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                <span>TOTAL OUTREACH</span>
+                <span>{isRepMode ? 'YOUR TOTAL OUTREACH' : 'TOTAL OUTREACH'}</span>
                 <span className="p-1 rounded-lg bg-slate-100 text-slate-700">
                   <PhoneCall className="h-4 w-4" />
                 </span>
@@ -915,7 +1592,7 @@ export default function RepPerformanceDashboard() {
             {/* Card 3: DNC Quarantine Compliance */}
             <div className="bg-white border-2 border-red-500/30 rounded-2xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs font-bold text-red-900">
-                <span>DNC QUARANTINED</span>
+                <span>{isRepMode ? 'YOUR DNC LOGS' : 'DNC QUARANTINED'}</span>
                 <span className="p-1 rounded-lg bg-red-100 text-red-700">
                   <Ban className="h-4 w-4" />
                 </span>
@@ -932,7 +1609,7 @@ export default function RepPerformanceDashboard() {
             {/* Card 4: Not Interested / Disqualified */}
             <div className="bg-white border border-[#222021]/15 rounded-2xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                <span>NOT INTERESTED</span>
+                <span>{isRepMode ? 'YOUR NOT INTERESTED' : 'NOT INTERESTED'}</span>
                 <span className="p-1 rounded-lg bg-slate-100 text-slate-700">
                   <ThumbsDown className="h-4 w-4" />
                 </span>
@@ -948,7 +1625,7 @@ export default function RepPerformanceDashboard() {
             {/* Card 5: Carry-Over / Follow-ups Due */}
             <div className="bg-white border-2 border-purple-500/30 rounded-2xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs font-bold text-purple-900">
-                <span>CARRY-OVER / FOLLOW-UPS</span>
+                <span>{isRepMode ? 'YOUR FOLLOW-UPS' : 'CARRY-OVER / FOLLOW-UPS'}</span>
                 <span className="p-1 rounded-lg bg-purple-100 text-purple-700">
                   <CalendarClock className="h-4 w-4" />
                 </span>
@@ -968,41 +1645,49 @@ export default function RepPerformanceDashboard() {
               <div>
                 <h2 className="text-lg font-black text-[#222021] tracking-tight flex items-center gap-2">
                   <Users className="h-5 w-5 text-[#ED1C24]" />
-                  <span>SDR Reps Leaderboard & Activity Breakdown</span>
+                  <span>
+                    {isRepMode 
+                      ? 'Your Personal SDR Performance Record' 
+                      : `${tenantName} SDR Reps Activity Breakdown`}
+                  </span>
                 </h2>
                 <p className="text-xs text-[#6b6968] mt-0.5">
-                  Performance across calls, email dispatches, appointments booked, and compliance scores.
+                  {isRepMode
+                    ? `Exclusive performance metrics and quality assurance telemetry for ${repName}.`
+                    : `Floor leaderboard and compliance metrics across ${organizationReps.length} reps in ${tenantName}.`}
                 </p>
               </div>
 
-              {/* Sort selector */}
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500 font-bold">Sort By:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (sortField === 'appointmentsBooked') setSortAsc(!sortAsc);
-                    else { setSortField('appointmentsBooked'); setSortAsc(false); }
-                  }}
-                  className={`px-2.5 py-1 rounded-lg border text-xs font-bold cursor-pointer ${
-                    sortField === 'appointmentsBooked' ? 'bg-[#ED1C24] text-white border-[#ED1C24]' : 'bg-slate-50 border-slate-200 text-slate-700'
-                  }`}
-                >
-                  Bookings {sortField === 'appointmentsBooked' ? (sortAsc ? '↑' : '↓') : ''}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (sortField === 'callsMade') setSortAsc(!sortAsc);
-                    else { setSortField('callsMade'); setSortAsc(false); }
-                  }}
-                  className={`px-2.5 py-1 rounded-lg border text-xs font-bold cursor-pointer ${
-                    sortField === 'callsMade' ? 'bg-[#ED1C24] text-white border-[#ED1C24]' : 'bg-slate-50 border-slate-200 text-slate-700'
-                  }`}
-                >
-                  Calls {sortField === 'callsMade' ? (sortAsc ? '↑' : '↓') : ''}
-                </button>
-              </div>
+              {/* Sort selector (Shown for Admins or Multi-rep views) */}
+              {!isRepMode && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-500 font-bold">Sort By:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (sortField === 'appointmentsBooked') setSortAsc(!sortAsc);
+                      else { setSortField('appointmentsBooked'); setSortAsc(false); }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-bold cursor-pointer ${
+                      sortField === 'appointmentsBooked' ? 'bg-[#ED1C24] text-white border-[#ED1C24]' : 'bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    Bookings {sortField === 'appointmentsBooked' ? (sortAsc ? '↑' : '↓') : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (sortField === 'callsMade') setSortAsc(!sortAsc);
+                      else { setSortField('callsMade'); setSortAsc(false); }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-bold cursor-pointer ${
+                      sortField === 'callsMade' ? 'bg-[#ED1C24] text-white border-[#ED1C24]' : 'bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    Calls {sortField === 'callsMade' ? (sortAsc ? '↑' : '↓') : ''}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Table */}
@@ -1010,7 +1695,7 @@ export default function RepPerformanceDashboard() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-900 text-white font-mono text-[10px] uppercase tracking-wider">
                   <tr>
-                    <th className="py-3 px-3.5">Rep Name & Campaign</th>
+                    <th className="py-3 px-3.5">Rep Name &amp; Campaign</th>
                     <th className="py-3 px-3 text-center">Status</th>
                     <th className="py-3 px-3 text-right">Dials Made</th>
                     <th className="py-3 px-3 text-right">Connect %</th>
@@ -1026,7 +1711,12 @@ export default function RepPerformanceDashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-sans">
                   {filteredReps.map((r, idx) => (
-                    <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                    <tr 
+                      key={r.id} 
+                      className={`transition-colors ${
+                        isRepMode ? 'bg-emerald-50/40 hover:bg-emerald-50/70' : 'hover:bg-slate-50'
+                      }`}
+                    >
                       <td className="py-3.5 px-3.5">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-mono font-bold flex items-center justify-center text-[10px] shadow-2xs">
@@ -1035,10 +1725,16 @@ export default function RepPerformanceDashboard() {
                           <div>
                             <div className="font-bold text-[#222021] flex items-center gap-1.5">
                               <span>{r.name}</span>
-                              {idx === 0 && (
-                                <span className="text-[9px] bg-amber-100 text-amber-900 font-mono font-bold px-1.5 py-0.2 rounded border border-amber-300">
-                                  👑 TOP
+                              {isRepMode ? (
+                                <span className="text-[9px] bg-emerald-100 text-emerald-900 font-mono font-bold px-1.5 py-0.2 rounded border border-emerald-300">
+                                  YOU (REP)
                                 </span>
+                              ) : (
+                                idx === 0 && (
+                                  <span className="text-[9px] bg-amber-100 text-amber-900 font-mono font-bold px-1.5 py-0.2 rounded border border-amber-300">
+                                    👑 TOP
+                                  </span>
+                                )
                               )}
                             </div>
                             <div className="text-[10px] text-slate-500 font-mono">
@@ -1125,7 +1821,7 @@ export default function RepPerformanceDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-black text-[#222021] tracking-tight">
-                    Multi-Channel Cadence Conversion Funnel
+                    {isRepMode ? 'Your Cadence Conversion Funnel' : `${tenantName} Cadence Funnel`}
                   </h3>
                   <p className="text-xs text-[#6b6968]">
                     Progression and conversion drop-off across the 21-day blueprint.
@@ -1169,49 +1865,60 @@ export default function RepPerformanceDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-black text-[#222021] tracking-tight">
-                    Live Telemetry & Activity Stream
+                    {isRepMode ? 'Your Live Activity Feed' : `${tenantName} Live Activity Stream`}
                   </h3>
                   <p className="text-xs text-[#6b6968]">
                     Real-time audit log of dials, emails, and dispositions.
                   </p>
                 </div>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-slate-500">
+                    {filteredActivities.length} events
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                </div>
               </div>
 
               <div className="space-y-3 pt-1">
-                {RECENT_ACTIVITY_STREAM.map((act) => (
-                  <div key={act.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <strong className="text-slate-900">{act.repName}</strong>
-                        <span className="text-slate-400">→</span>
-                        <span className="font-semibold text-slate-800">{act.prospectName} ({act.companyName})</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-400">{act.timestamp}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-0.5">
-                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
-                        act.disposition === 'Meeting Booked'
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : act.disposition === 'DNC Quarantined'
-                          ? 'bg-red-100 text-red-800 border border-red-300'
-                          : act.disposition === 'Callback Scheduled'
-                          ? 'bg-purple-100 text-purple-800 border border-purple-300'
-                          : 'bg-slate-200 text-slate-700'
-                      }`}>
-                        {act.disposition}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        Channel: {act.channel}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-600 leading-snug pt-1">
-                      {act.notesSnippet}
-                    </p>
+                {filteredActivities.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    No matching activity events recorded for this selection.
                   </div>
-                ))}
+                ) : (
+                  filteredActivities.map((act) => (
+                    <div key={act.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <strong className="text-slate-900">{act.repName}</strong>
+                          <span className="text-slate-400">→</span>
+                          <span className="font-semibold text-slate-800">{act.prospectName} ({act.companyName})</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400">{act.timestamp}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                          act.disposition === 'Meeting Booked'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : act.disposition === 'DNC Quarantined'
+                            ? 'bg-red-100 text-red-800 border border-red-300'
+                            : act.disposition === 'Callback Scheduled'
+                            ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                            : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {act.disposition}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          Channel: {act.channel}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-600 leading-snug pt-1">
+                        {act.notesSnippet}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

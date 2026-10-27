@@ -196,6 +196,46 @@ export const CONTINUITY_SERIES_PRESETS: ContinuityPreset[] = [
   }
 ];
 
+export interface LinkedInIdeaPreset {
+  id: string;
+  label: string;
+  idea: string;
+  frameworkId?: string;
+}
+
+export const LINKEDIN_IDEA_PRESETS: LinkedInIdeaPreset[] = [
+  {
+    id: 'broker-margin-skim',
+    label: '35% Broker Margin Skim',
+    idea: 'I want to post about how BPOs lose 35% margin to lead brokers who resell recycled Apollo lists, and why direct client acquisition is the only way to protect seat gross margin.',
+    frameworkId: 'contrarian-truth'
+  },
+  {
+    id: '72hr-ramp-classroom',
+    label: '72-Hour Ramp vs 4-Week Classrooms',
+    idea: 'Why traditional 4-week classroom SDR onboarding is a waste of money, and how live AI voice sparring transitions new hires to live dials in 72 hours.',
+    frameworkId: 'teardown-playbook'
+  },
+  {
+    id: 'sub-180ms-objection',
+    label: 'Sub-180ms Live Objection Handling',
+    idea: 'Reps lose deals in the first 20 seconds when buyers bring up competitor pricing. Real-time consultative rebuttals in 150ms prevent hesitation.',
+    frameworkId: 'executive-paradox'
+  },
+  {
+    id: 'filipino-talent-robots',
+    label: 'Filipino Talent vs Script Robots',
+    idea: 'Foreign clients are terrified of hiring offshore callers who sound like scripted telemarketers. When Filipino SDRs are empowered as consultative operators, client retention jumps.',
+    frameworkId: 'contrarian-truth'
+  },
+  {
+    id: 'radical-meta-proof',
+    label: 'Radical Transparency / Meta-Proof',
+    idea: 'The reason this outreach felt different is because we used our own tool on you. If it earned your attention, it will earn your buyers attention on client campaigns.',
+    frameworkId: 'contrarian-truth'
+  }
+];
+
 /**
  * Strips all emojis and replaces em dashes to satisfy strict anti-bot prompt rules
  */

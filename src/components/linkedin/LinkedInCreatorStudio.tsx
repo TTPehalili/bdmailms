@@ -20,13 +20,17 @@ import {
   ArrowRight,
   ChevronRight,
   Flame,
-  CheckCircle
+  CheckCircle,
+  Pencil,
+  Lightbulb,
+  FileText
 } from 'lucide-react';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
 import LinkedInVisualCard from './LinkedInVisualCard';
 import { 
   LINKEDIN_FRAMEWORKS, 
   CONTINUITY_SERIES_PRESETS,
+  LINKEDIN_IDEA_PRESETS,
   summarizeCsvLeads, 
   getDeterministicLinkedInSeries, 
   getDeterministicViralComments,
@@ -52,11 +56,15 @@ export default function LinkedInCreatorStudio() {
   // Series Generation State
   const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>('contrarian-truth');
   const [selectedPresetId, setSelectedPresetId] = useState<string>('broker-margin-continuity');
-  const [customTopic, setCustomTopic] = useState<string>('');
+  const [customTopic, setCustomTopic] = useState<string>(
+    'I want to post about how BPOs lose 35% margin to lead brokers who resell recycled Apollo lists, and why direct client acquisition is the only way to protect seat gross margin.'
+  );
   const [isGeneratingSeries, setIsGeneratingSeries] = useState(false);
   const [seriesData, setSeriesData] = useState<LinkedInSeries>(() => 
     getDeterministicLinkedInSeries(summarizeCsvLeads(DEMO_CADENCE_LEADS), 'contrarian-truth', 'broker-margin-continuity')
   );
+  // Post Draft Editing State: Tracks which post cards are in inline edit mode
+  const [editingPostIds, setEditingPostIds] = useState<Record<string, boolean>>({});
 
   const currentPreset = CONTINUITY_SERIES_PRESETS.find(p => p.id === selectedPresetId) || CONTINUITY_SERIES_PRESETS[0];
 
@@ -112,6 +120,54 @@ export default function LinkedInCreatorStudio() {
     // Instant update with rich sequential posts so the user sees the continuation immediately
     const updated = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, presetId);
     setSeriesData(updated);
+  };
+
+  // Toggle Edit Mode for a post card
+  const toggleEditMode = (postId: string) => {
+    setEditingPostIds(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }));
+  };
+
+  // Update post field directly (Hook, Body, CTA, Hashtags)
+  const handleUpdatePostField = (postId: string, field: 'hook' | 'body' | 'cta' | 'hashtags', value: any) => {
+    setSeriesData(prev => {
+      const updatedPosts = prev.posts.map(p => {
+        if (p.id === postId) {
+          const updated = { ...p, [field]: value };
+          const hookText = field === 'hook' ? value : p.hook;
+          const bodyText = field === 'body' ? value : p.body;
+          const ctaText = field === 'cta' ? value : p.cta;
+          updated.wordCount = `${hookText} ${bodyText} ${ctaText}`.trim().split(/\s+/).filter(Boolean).length;
+          return updated;
+        }
+        return p;
+      });
+      return { ...prev, posts: updatedPosts };
+    });
+  };
+
+  // Sanitize post (remove em dashes and emojis)
+  const handleCleanPost = (postId: string) => {
+    setSeriesData(prev => {
+      const updatedPosts = prev.posts.map(p => {
+        if (p.id === postId) {
+          const cleanHook = sanitizeTextForLinkedIn(p.hook);
+          const cleanBody = sanitizeTextForLinkedIn(p.body);
+          const cleanCta = sanitizeTextForLinkedIn(p.cta);
+          return {
+            ...p,
+            hook: cleanHook,
+            body: cleanBody,
+            cta: cleanCta,
+            wordCount: `${cleanHook} ${cleanBody} ${cleanCta}`.trim().split(/\s+/).filter(Boolean).length
+          };
+        }
+        return p;
+      });
+      return { ...prev, posts: updatedPosts };
+    });
   };
 
   // Generate 3-Post Series via Gemini
@@ -320,7 +376,7 @@ export default function LinkedInCreatorStudio() {
         <div className="space-y-6">
           {/* Controls Panel */}
           <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Framework Selector */}
               <div>
                 <label className="block text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
@@ -362,22 +418,50 @@ export default function LinkedInCreatorStudio() {
                   Connects to previous posts so followers anticipate each drop.
                 </p>
               </div>
+            </div>
 
-              {/* Custom Polish Instruction */}
-              <div>
-                <label className="block text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
-                  3. Specific Angle / Tweak (Optional)
+            {/* IDEA BOX: Raw Angle, Plan & Thought Input */}
+            <div className="p-3.5 rounded-xl bg-amber-50/40 border border-amber-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+                  <span>3. Idea Box — What do you want to post about?</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. emphasize direct contracts over shared leads"
-                  value={customTopic}
-                  onChange={(e) => setCustomTopic(e.target.value)}
-                  className="w-full text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-2 text-zinc-800 placeholder:text-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-zinc-900"
-                />
-                <p className="text-[10px] text-zinc-400 mt-1">
-                  Strict &lt;90 words writing technique enforced automatically.
-                </p>
+                <span className="text-[10px] font-mono text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded">
+                  AI Analyzes Your Idea &amp; Writes The Series
+                </span>
+              </div>
+
+              <textarea
+                rows={3}
+                value={customTopic}
+                onChange={(e) => setCustomTopic(e.target.value)}
+                placeholder="Type your raw thought, experience, or observation here. For example: 'I want to call out middleman brokers who mark up BPO seats by 300% without providing any training or QA, and explain why direct contracts always win'..."
+                className="w-full text-xs bg-white border border-amber-200 rounded-lg p-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-amber-500 shadow-2xs leading-relaxed"
+              />
+
+              {/* Quick Idea Starters */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] font-mono text-zinc-500 block">
+                  Click a Quick Idea Starter to populate:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {LINKEDIN_IDEA_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        setCustomTopic(preset.idea);
+                        if (preset.frameworkId) {
+                          setSelectedFrameworkId(preset.frameworkId);
+                        }
+                      }}
+                      className="px-2.5 py-1 text-[11px] rounded-lg bg-white border border-amber-200/90 hover:border-amber-400 text-zinc-800 hover:text-zinc-950 font-medium transition-colors shadow-2xs text-left"
+                    >
+                      💡 {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -567,58 +651,166 @@ export default function LinkedInCreatorStudio() {
 
                   {/* Post Content Body */}
                   <div className="p-4 space-y-3 text-left">
-                    {/* Unified Clean LinkedIn Post Block (Ready to Copy & Select) */}
+                    {/* Unified Clean LinkedIn Post Block (Ready to Copy & Edit) */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
                           <CheckCircle className="h-3 w-3 text-emerald-600" />
-                          <span>Ready-to-Paste LinkedIn Post (Whole Block)</span>
+                          <span>{editingPostIds[post.id] ? 'Editing Post Draft (Free Hand)' : 'Ready-to-Paste LinkedIn Post (Whole Block)'}</span>
                         </span>
-                        <span className="text-[10px] font-mono text-zinc-500">
-                          {post.wordCount} words • {post.estimatedReadSeconds}s read
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleEditMode(post.id)}
+                            className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                              editingPostIds[post.id]
+                                ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
+                            }`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                            <span>{editingPostIds[post.id] ? 'Done Editing' : 'Edit Draft'}</span>
+                          </button>
+                          <span className="text-[10px] font-mono text-zinc-500">
+                            {post.wordCount} words • {post.estimatedReadSeconds}s read
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="relative group">
-                        <div 
-                          onClick={() => copyToClipboard(fullPostText, `block-post-${post.id}`)}
-                          className="p-3.5 rounded-xl bg-zinc-50 hover:bg-zinc-100/60 border-2 border-zinc-200 hover:border-zinc-300 text-zinc-900 font-sans text-xs leading-relaxed whitespace-pre-line select-text cursor-pointer transition-all space-y-2 shadow-2xs"
-                        >
-                          <div className="font-bold text-zinc-950 pb-1 border-b border-zinc-200/70">
-                            {post.hook}
+                      {editingPostIds[post.id] ? (
+                        /* EDITING MODE: Free-hand editable textareas */
+                        <div className="p-3.5 rounded-xl bg-amber-50/50 border-2 border-amber-300 space-y-3 text-xs">
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider">
+                                Hook (First 2 Lines — Grabs Attention)
+                              </label>
+                              <span className="text-[10px] font-mono text-zinc-400">Lines 1 &amp; 2</span>
+                            </div>
+                            <textarea
+                              rows={2}
+                              value={post.hook}
+                              onChange={(e) => handleUpdatePostField(post.id, 'hook', e.target.value)}
+                              className="w-full bg-white border border-amber-300 rounded-lg p-2 font-bold text-zinc-950 focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
+                            />
                           </div>
-                          <div className="text-zinc-800">
-                            {post.body}
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider">
+                                Body (Target: Under 90 Words • 0 Em Dashes • 0 Emojis)
+                              </label>
+                              <span className="text-[10px] font-mono text-zinc-500">
+                                {post.body.trim().split(/\s+/).filter(Boolean).length} words
+                              </span>
+                            </div>
+                            <textarea
+                              rows={6}
+                              value={post.body}
+                              onChange={(e) => handleUpdatePostField(post.id, 'body', e.target.value)}
+                              className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-relaxed font-sans"
+                            />
                           </div>
-                          <div className="text-emerald-900 font-semibold pt-1 border-t border-zinc-200/70">
-                            {post.cta}
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider">
+                                Call to Action (Philosophical Open-Ended Question)
+                              </label>
+                            </div>
+                            <textarea
+                              rows={2}
+                              value={post.cta}
+                              onChange={(e) => handleUpdatePostField(post.id, 'cta', e.target.value)}
+                              className="w-full bg-white border border-amber-300 rounded-lg p-2 font-semibold text-emerald-950 focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
+                            />
                           </div>
-                          <div className="text-[11px] font-mono text-zinc-500 pt-1">
-                            {post.hashtags.join(' ')}
+
+                          <div>
+                            <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider block mb-1">
+                              Hashtags (Space separated)
+                            </label>
+                            <input
+                              type="text"
+                              value={post.hashtags.join(' ')}
+                              onChange={(e) => {
+                                const tags = e.target.value.split(/\s+/).filter(Boolean).map(t => t.startsWith('#') ? t : `#${t}`);
+                                handleUpdatePostField(post.id, 'hashtags', tags);
+                              }}
+                              className="w-full bg-white border border-amber-300 rounded-lg p-2 font-mono text-[11px] text-zinc-700 focus:outline-hidden focus:ring-1 focus:ring-amber-500"
+                            />
+                          </div>
+
+                          <div className="pt-2 border-t border-amber-200 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => handleCleanPost(post.id)}
+                              className="px-2.5 py-1 rounded bg-zinc-900 text-white text-[11px] font-bold hover:bg-zinc-800 transition-colors shadow-2xs"
+                              title="Strip any accidental em dashes or emojis"
+                            >
+                              Clean Rules (0 Em Dashes / 0 Emojis)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleEditMode(post.id)}
+                              className="px-3 py-1 rounded bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 transition-colors shadow-2xs"
+                            >
+                              ✓ Save &amp; Finish
+                            </button>
                           </div>
                         </div>
+                      ) : (
+                        /* PREVIEW MODE: Formatted Block with Click-to-Copy */
+                        <div className="relative group">
+                          <div 
+                            onClick={() => copyToClipboard(fullPostText, `block-post-${post.id}`)}
+                            className="p-3.5 rounded-xl bg-zinc-50 hover:bg-zinc-100/60 border-2 border-zinc-200 hover:border-zinc-300 text-zinc-900 font-sans text-xs leading-relaxed whitespace-pre-line select-text cursor-pointer transition-all space-y-2 shadow-2xs"
+                          >
+                            <div className="font-bold text-zinc-950 pb-1 border-b border-zinc-200/70">
+                              {post.hook}
+                            </div>
+                            <div className="text-zinc-800">
+                              {post.body}
+                            </div>
+                            <div className="text-emerald-900 font-semibold pt-1 border-t border-zinc-200/70">
+                              {post.cta}
+                            </div>
+                            <div className="text-[11px] font-mono text-zinc-500 pt-1">
+                              {post.hashtags.join(' ')}
+                            </div>
+                          </div>
 
-                        {/* Floating Action Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            copyToClipboard(fullPostText, `block-post-${post.id}`);
-                          }}
-                          className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
-                        >
-                          {copiedKey === `block-post-${post.id}` ? (
-                            <>
-                              <Check className="h-4 w-4 text-emerald-400" />
-                              <span className="text-emerald-400 font-bold">Entire Post Copied (Ready for LinkedIn)!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-4 w-4" />
-                              <span>Copy Whole Block for LinkedIn</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
+                          {/* Floating Action Buttons */}
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              onClick={() => toggleEditMode(post.id)}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300 transition-colors shadow-2xs cursor-pointer"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span>Edit Draft</span>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(fullPostText, `block-post-${post.id}`);
+                              }}
+                              className="flex-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs cursor-pointer"
+                            >
+                              {copiedKey === `block-post-${post.id}` ? (
+                                <>
+                                  <Check className="h-4 w-4 text-emerald-400" />
+                                  <span className="text-emerald-400 font-bold">Entire Post Copied (Ready for LinkedIn)!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-4 w-4" />
+                                  <span>Copy Whole Block for LinkedIn</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Visual Graphic Pairing */}
