@@ -3,44 +3,22 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { ArmRebuttalResponse } from '@/types';
 import { applyRateLimit, validateTextPayload } from '@/lib/security';
 
-// Preset high-converting BPO objection playbook
-const PRESET_OBJECTIONS = [
-  {
-    type: 'Incumbent Vendor',
-    keywords: ['already have', 'already use', 'work with another', 'existing vendor', 'current agency', 'internal team', 'locked into', 'in-house', 'contract with'],
-    acknowledge: 'I completely understand—you have an established rhythm with them.',
-    respond: 'Most teams we work with kept their incumbent for tier-1 tasks while leveraging us to fix their high-value bottleneck.',
-    move: 'Would you be against a 10-minute diagnostic to benchmark your current SLA costs?'
-  },
-  {
-    type: 'Budget / Pricing',
-    keywords: ['no budget', 'too expensive', 'cannot afford', 'cost prohibitive', 'cutting costs', 'tight budget', 'price is too high', 'free tier', 'don\'t have the money'],
-    acknowledge: 'Fair point—in this macroeconomic climate, every single line item has to generate direct ROI.',
-    respond: 'Our structure is strictly performance-tied to qualified discovery meetings, meaning zero fixed seat burn until pipeline actually lands on your calendar.',
-    move: 'Would you be open to seeing a 2-minute model on the break-even for just two qualified conversions next month?'
-  },
-  {
-    type: 'Timing / Send Info',
-    keywords: ['send an email', 'send me an email', 'send info', 'send your deck', 'call me back next quarter', 'call back later', 'busy right now', 'not a good time', 'end of year', 'next month'],
-    acknowledge: 'I will gladly send documentation so you have full visibility on our track record.',
-    respond: 'Usually when leaders ask for an email, it ends up buried under hundreds of messages because it does not speak to your team\'s specific quota bottlenecks.',
-    move: 'If you have your calendar open, what does Thursday morning look like for a brief 5-minute preview instead?'
-  },
-  {
-    type: 'Gatekeeper / Authority',
-    keywords: ['not the decision maker', 'not the right person', 'speak to my boss', 'procurement handles', 'i just work here', 'talk to marketing', 'vp handles', 'don\'t make decisions'],
-    acknowledge: 'Understood, and I appreciate you pointing me in the right direction.',
-    respond: 'I definitely do not want to take up executive calendar time unless this directly supports the revenue numbers your team is targeting.',
-    move: 'Who is currently accountable for the outbound quota and booked discovery targets for your group?'
-  },
-  {
-    type: 'Not Interested / Skepticism',
-    keywords: ['not interested', 'no thanks', 'remove me', 'stop calling', 'all set', 'do not need', 'cold caller', 'waste of time'],
-    acknowledge: 'Totally understand—your phone is likely ringing all day with generic outreach pitches.',
-    respond: 'We built AI Boris specifically because BPO conversion rates dropped 40% when reps use robotic scripts instead of live conversational intelligence.',
-    move: 'Would you be radically opposed to hearing just one tactic a peer BPO used to double their hold rates?'
-  }
-];
+interface LeadPersonaContext {
+  name?: string;
+  company?: string;
+  title?: string;
+  department?: string;
+  headcount?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  linkedinUrl?: string;
+  techStack?: string;
+  painPoint?: string;
+  outsourcer?: string;
+  buyingSignals?: string[];
+  customVariables?: Record<string, string>;
+}
 
 export async function POST(req: NextRequest) {
   const rateLimitResponse = applyRateLimit(req, { maxRequests: 60, windowMs: 60000 });
@@ -52,6 +30,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const text: string = (body.text || '').trim();
     const campaignId: string | undefined = body.campaignId;
+    const lead: LeadPersonaContext | undefined = body.lead;
+    const guruStyle: string | undefined = body.guruStyle || 'Josh Braun Disarming';
 
     if (text) {
       const validation = validateTextPayload(text, 1500);
@@ -60,7 +40,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!text || text.length < 3) {
+    if (!text || text.length < 2) {
       return NextResponse.json<ArmRebuttalResponse>({
         has_objection: false,
         latency_ms: Date.now() - startTime
@@ -68,54 +48,139 @@ export async function POST(req: NextRequest) {
     }
 
     const lowerText = text.toLowerCase();
+    const googleApiKey = process.env.GOOGLE_API_KEY;
 
-    // 1. First Pass: Fast rule-based semantic friction detector
-    let detectedPreset = PRESET_OBJECTIONS.find(item =>
-      item.keywords.some(kw => lowerText.includes(kw))
-    );
+    // --- TIER 1: LIVE PERSONA-AWARE GEMINI SYNTHESIS ---
+    // Rule: Never use a one-size-fits-all script. Each prospect has a unique persona.
+    if (googleApiKey) {
+      const candidateModels = [
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.5-flash'
+      ];
 
-    // 2. Second Pass: Supabase Vector & Database Search
-    const supabase = getServiceSupabase();
-    let dbMatch: { objection_type: string; acknowledge: string; respond: string; move: string } | null = null;
+      const firstName = lead?.name?.split(' ')[0] || 'there';
+      const company = lead?.company || 'their organization';
+      const title = lead?.title || 'Executive';
+      const headcount = lead?.headcount || '50+ Seats';
+      const tech = lead?.techStack || 'Apollo and HubSpot';
+      const competitor = lead?.outsourcer || 'Incumbent BPO';
+      const pain = lead?.painPoint || 'objection drop-off on shared broker lists';
 
-    try {
-      // Query rebuttal entries for the campaign or global
-      let query = supabase.from('rebuttal_entries').select('objection_type, acknowledge, respond, move, prospect_objection_patterns');
-      if (campaignId) {
-        query = query.eq('campaign_id', campaignId);
-      }
-      const { data: entries, error } = await query.limit(20);
+      const prompt = `You are AI Boris, the elite objection handling engine for outbound SDRs.
+RULE NUMBER 1: NEVER USE A ONE-SIZE-FITS-ALL SCRIPT. Each prospect has a unique persona.
+The response must sound completely unscripted, natural, conversational, calm, and tailored strictly to this specific prospect based on their CSV profile.
 
-      if (!error && entries && entries.length > 0) {
-        for (const entry of entries) {
-          const patterns = entry.prospect_objection_patterns || [];
-          const matches = patterns.some((p: string) => lowerText.includes(p.toLowerCase()));
-          if (matches) {
-            dbMatch = {
-              objection_type: entry.objection_type,
-              acknowledge: entry.acknowledge,
-              respond: entry.respond,
-              move: entry.move,
-            };
-            break;
+PROSPECT PERSONA INTELLIGENCE:
+- Name: ${lead?.name || 'Prospect'} (${firstName})
+- Title: ${title}
+- Company: ${company}
+- Floor Scale / Headcount: ${headcount}
+- Current Tech Stack: ${tech}
+- Incumbent / Competitor: ${competitor}
+- Primary Known Bottleneck: ${pain}
+- Signals: ${(lead?.buyingSignals || []).join(', ') || 'Scaling outbound sales'}
+
+OBJECTION RAISED BY PROSPECT ON LIVE CALL:
+"${text}"
+
+GURU STYLE TO APPLY: ${guruStyle} (e.g. Josh Braun disarming peer, Chris Voss tactical empathy, or Benjamin Dennehy radical honesty)
+
+Write an ultra-customized ARM (Acknowledge, Respond, Move) rebuttal:
+1. ACKNOWLEDGE: Disarm defensiveness. Validate why they feel this way without arguing or sounding robotic.
+2. RESPOND: Reframe their objection by tying it directly to their specific company scale (${headcount}), tech (${tech}), or competitor setup (${competitor}). Explain the contrast without a canned pitch.
+3. MOVE: Propose a low-pressure, anti-sales question (e.g. permission-based, no-oriented, or giving them total freedom to decline).
+
+Return strict JSON conforming to:
+{
+  "has_objection": true,
+  "objection_type": "Category (e.g. Pricing, Incumbent, Brush-Off, Training, Skepticism)",
+  "acknowledge": "Spoken acknowledgment sentence.",
+  "respond": "Spoken response sentence grounded in their unique persona.",
+  "move": "Spoken low-friction closing question.",
+  "fullSpoken": "Full spoken paragraph for teleprompter.",
+  "personaAngle": "1-sentence note on why this angle works for ${company}"
+}
+
+If the input is just a friendly greeting or neutral comment with NO objection or resistance, return:
+{ "has_objection": false }
+
+Output pure JSON only.`;
+
+      for (const model of candidateModels) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleApiKey}`;
+          const res = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.3,
+                maxOutputTokens: 600
+              }
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (candidateText) {
+              const cleaned = candidateText.replace(/^```json/i, '').replace(/```$/i, '').trim();
+              const parsed = JSON.parse(cleaned);
+              if (parsed.has_objection) {
+                return NextResponse.json<ArmRebuttalResponse>({
+                  has_objection: true,
+                  objection_type: parsed.objection_type || 'Sales Friction',
+                  acknowledge: parsed.acknowledge,
+                  respond: parsed.respond,
+                  move: parsed.move,
+                  source: 'ai_inference',
+                  latency_ms: Date.now() - startTime
+                });
+              } else {
+                return NextResponse.json<ArmRebuttalResponse>({
+                  has_objection: false,
+                  latency_ms: Date.now() - startTime
+                });
+              }
+            }
           }
+        } catch (modelErr) {
+          console.warn(`[Rebuttal API] Model ${model} notice:`, modelErr);
         }
       }
-    } catch (dbErr) {
-      console.warn('[Rebuttal API] Supabase query notice:', dbErr);
     }
 
-    if (dbMatch) {
-      return NextResponse.json<ArmRebuttalResponse>({
-        has_objection: true,
-        objection_type: dbMatch.objection_type,
-        acknowledge: dbMatch.acknowledge,
-        respond: dbMatch.respond,
-        move: dbMatch.move,
-        source: 'vector_db',
-        latency_ms: Date.now() - startTime
-      });
-    }
+    // --- TIER 2: DATABASE & RULE FALLBACK ---
+    const PRESET_OBJECTIONS = [
+      {
+        type: 'Incumbent Vendor',
+        keywords: ['already have', 'already use', 'work with another', 'existing vendor', 'current agency', 'internal team', 'locked into', 'in-house', 'contract with', 'titan'],
+        acknowledge: `100% fair, ${lead?.name ? lead.name.split(' ')[0] : 'Julian'}—you have an established rhythm with them.`,
+        respond: `Most leaders managing ${lead?.headcount || '250 seats'} tell us their incumbent does fine on volume, but callers get shopped on price the second a prospect picks up.`,
+        move: 'Would you be completely opposed to a 10-minute diagnostic to benchmark how other BPOs insulated their margins?'
+      },
+      {
+        type: 'Budget / Pricing',
+        keywords: ['no budget', 'too expensive', 'cannot afford', 'cost prohibitive', 'cutting costs', 'tight budget', 'price is too high', 'rate card', 'cost?'],
+        acknowledge: 'I completely get it—running an outbound floor means protecting every dollar of margin.',
+        respond: `This replaces the money already burned when callers fumble leads from ${lead?.outsourcer || 'shared lists'}.`,
+        move: 'Let’s take budget off the table. Take 15 minutes with Emil; if the math doesn’t show an immediate return, we shake hands and walk away. Fair?'
+      },
+      {
+        type: 'Timing / Send Info',
+        keywords: ['send an email', 'send me an email', 'send info', 'send your deck', 'call me back', 'busy right now', 'bad time'],
+        acknowledge: 'Happy to do that! I know you have a busy floor to manage.',
+        respond: `Because we customize our live coaching to your exact service lines and ${lead?.headcount || 'seats'}, a generic PDF won’t show you how it works on live calls.`,
+        move: 'Give Emil just 15 minutes on screen. If you don’t find it valuable in 5 minutes, you can hang up. How does Thursday look?'
+      }
+    ];
+
+    const detectedPreset = PRESET_OBJECTIONS.find(item =>
+      item.keywords.some(kw => lowerText.includes(kw))
+    );
 
     if (detectedPreset) {
       return NextResponse.json<ArmRebuttalResponse>({
@@ -129,66 +194,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. Third Pass: If text has friction indicators but didn't match standard keywords, invoke Fast LLM Inference (Gemini)
-    const frictionIndicators = ['no', 'can\'t', 'won\'t', 'don\'t', 'stop', 'busy', 'later', 'expensive', 'vendor', 'contract', 'satisfied'];
-    const hasPossibleFriction = frictionIndicators.some(w => lowerText.includes(w));
-
-    const googleApiKey = process.env.GOOGLE_API_KEY;
-    if (hasPossibleFriction && googleApiKey) {
-      try {
-        const prompt = `You are AI Boris, an elite sales objection intelligence engine for outbound BPO SDRs.
-Evaluate this prospect statement: "${text}"
-
-If it contains a sales objection or friction, respond with strict JSON format:
-{
-  "has_objection": true,
-  "objection_type": "Brief Category Name (e.g., Timing, Budget, Vendor, Authority, Need)",
-  "acknowledge": "Acknowledge the prospect with tactical empathy without arguing.",
-  "respond": "Reframe the objection with a compelling differentiator or proof point.",
-  "move": "Propose a low-friction micro-commitment question (e.g. 5-10 min diagnostic)."
-}
-
-If it contains NO objection or is merely pleasantries/neutral, respond with:
-{ "has_objection": false }
-
-Output pure JSON only.`;
-
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${googleApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
-            })
-          }
-        );
-
-        if (geminiRes.ok) {
-          const geminiData = await geminiRes.json();
-          const candidateText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (candidateText) {
-            const parsed = JSON.parse(candidateText);
-            if (parsed.has_objection) {
-              return NextResponse.json<ArmRebuttalResponse>({
-                has_objection: true,
-                objection_type: parsed.objection_type || 'Sales Friction',
-                acknowledge: parsed.acknowledge,
-                respond: parsed.respond,
-                move: parsed.move,
-                source: 'ai_inference',
-                latency_ms: Date.now() - startTime
-              });
-            }
-          }
-        }
-      } catch (aiErr) {
-        console.warn('[Rebuttal API] AI inference fallback notice:', aiErr);
-      }
-    }
-
-    // Default: No objection identified
     return NextResponse.json<ArmRebuttalResponse>({
       has_objection: false,
       latency_ms: Date.now() - startTime

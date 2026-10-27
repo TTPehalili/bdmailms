@@ -112,7 +112,7 @@ export default function MissionTargetsHub() {
   ];
 
   return (
-    <div className="flex h-screen w-full bg-[#FAF9F5] text-[#222021] overflow-hidden">
+    <div className="flex h-screen w-full bg-zinc-50/70 text-zinc-900 font-sans overflow-hidden">
       {/* Collapsible Left Sidebar */}
       <AppSidebar />
 
@@ -122,62 +122,49 @@ export default function MissionTargetsHub() {
         <GlobalTopHeader />
 
         {/* Scrollable Mission & Targets Canvas */}
-        <main className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 space-y-12 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 space-y-8 max-w-7xl mx-auto w-full">
           
           {/* HERO SECTION: MISSION & CORE POSITIONING */}
-          <section className="relative rounded-3xl bg-[#0F1412] text-white p-8 sm:p-12 shadow-2xl overflow-hidden border border-stone-800">
-            {/* Subtle radial glow background */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-[#ED1C24]/15 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <section className="rounded-xl bg-white text-zinc-950 p-6 sm:p-8 shadow-xs border border-zinc-200">
+            <div className="max-w-3xl space-y-3">
+              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-400 block">
+                APPOINTMENTLYY SDR &bull; BPO OUTBOUND ENGINE
+              </span>
 
-            <div className="relative z-10 max-w-3xl space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-stone-200 text-xs font-mono">
-                <span className="w-2 h-2 rounded-full bg-[#ED1C24] animate-pulse" />
-                <span>AI GTM + HUMAN LOOP &bull; BUILT FOR SME BPOS</span>
-              </div>
-
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-[1.15]">
-                Fill Your Seats With <span className="text-[#ED1C24]">High-Ticket Clients.</span>
+              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-zinc-950 leading-tight">
+                Fill Your Seats With High-Ticket Clients.
               </h1>
 
-              <p className="text-sm sm:text-base text-stone-300 leading-relaxed max-w-2xl">
-                The ultimate AI GTM engine for BPOs. Turn reps into elite appointment setters in 3 days, master unscripted objection handling, and win high-paying enterprise contracts.
+              <p className="text-xs sm:text-sm text-zinc-500 leading-relaxed max-w-2xl">
+                The ultimate AI GTM engine for BPOs. Turn reps into elite appointment setters in 3 days, master unscripted objection handling, and win enterprise contracts.
               </p>
 
               {/* Action Buttons */}
-              <div className="pt-4 flex flex-wrap items-center gap-3">
+              <div className="pt-3 flex flex-wrap items-center gap-2.5">
                 <Link
                   href="/cockpit"
-                  className="px-6 py-3 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-transform hover:scale-[1.02] cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
                 >
-                  <Swords className="h-4 w-4" />
-                  <span>Launch AI Boris Calling Cockpit</span>
-                  <ArrowRight className="h-4 w-4 ml-1" />
+                  <Swords className="h-3.5 w-3.5" />
+                  <span>Launch Calling Floor</span>
+                  <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
                 </Link>
 
                 <Link
                   href="/sparring"
-                  className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm flex items-center gap-2 border border-white/20 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 font-medium text-xs flex items-center gap-2 border border-zinc-200 transition-colors cursor-pointer shadow-2xs"
                 >
-                  <Headphones className="h-4 w-4 text-emerald-400" />
+                  <Headphones className="h-3.5 w-3.5 text-zinc-600" />
                   <span>AI Sparring Arena (10 Personas)</span>
                 </Link>
 
                 <Link
                   href="/admin"
-                  className="px-4 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-white font-semibold text-xs flex items-center gap-1.5 border border-stone-700 transition-colors cursor-pointer"
+                  className="px-3.5 py-2 rounded-lg bg-zinc-100 hover:bg-zinc-200/80 text-zinc-700 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <ShieldCheck className="h-4 w-4 text-[#ED1C24]" />
+                  <ShieldCheck className="h-3.5 w-3.5 text-zinc-600" />
                   <span>Admin Control</span>
                 </Link>
-              </div>
-
-              {/* Zero-setup guarantees */}
-              <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-mono text-stone-400">
-                <span className="text-emerald-400 font-bold">&bull; Contractual 35+ Sits SLA</span>
-                <span>&bull; &lt;180ms Context Injection</span>
-                <span>&bull; 600M+ Verified Records</span>
-                <span>&bull; 100% Automated QA Scoring</span>
               </div>
             </div>
           </section>

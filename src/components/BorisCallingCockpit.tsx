@@ -67,6 +67,8 @@ import {
   subscribeToDispositions, 
   CallDisposition 
 } from '@/lib/dispositionStore';
+import { useSession } from '@/lib/session';
+import AiOutboundCopilot from '@/components/cockpit/AiOutboundCopilot';
 
 interface ARMRebuttal {
   id: string;
@@ -81,6 +83,7 @@ interface ARMRebuttal {
 }
 
 export default function BorisCallingCockpit() {
+  const { session, tenantName: sessionTenant, repName: sessionRep } = useSession();
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'huge'>('normal');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'steps' | 'rebuttals'>('steps');
@@ -116,6 +119,12 @@ export default function BorisCallingCockpit() {
   const [roleStatus, setRoleStatus] = useState<'confirmed' | 'promoted' | 'changed' | null>(null);
   const [promotedTitleInput, setPromotedTitleInput] = useState('');
   const [referralContactInput, setReferralContactInput] = useState('');
+
+  // AI Outbound Copilot Approved Copy State
+  const [approvedColdCallOpener, setApprovedColdCallOpener] = useState<string | null>(null);
+  const [approvedEmailSubject, setApprovedEmailSubject] = useState<string | null>(null);
+  const [approvedEmailBody, setApprovedEmailBody] = useState<string | null>(null);
+  const [approvedLinkedInBody, setApprovedLinkedInBody] = useState<string | null>(null);
 
   // Screen 2: Directory & Shared Lead Trap
   const [recognizedOA, setRecognizedOA] = useState<boolean | null>(null);
@@ -175,6 +184,11 @@ export default function BorisCallingCockpit() {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (sessionTenant) setPartnerName(sessionTenant);
+    if (sessionRep) setRepName(sessionRep);
+  }, [sessionTenant, sessionRep]);
 
   // Filtered active dispositions available for current lead / campaign
   const activeCampaignDispositions = useMemo(() => {
@@ -260,6 +274,10 @@ export default function BorisCallingCockpit() {
     setActiveCadenceTouchNumber(lead.touchNumber);
     setEmailSentSuccess(null);
     setLinkedInCompleted(false);
+    setApprovedColdCallOpener(null);
+    setApprovedEmailSubject(null);
+    setApprovedEmailBody(null);
+    setApprovedLinkedInBody(null);
 
     // Context & CSV Signals
     setLeadWebsite(lead.website || '');
@@ -458,7 +476,7 @@ export default function BorisCallingCockpit() {
         const timeFormatted = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         setEmailSentSuccess(`Dispatched at ${timeFormatted} (Msg ID: ${data.message_id.slice(0, 16)})`);
         
-        const logEntry = `\n[Cadence Day ${currentCadenceTouch.day} ${currentCadenceTouch.stepName} Dispatched to ${emailRecipient || directEmail || 'prospect'} at ${timeFormatted} - Subject: "${getInterpolatedEmailSubject()}"]`;
+        const logEntry = `\n[Cadence Day ${currentCadenceTouch.day} ${currentCadenceTouch.stepName} Dispatched to ${emailRecipient || directEmail || 'prospect'} at ${timeFormatted} - Subject: "${approvedEmailSubject || getInterpolatedEmailSubject()}"]`;
         setNotesDraft(prev => prev + logEntry);
         setCustomRepNotes(prev => prev ? prev + logEntry : logEntry);
       } else {
@@ -1074,9 +1092,9 @@ export default function BorisCallingCockpit() {
   const isRebuttalsMode = activeTab === 'rebuttals' || searchQuery.trim().length > 0;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F2F0EF] font-sans antialiased text-[#222021]">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-50/70 font-sans antialiased text-zinc-900">
       
-      {/* 1. LEFT CHARCOAL SIDEBAR DOCK */}
+      {/* 1. LEFT SIDEBAR */}
       <AppSidebar />
 
       {/* 2. MAIN APP SHELL */}
@@ -1091,20 +1109,20 @@ export default function BorisCallingCockpit() {
           {/* HEADER & TOP CONTROLS */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-[#ED1C24] flex items-center justify-center text-white shadow-xs">
-                <Swords className="h-5 w-5" />
+              <div className="h-8 w-8 rounded-lg bg-zinc-900 flex items-center justify-center text-white shadow-xs">
+                <Swords className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-black tracking-tight text-[#222021]">
-                    AI Boris
+                  <h1 className="text-xl font-bold tracking-tight text-zinc-950">
+                    AI Boris Calling Floor
                   </h1>
-                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#222021]/5 text-[#222021] border border-[#222021]/10 font-bold">
-                    BPO PLAYBOOK ACTIVE
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-600 border border-zinc-200 font-semibold">
+                    {partnerName}
                   </span>
                 </div>
-                <p className="text-xs text-[#6b6968]">
-                  Non-linear reactive teleprompter with auto-updating CRM notes & live Calendly booking.
+                <p className="text-xs text-zinc-500">
+                  Live objection teleprompter, sequential cadence queue & 1-click CRM sync.
                 </p>
               </div>
             </div>
@@ -1115,23 +1133,21 @@ export default function BorisCallingCockpit() {
               <button
                 type="button"
                 onClick={() => setIsCsvModalOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2F0EF] text-[#222021] border border-[#222021]/15 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200 font-medium text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                 title="Upload custom .csv file with Website, LinkedIn, and buying signals"
               >
-                <span className="text-[#ED1C24]">📁</span>
-                <span>Upload Leads CSV</span>
+                <span>Upload CSV</span>
               </button>
 
               {/* Rep Daily Activity Report Button */}
               <button
                 type="button"
                 onClick={() => setIsDailyReportOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2F0EF] text-[#222021] border border-[#222021]/15 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200 font-medium text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                 title="View today's completed cadence activities and export report"
               >
-                <span className="text-[#ED1C24]">📊</span>
-                <span>Daily Activity Report</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-[#ED1C24] text-white text-[10px] font-mono font-bold leading-none">
+                <span>Activity Report</span>
+                <span className="px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-700 text-[10px] font-mono font-semibold border border-zinc-200">
                   {completedActivityCount}
                 </span>
               </button>
@@ -1140,35 +1156,35 @@ export default function BorisCallingCockpit() {
               <button
                 type="button"
                 onClick={() => setIsCadenceModalOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F2F0EF] text-[#222021] border border-[#222021]/15 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200 font-medium text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
               >
-                <Calendar className="h-3.5 w-3.5 text-[#ED1C24]" />
-                <span>📋 Full Cadence</span>
+                <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+                <span>Full Cadence</span>
               </button>
 
               {/* Direct Calendly Modal Button */}
               <button
                 type="button"
                 onClick={() => setShowCalendlyModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
               >
-                <Calendar className="h-3.5 w-3.5" />
-                <span>Book Emil on Calendly</span>
+                <Calendar className="h-3.5 w-3.5 text-white/80" />
+                <span>Book on Calendly</span>
               </button>
 
               {/* Font Size Toggle [- A   + A] */}
-              <div className="flex items-center gap-1 bg-white border border-[#222021]/15 rounded-lg p-1 text-xs font-semibold shadow-2xs">
+              <div className="flex items-center gap-1 bg-white border border-zinc-200 rounded-lg p-0.5 text-xs shadow-2xs">
                 <button
                   onClick={() => setTextSize(prev => prev === 'huge' ? 'large' : 'normal')}
-                  className="px-2 py-1 rounded hover:bg-[#F2F0EF] text-[#6b6968] transition-colors flex items-center gap-0.5 cursor-pointer"
+                  className="px-1.5 py-0.5 rounded hover:bg-zinc-100 text-zinc-600 transition-colors flex items-center gap-0.5 cursor-pointer text-xs"
                 >
                   <Minus className="h-3 w-3" />
                   <span>A</span>
                 </button>
-                <div className="h-3.5 w-[1px] bg-[#222021]/15 mx-0.5" />
+                <div className="h-3.5 w-[1px] bg-zinc-200 mx-0.5" />
                 <button
                   onClick={() => setTextSize(prev => prev === 'normal' ? 'large' : 'huge')}
-                  className="px-2 py-1 rounded hover:bg-[#F2F0EF] text-[#222021] font-bold transition-colors flex items-center gap-0.5 cursor-pointer"
+                  className="px-1.5 py-0.5 rounded hover:bg-zinc-100 text-zinc-900 font-bold transition-colors flex items-center gap-0.5 cursor-pointer text-xs"
                 >
                   <Plus className="h-3 w-3" />
                   <span>A</span>
@@ -1196,18 +1212,18 @@ export default function BorisCallingCockpit() {
 
           {/* SEARCH BAR */}
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6b6968]" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="What did the prospect say? (e.g. email, experienced, brokers, swamped, internal training...)"
-              className="w-full pl-10 pr-10 py-2.5 bg-white border border-[#222021]/15 rounded-xl text-xs text-[#222021] placeholder-[#6b6968] shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#ED1C24] focus:border-[#ED1C24] transition-all"
+              className="w-full pl-10 pr-10 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs text-zinc-900 placeholder-zinc-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-1 focus:ring-zinc-900/10 focus:border-zinc-400 focus:border-zinc-900 transition-all"
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6b6968] hover:text-[#222021]"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-900"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1215,19 +1231,19 @@ export default function BorisCallingCockpit() {
           </div>
 
           {/* STEP VS REBUTTALS SEGMENTED TOGGLE */}
-          <div className="grid grid-cols-2 p-1 bg-[#222021]/5 rounded-xl border border-[#222021]/10 text-xs font-bold">
+          <div className="grid grid-cols-2 p-1 bg-zinc-100 rounded-lg text-xs font-medium border border-zinc-200/60">
             <button
               onClick={() => { setActiveTab('steps'); setSearchQuery(''); }}
-              className={`py-2 rounded-lg transition-all cursor-pointer ${
-                !isRebuttalsMode ? 'bg-[#ED1C24] text-white shadow-xs' : 'text-[#6b6968] hover:text-[#222021]'
+              className={`py-1.5 rounded-md transition-all cursor-pointer text-center ${
+                !isRebuttalsMode ? 'bg-white text-zinc-950 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-950'
               }`}
             >
               Step-by-step Call Flow
             </button>
             <button
               onClick={() => setActiveTab('rebuttals')}
-              className={`py-2 rounded-lg transition-all cursor-pointer ${
-                isRebuttalsMode ? 'bg-[#ED1C24] text-white shadow-xs' : 'text-[#6b6968] hover:text-[#222021]'
+              className={`py-1.5 rounded-md transition-all cursor-pointer text-center ${
+                isRebuttalsMode ? 'bg-white text-zinc-950 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-950'
               }`}
             >
               ARM Rebuttals Matrix
@@ -1235,28 +1251,28 @@ export default function BorisCallingCockpit() {
           </div>
 
           {/* MINIMALIST LEAD QUEUE & ADVANCE WORKFLOW */}
-          <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+          <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 text-[#222021]">
-                  <PhoneCall className="w-5 h-5 text-[#ED1C24]" />
+                <div className="p-2 rounded-lg bg-zinc-100 text-zinc-800">
+                  <PhoneCall className="w-4 h-4 text-zinc-700" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968]">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
                       Lead {currentLeadIndex + 1} of {leadsQueue.length}
                     </span>
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#F2F0EF] text-[#222021] border border-[#222021]/10">
-                      {activeLead.isCarryOver ? 'Prior-Week Carry-Over' : 'Fresh Intake'}
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
+                      {activeLead.isCarryOver ? 'Prior Carry-Over' : 'Fresh Queue'}
                     </span>
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#F2F0EF] text-[#222021] border border-[#222021]/10 font-bold">
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-700 font-semibold border border-zinc-200">
                       Day {currentCadenceDay} Outreach
                     </span>
                   </div>
-                  <h2 className="text-lg font-black text-[#222021] tracking-tight">
+                  <h2 className="text-base font-bold text-zinc-950 tracking-tight">
                     {customerName}
-                    <span className="text-sm font-normal text-[#6b6968] ml-2">
-                      ({title} • <strong className="text-[#222021]">{partnerName}</strong>)
+                    <span className="text-xs font-normal text-zinc-500 ml-2">
+                      ({title} • <strong className="text-zinc-800 font-semibold">{partnerName}</strong>)
                     </span>
                   </h2>
                 </div>
@@ -1268,20 +1284,20 @@ export default function BorisCallingCockpit() {
                   <button
                     type="button"
                     onClick={handleProceedToNextLead}
-                    className="px-5 py-2.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white text-xs font-black flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                   >
-                    <span>Proceed to Next Lead ({nextLeadCandidate.name})</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>Next Lead ({nextLeadCandidate.name})</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 ) : (
                   <button
                     type="button"
                     disabled
                     title="Select a call disposition below to advance to the next lead"
-                    className="px-4 py-2.5 rounded-xl bg-[#F2F0EF] text-[#6b6968] border border-[#222021]/10 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-60"
+                    className="px-3.5 py-2 rounded-lg bg-zinc-100 text-zinc-400 border border-zinc-200 text-xs font-medium flex items-center gap-1.5 cursor-not-allowed"
                   >
                     <Lock className="w-3.5 h-3.5" />
-                    <span>Log Disposition to Advance Lead</span>
+                    <span>Select Disposition to Advance</span>
                   </button>
                 )}
               </div>
@@ -1289,14 +1305,14 @@ export default function BorisCallingCockpit() {
 
             {/* Carry-over notice banner if lead is from prior week */}
             {activeLead?.isCarryOver && (
-              <div className="p-2.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 flex items-center justify-between text-xs text-[#222021]">
+              <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-between text-xs text-zinc-900">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#ED1C24] shrink-0" />
+                  <Clock className="w-4 h-4 text-zinc-900 shrink-0" />
                   <span>
                     <strong>Prior-Week Follow-up Scheduled:</strong> {activeLead.carryOverReason}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-[#6b6968]">
+                <span className="text-[10px] font-mono text-zinc-500">
                   Cadence Day {currentCadenceDay} Active
                 </span>
               </div>
@@ -1311,31 +1327,31 @@ export default function BorisCallingCockpit() {
               <div className="lg:col-span-3 flex flex-col gap-4">
                 
                 {/* 27-Day Cadence Status Card */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3 text-[#222021]">
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-2xs space-y-3 text-zinc-900">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-[#ED1C24] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#ED1C24]" />
+                    <span className="text-[10px] font-mono text-zinc-900 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-zinc-900" />
                       <span>Cadence Gating Active</span>
                     </span>
-                    <span className="text-[10px] font-mono bg-[#F2F0EF] px-2 py-0.5 rounded text-[#222021] font-bold border border-[#222021]/10">
+                    <span className="text-[10px] font-mono bg-zinc-50 px-2 py-0.5 rounded text-zinc-900 font-bold border border-zinc-200">
                       Day {currentCadenceDay} / 27
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="text-xs font-extrabold text-[#222021] leading-tight">
+                    <h3 className="text-xs font-extrabold text-zinc-900 leading-tight">
                       Touch #{currentCadenceTouch.touchNumber}: {currentCadenceTouch.stepName}
                     </h3>
-                    <p className="text-[11px] text-[#6b6968] mt-1 leading-snug">
+                    <p className="text-[11px] text-zinc-500 mt-1 leading-snug">
                       {currentCadenceTouch.timingRule}
                     </p>
                   </div>
 
                   {/* Multi-Channel Cadence Touchpoint Selector with Locked Future Steps */}
-                  <div className="space-y-1.5 pt-2 border-t border-[#222021]/10">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-[#6b6968] uppercase tracking-wide">
+                  <div className="space-y-1.5 pt-2 border-t border-zinc-200">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-wide">
                       <span>Cadence Touchpoints:</span>
-                      <span className="text-[#222021] font-bold">{currentCadenceTouch.channel} Active</span>
+                      <span className="text-zinc-900 font-bold">{currentCadenceTouch.channel} Active</span>
                     </div>
                     <div className="grid grid-cols-4 gap-1 text-[10px] font-mono font-bold max-h-36 overflow-y-auto scrollbar-none">
                       {CADENCE_TOUCHES.map((t) => {
@@ -1352,15 +1368,15 @@ export default function BorisCallingCockpit() {
                             title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} outreach before advancing.` : `${t.stepName} (${t.channel})`}
                             className={`py-1.5 px-1 rounded text-center transition-all truncate ${
                               isCurrent
-                                ? 'bg-[#ED1C24] text-white shadow-xs font-black cursor-pointer'
+                                ? 'bg-zinc-900 text-white shadow-xs font-black cursor-pointer'
                                 : isLocked
-                                ? 'bg-[#F2F0EF]/40 border border-dashed border-[#222021]/10 text-[#6b6968]/50 opacity-40 cursor-not-allowed pointer-events-none'
-                                : 'bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] border border-[#222021]/10 cursor-pointer'
+                                ? 'bg-zinc-50/40 border border-dashed border-zinc-200 text-zinc-500/50 opacity-40 cursor-not-allowed pointer-events-none'
+                                : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-900 border border-zinc-200 cursor-pointer'
                             }`}
                           >
                             <div className="flex items-center justify-center gap-0.5 text-[10px]">
                               {isLocked ? (
-                                <Lock className="h-2.5 w-2.5 text-[#6b6968]" />
+                                <Lock className="h-2.5 w-2.5 text-zinc-500" />
                               ) : isPast ? (
                                 <Check className="h-2.5 w-2.5 text-emerald-600" />
                               ) : (
@@ -1380,7 +1396,7 @@ export default function BorisCallingCockpit() {
                   <button
                     type="button"
                     onClick={() => setIsCadenceModalOpen(true)}
-                    className="w-full py-1.5 px-2.5 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] text-xs font-bold flex items-center justify-center gap-1.5 border border-[#222021]/10 transition-colors cursor-pointer"
+                    className="w-full py-1.5 px-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-900 text-xs font-bold flex items-center justify-center gap-1.5 border border-zinc-200 transition-colors cursor-pointer"
                   >
                     <span>📋 View Full 13-Touch Sequence</span>
                     <ArrowRight className="h-3 w-3" />
@@ -1388,26 +1404,26 @@ export default function BorisCallingCockpit() {
                 </div>
 
                 {/* Lead Identity Card */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-2xs space-y-3">
                   <div>
-                    <h2 className="text-sm font-extrabold text-[#222021] tracking-tight flex items-center gap-1.5">
+                    <h2 className="text-sm font-extrabold text-zinc-900 tracking-tight flex items-center gap-1.5">
                       <span>👤</span>
                       <span>Target Prospect</span>
                     </h2>
-                    <p className="text-[11px] text-[#6b6968] mt-0.5 leading-snug">
+                    <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug">
                       Injected into every live teleprompter line and notes log.
                     </p>
                   </div>
 
                   {/* Calling As Dropdown */}
-                  <div className="bg-[#F2F0EF] border border-[#222021]/10 rounded-xl p-2">
-                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#6b6968] block mb-1">
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-2">
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-500 block mb-1">
                       CALLING AS
                     </span>
                     <select
                       value={callingAs}
                       onChange={(e) => setCallingAs(e.target.value)}
-                      className="w-full bg-white border border-[#222021]/15 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#222021] focus:outline-none focus:ring-1 focus:ring-[#ED1C24]"
+                      className="w-full bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-zinc-900 focus:outline-none focus:ring-1 focus:ring-1 focus:ring-zinc-900/10 focus:border-zinc-400"
                     >
                       <option>Setter — New Bookings</option>
                       <option>Closer — Executive Diagnostic</option>
@@ -1418,7 +1434,7 @@ export default function BorisCallingCockpit() {
                   {/* Input Fields */}
                   <div className="space-y-2">
                     <div>
-                      <span className="text-[10px] font-mono text-[#6b6968] block mb-0.5">Contact Name</span>
+                      <span className="text-[10px] font-mono text-zinc-500 block mb-0.5">Contact Name</span>
                       <input
                         type="text"
                         value={customerName}
@@ -1426,12 +1442,12 @@ export default function BorisCallingCockpit() {
                           setCustomerName(e.target.value);
                           setNotesDraft(buildNotes({ cName: e.target.value }));
                         }}
-                        className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-1.5 text-xs text-[#222021] font-semibold focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                        className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-1.5 text-xs text-zinc-900 font-semibold focus:outline-none focus:bg-white focus:border-zinc-900"
                       />
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-mono text-[#6b6968] block mb-0.5">Company Name</span>
+                      <span className="text-[10px] font-mono text-zinc-500 block mb-0.5">Company Name</span>
                       <input
                         type="text"
                         value={partnerName}
@@ -1439,12 +1455,12 @@ export default function BorisCallingCockpit() {
                           setPartnerName(e.target.value);
                           setNotesDraft(buildNotes({ pName: e.target.value }));
                         }}
-                        className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-1.5 text-xs text-[#222021] font-semibold focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                        className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-1.5 text-xs text-zinc-900 font-semibold focus:outline-none focus:bg-white focus:border-zinc-900"
                       />
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-mono text-[#6b6968] block mb-0.5">Title</span>
+                      <span className="text-[10px] font-mono text-zinc-500 block mb-0.5">Title</span>
                       <input
                         type="text"
                         value={title}
@@ -1452,12 +1468,12 @@ export default function BorisCallingCockpit() {
                           setTitle(e.target.value);
                           setNotesDraft(buildNotes({ cTitle: e.target.value }));
                         }}
-                        className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-1.5 text-xs text-[#222021] font-medium focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                        className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-1.5 text-xs text-zinc-900 font-medium focus:outline-none focus:bg-white focus:border-zinc-900"
                       />
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-mono text-[#6b6968] block mb-0.5">Department</span>
+                      <span className="text-[10px] font-mono text-zinc-500 block mb-0.5">Department</span>
                       <input
                         type="text"
                         value={department}
@@ -1465,13 +1481,13 @@ export default function BorisCallingCockpit() {
                           setDepartment(e.target.value);
                           setNotesDraft(buildNotes({ cDept: e.target.value }));
                         }}
-                        className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-3 py-1.5 text-xs text-[#222021] font-medium focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                        className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-1.5 text-xs text-zinc-900 font-medium focus:outline-none focus:bg-white focus:border-zinc-900"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <span className="text-[10px] font-mono text-[#6b6968] block mb-0.5">Phone</span>
+                        <span className="text-[10px] font-mono text-zinc-500 block mb-0.5">Phone</span>
                         <input
                           type="text"
                           value={phone}
@@ -1479,11 +1495,11 @@ export default function BorisCallingCockpit() {
                             setPhone(e.target.value);
                             setNotesDraft(buildNotes({ cPhone: e.target.value }));
                           }}
-                          className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-2.5 py-1.5 text-xs text-[#222021] font-mono focus:outline-none focus:bg-white"
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-2.5 py-1.5 text-xs text-zinc-900 font-mono focus:outline-none focus:bg-white"
                         />
                       </div>
                       <div>
-                        <span className="text-[10px] font-mono text-[#6b6968] block mb-0.5">Headcount</span>
+                        <span className="text-[10px] font-mono text-zinc-500 block mb-0.5">Headcount</span>
                         <input
                           type="text"
                           value={headcount}
@@ -1491,7 +1507,7 @@ export default function BorisCallingCockpit() {
                             setHeadcount(e.target.value);
                             setNotesDraft(buildNotes({ cHeadcount: e.target.value }));
                           }}
-                          className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl px-2.5 py-1.5 text-xs text-[#222021] font-medium focus:outline-none focus:bg-white"
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-2.5 py-1.5 text-xs text-zinc-900 font-medium focus:outline-none focus:bg-white"
                         />
                       </div>
                     </div>
@@ -1533,10 +1549,10 @@ export default function BorisCallingCockpit() {
                 </div>
 
                 {/* Target Account Intelligence & Live Signals HUD */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-[#222021] flex items-center gap-1.5 uppercase font-mono tracking-tight">
-                      <span className="text-[#ED1C24]">🎯</span>
+                    <span className="text-xs font-black text-zinc-900 flex items-center gap-1.5 uppercase font-mono tracking-tight">
+                      <span className="text-zinc-900">🎯</span>
                       <span>Account Signals</span>
                     </span>
                     <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
@@ -1551,7 +1567,7 @@ export default function BorisCallingCockpit() {
                         href={leadWebsite.startsWith('http') ? leadWebsite : `https://${leadWebsite}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-1.5 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] text-[11px] font-bold flex items-center gap-1.5 border border-[#222021]/10 transition-colors truncate"
+                        className="px-2.5 py-1.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-900 text-[11px] font-bold flex items-center gap-1.5 border border-zinc-200 transition-colors truncate"
                         title={leadWebsite}
                       >
                         <Globe className="h-3.5 w-3.5 text-blue-600 shrink-0" />
@@ -1580,7 +1596,7 @@ export default function BorisCallingCockpit() {
                         href={`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(customerName + ' ' + partnerName)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#222021] text-[11px] font-semibold flex items-center gap-1.5 border border-stone-200 transition-colors truncate"
+                        className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-zinc-900 text-[11px] font-semibold flex items-center gap-1.5 border border-stone-200 transition-colors truncate"
                       >
                         <LinkedinIcon className="h-3.5 w-3.5 text-stone-500 shrink-0" />
                         <span className="truncate">Search LI ↗</span>
@@ -1590,9 +1606,9 @@ export default function BorisCallingCockpit() {
 
                   {/* Key Injected Signals & Buying Triggers */}
                   <div className="space-y-1.5 text-xs">
-                    <div className="p-2 rounded-xl bg-[#F2F0EF] border border-[#222021]/10">
-                      <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] block">💻 TECH STACK</span>
-                      <span className="text-[11px] font-bold text-[#222021]">{leadTechStack}</span>
+                    <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+                      <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 block">💻 TECH STACK</span>
+                      <span className="text-[11px] font-bold text-zinc-900">{leadTechStack}</span>
                     </div>
 
                     <div className="p-2 rounded-xl bg-rose-50/60 border border-rose-200">
@@ -1601,19 +1617,19 @@ export default function BorisCallingCockpit() {
                     </div>
 
                     {leadOutsourcer && (
-                      <div className="p-2 rounded-xl bg-[#F2F0EF] border border-[#222021]/10">
-                        <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] block">🏢 INCUMBENT / OUTSOURCER</span>
-                        <span className="text-[11px] font-bold text-[#222021]">{leadOutsourcer}</span>
+                      <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+                        <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 block">🏢 INCUMBENT / OUTSOURCER</span>
+                        <span className="text-[11px] font-bold text-zinc-900">{leadOutsourcer}</span>
                       </div>
                     )}
 
                     {leadBuyingSignals.length > 0 && (
                       <div className="pt-1">
-                        <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] block mb-1">⚡ BUYING SIGNALS</span>
+                        <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 block mb-1">⚡ BUYING SIGNALS</span>
                         <div className="space-y-1">
                           {leadBuyingSignals.map((sig, sIdx) => (
-                            <div key={sIdx} className="text-[10px] font-medium text-[#222021] bg-stone-50 p-1.5 rounded-lg border border-[#222021]/10 flex items-start gap-1.5">
-                              <span className="text-[#ED1C24] font-bold">•</span>
+                            <div key={sIdx} className="text-[10px] font-medium text-zinc-900 bg-stone-50 p-1.5 rounded-lg border border-zinc-200 flex items-start gap-1.5">
+                              <span className="text-zinc-900 font-bold">•</span>
                               <span>{sig}</span>
                             </div>
                           ))}
@@ -1624,13 +1640,13 @@ export default function BorisCallingCockpit() {
                 </div>
 
                 {/* Lead Intel Box */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-2">
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-2xs space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#222021] flex items-center gap-1.5">
-                      <span className="text-[#ED1C24]">⚡</span>
+                    <span className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+                      <span className="text-zinc-900">⚡</span>
                       <span>SDR Intelligence</span>
                     </span>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ED1C24]/10 text-[#ED1C24] border border-[#ED1C24]/20">
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-900/10 text-zinc-900 border border-zinc-900/20">
                       BPO CRM
                     </span>
                   </div>
@@ -1638,7 +1654,7 @@ export default function BorisCallingCockpit() {
                     rows={3}
                     value={leadNotes}
                     onChange={(e) => setLeadNotes(e.target.value)}
-                    className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl p-2.5 text-[11px] text-[#222021] font-mono focus:outline-none focus:bg-white"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-[11px] text-zinc-900 font-mono focus:outline-none focus:bg-white"
                   />
                 </div>
               </div>
@@ -1703,7 +1719,7 @@ export default function BorisCallingCockpit() {
                               title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} outreach before advancing.` : `${touch.stepName} (${touch.channel})`}
                               className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 ${
                                 isCurrent
-                                  ? 'bg-[#ED1C24] text-white shadow font-bold ring-2 ring-white/30 cursor-pointer'
+                                  ? 'bg-zinc-900 text-white shadow font-bold ring-2 ring-white/30 cursor-pointer'
                                   : isLocked
                                   ? 'bg-slate-900/60 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed pointer-events-none'
                                   : 'bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer'
@@ -1729,17 +1745,17 @@ export default function BorisCallingCockpit() {
                     </div>
 
                     {/* Email Draft Card */}
-                    <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 shadow-2xs space-y-5">
+                    <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-5">
                       {/* Header Info */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#222021]/10">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-zinc-200">
                         <div>
-                          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#ED1C24] bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-900 bg-red-50 border border-red-200 px-2 py-0.5 rounded">
                             CADENCE EMAIL DRAFT • STRICT PROTOCOL
                           </span>
-                          <h3 className="text-xl font-black text-[#222021] tracking-tight mt-1">
+                          <h3 className="text-xl font-black text-zinc-900 tracking-tight mt-1">
                             {currentCadenceTouch.stepName}
                           </h3>
-                          <p className="text-xs text-[#6b6968] mt-0.5">
+                          <p className="text-xs text-zinc-500 mt-0.5">
                             {currentCadenceTouch.mechanism}
                           </p>
                         </div>
@@ -1750,6 +1766,38 @@ export default function BorisCallingCockpit() {
                           </span>
                         </div>
                       </div>
+
+                      {/* AI COLD EMAIL COPILOT (DROPDOWN + CSV GROUNDED + ANTI-SALES) */}
+                      <AiOutboundCopilot
+                        channel="Email"
+                        touchType="Cold Email"
+                        lead={{
+                          name: customerName,
+                          company: partnerName,
+                          title,
+                          department,
+                          headcount,
+                          phone,
+                          email: directEmail,
+                          website: leadWebsite,
+                          linkedinUrl: leadLinkedinUrl,
+                          techStack: leadTechStack,
+                          painPoint: leadPainPoint,
+                          outsourcer: leadOutsourcer,
+                          buyingSignals: leadBuyingSignals,
+                          customVariables: leadCustomVars
+                        }}
+                        currentSubject={approvedEmailSubject || getInterpolatedEmailSubject()}
+                        currentBody={approvedEmailBody || getInterpolatedEmailBody()}
+                        onApplyCopy={(subject, body) => {
+                          if (subject) setApprovedEmailSubject(subject);
+                          setApprovedEmailBody(body);
+                        }}
+                        onResetOriginal={() => {
+                          setApprovedEmailSubject(null);
+                          setApprovedEmailBody(null);
+                        }}
+                      />
 
                       {/* Email Fields */}
                       <div className="space-y-3 font-sans text-xs">
@@ -1783,7 +1831,7 @@ export default function BorisCallingCockpit() {
                             <span className="font-mono font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0">
                               SUBJECT:
                             </span>
-                            <span className="font-mono font-bold text-[#222021] truncate">
+                            <span className="font-mono font-bold text-zinc-900 truncate">
                               {getInterpolatedEmailSubject()}
                             </span>
                           </div>
@@ -1806,15 +1854,15 @@ export default function BorisCallingCockpit() {
                             <button
                               type="button"
                               onClick={() => copyText(getInterpolatedEmailBody(), 'em_body_cp')}
-                              className="text-[11px] font-semibold text-[#ED1C24] hover:underline flex items-center gap-1 cursor-pointer"
+                              className="text-[11px] font-semibold text-zinc-900 hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               {copiedKey === 'em_body_cp' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
                               <span>Copy Body Only</span>
                             </button>
                           </div>
 
-                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 whitespace-pre-wrap font-sans text-sm text-[#222021] leading-relaxed select-text">
-                            {getInterpolatedEmailBody()}
+                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 whitespace-pre-wrap font-sans text-sm text-zinc-900 leading-relaxed select-text">
+                            {approvedEmailBody || getInterpolatedEmailBody()}
                           </div>
                         </div>
                       </div>
@@ -1833,11 +1881,11 @@ export default function BorisCallingCockpit() {
                       )}
 
                       {/* Action Toolbar */}
-                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-[#222021]/10">
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-zinc-200">
                         <button
                           type="button"
-                          onClick={() => copyText(`Subject: ${getInterpolatedEmailSubject()}\n\n${getInterpolatedEmailBody()}`, 'em_all_cp')}
-                          className="w-full sm:w-auto px-4 py-3 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-bold text-xs flex items-center justify-center gap-1.5 border border-[#222021]/15 transition-colors cursor-pointer"
+                          onClick={() => copyText(`Subject: ${getInterpolatedEmailSubject()}\n\n${approvedLinkedInBody || getInterpolatedEmailBody()}`, 'em_all_cp')}
+                          className="w-full sm:w-auto px-4 py-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-bold text-xs flex items-center justify-center gap-1.5 border border-zinc-200 transition-colors cursor-pointer"
                         >
                           {copiedKey === 'em_all_cp' ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-slate-500" />}
                           <span>{copiedKey === 'em_all_cp' ? 'Copied Entire Email!' : 'Copy Entire Email (Subject + Body)'}</span>
@@ -1847,7 +1895,7 @@ export default function BorisCallingCockpit() {
                           type="button"
                           onClick={handleSendCadenceEmail}
                           disabled={isSendingEmail}
-                          className="flex-1 w-full py-3 px-5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] disabled:bg-slate-400 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer hover:scale-[1.01]"
+                          className="flex-1 w-full py-3 px-5 rounded-xl bg-zinc-900 hover:bg-zinc-800 disabled:bg-slate-400 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer hover:scale-[1.01]"
                         >
                           {isSendingEmail ? (
                             <>
@@ -1895,15 +1943,15 @@ export default function BorisCallingCockpit() {
                     </div>
 
                     {/* Cadence Touchpoints Quick Navigation Ribbon */}
-                    <div className="bg-[#F2F0EF] text-[#222021] p-3 rounded-2xl border border-[#222021]/10 space-y-2">
+                    <div className="bg-zinc-50 text-zinc-900 p-3 rounded-2xl border border-zinc-200 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-[#6b6968] uppercase tracking-wider block">
+                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">
                           Cadence Touchpoints Sequence:
                         </span>
                         <button
                           type="button"
                           onClick={() => setIsCadenceModalOpen(true)}
-                          className="text-[10px] font-mono text-[#ED1C24] hover:underline font-bold cursor-pointer"
+                          className="text-[10px] font-mono text-zinc-900 hover:underline font-bold cursor-pointer"
                         >
                           View Full Cadence Map ↗
                         </button>
@@ -1923,15 +1971,15 @@ export default function BorisCallingCockpit() {
                               title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} outreach before advancing.` : `${touch.stepName} (${touch.channel})`}
                               className={`px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 ${
                                 isCurrent
-                                  ? 'bg-[#ED1C24] text-white shadow font-bold cursor-pointer'
+                                  ? 'bg-zinc-900 text-white shadow font-bold cursor-pointer'
                                   : isLocked
-                                  ? 'bg-transparent border border-dashed border-[#222021]/10 text-[#6b6968]/40 opacity-40 cursor-not-allowed pointer-events-none'
-                                  : 'bg-white hover:bg-stone-50 border border-[#222021]/10 text-[#222021] cursor-pointer'
+                                  ? 'bg-transparent border border-dashed border-zinc-200 text-zinc-500/40 opacity-40 cursor-not-allowed pointer-events-none'
+                                  : 'bg-white hover:bg-stone-50 border border-zinc-200 text-zinc-900 cursor-pointer'
                               }`}
                             >
                               <div className="flex items-center gap-1 text-[11px] font-mono font-bold">
                                 {isLocked ? (
-                                  <Lock className="h-2.5 w-2.5 text-[#6b6968]" />
+                                  <Lock className="h-2.5 w-2.5 text-zinc-500" />
                                 ) : isPast ? (
                                   <Check className="h-2.5 w-2.5 text-emerald-600" />
                                 ) : (
@@ -1939,7 +1987,7 @@ export default function BorisCallingCockpit() {
                                 )}
                                 <span>D{touch.day}: T#{touch.touchNumber}</span>
                               </div>
-                              <div className="text-[9px] text-[#6b6968] truncate max-w-[110px]">
+                              <div className="text-[9px] text-zinc-500 truncate max-w-[110px]">
                                 {isLocked ? 'Locked' : touch.channel}
                               </div>
                             </button>
@@ -1949,33 +1997,62 @@ export default function BorisCallingCockpit() {
                     </div>
 
                     {/* LinkedIn Task Card */}
-                    <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 shadow-2xs space-y-5">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#222021]/10">
+                    <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-zinc-200">
                         <div>
                           <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
                             MANUAL 1-CLICK TASK • ZERO AUTOMATED API RISK
                           </span>
-                          <h3 className="text-xl font-black text-[#222021] tracking-tight mt-1">
+                          <h3 className="text-xl font-black text-zinc-900 tracking-tight mt-1">
                             {currentCadenceTouch.stepName}
                           </h3>
-                          <p className="text-xs text-[#6b6968] mt-0.5">
+                          <p className="text-xs text-zinc-500 mt-0.5">
                             {currentCadenceTouch.timingRule}
                           </p>
                         </div>
                       </div>
+
+                      {/* AI LINKEDIN COPILOT (DROPDOWN + CSV GROUNDED + ZERO-PITCH) */}
+                      <AiOutboundCopilot
+                        channel="LinkedIn"
+                        touchType="LinkedIn Outreach"
+                        lead={{
+                          name: customerName,
+                          company: partnerName,
+                          title,
+                          department,
+                          headcount,
+                          phone,
+                          email: directEmail,
+                          website: leadWebsite,
+                          linkedinUrl: leadLinkedinUrl,
+                          techStack: leadTechStack,
+                          painPoint: leadPainPoint,
+                          outsourcer: leadOutsourcer,
+                          buyingSignals: leadBuyingSignals,
+                          customVariables: leadCustomVars
+                        }}
+                        currentBody={approvedLinkedInBody || getInterpolatedEmailBody()}
+                        onApplyCopy={(_subject, body) => {
+                          setApprovedLinkedInBody(body);
+                        }}
+                        onResetOriginal={() => {
+                          setApprovedLinkedInBody(null);
+                        }}
+                      />
 
                       {/* Pre-drafted Note */}
                       <div className="space-y-2">
                         <span className="font-mono text-[10px] font-bold text-slate-500 uppercase tracking-wide block">
                           PRE-DRAFTED ZERO-PITCH MESSAGE:
                         </span>
-                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 whitespace-pre-wrap font-sans text-sm text-[#222021] leading-relaxed">
+                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 whitespace-pre-wrap font-sans text-sm text-zinc-900 leading-relaxed">
                           {getInterpolatedEmailBody()}
                         </div>
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-[#222021]/10">
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-zinc-200">
                         <a
                           href={`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(customerName + ' ' + partnerName)}`}
                           target="_blank"
@@ -1989,7 +2066,7 @@ export default function BorisCallingCockpit() {
                         <button
                           type="button"
                           onClick={() => copyText(getInterpolatedEmailBody(), 'li_note_cp')}
-                          className="w-full sm:w-auto px-4 py-3 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-bold text-xs flex items-center justify-center gap-1.5 border border-[#222021]/15 transition-colors cursor-pointer"
+                          className="w-full sm:w-auto px-4 py-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-bold text-xs flex items-center justify-center gap-1.5 border border-zinc-200 transition-colors cursor-pointer"
                         >
                           {copiedKey === 'li_note_cp' ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-slate-500" />}
                           <span>Copy Message</span>
@@ -2031,8 +2108,8 @@ export default function BorisCallingCockpit() {
                       onClick={() => setCurrentStep(st.num)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-2xs cursor-pointer ${
                         currentStep === st.num
-                          ? 'bg-[#ED1C24] text-white shadow-xs'
-                          : 'bg-white border border-[#222021]/10 text-[#6b6968] hover:text-[#222021]'
+                          ? 'bg-zinc-900 text-white shadow-xs'
+                          : 'bg-white border border-zinc-200 text-zinc-500 hover:text-zinc-900'
                       }`}
                     >
                       <span>{st.shortTitle}</span>
@@ -2041,17 +2118,17 @@ export default function BorisCallingCockpit() {
                 </div>
 
                 {/* Active Step Script Card */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-6 shadow-2xs space-y-5">
+                <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-5">
                   
                   {/* Step Metadata Header */}
                   <div>
-                    <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-[#ED1C24]">
+                    <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-zinc-900">
                       STEP {currentStep} OF {steps.length} • {currentStepData.time}
                     </span>
-                    <h2 className="text-2xl font-black text-[#222021] tracking-tight mt-0.5">
+                    <h2 className="text-2xl font-black text-zinc-900 tracking-tight mt-0.5">
                       {currentStepData.title}
                     </h2>
-                    <p className="text-xs text-[#6b6968] mt-1 leading-snug">
+                    <p className="text-xs text-zinc-500 mt-1 leading-snug">
                       {currentStepData.purpose}
                     </p>
                   </div>
@@ -2062,16 +2139,16 @@ export default function BorisCallingCockpit() {
                   {currentStep === 1 && (
                     <div className="space-y-4">
                       {/* Active Cadence Phone Touchpoint Selector */}
-                      <div className="bg-[#F2F0EF] text-[#222021] p-3 rounded-xl border border-[#222021]/10 space-y-2">
+                      <div className="bg-zinc-50 text-zinc-900 p-3 rounded-xl border border-zinc-200 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-[#ED1C24]"></span>
-                            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#6b6968]">
-                              Active Cadence Step: <span className="text-[#222021] font-black">{currentPhoneConfig.phoneStepName}</span> (Day {currentCadenceDay})
+                            <span className="h-2 w-2 rounded-full bg-zinc-900"></span>
+                            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-500">
+                              Active Cadence Step: <span className="text-zinc-900 font-black">{currentPhoneConfig.phoneStepName}</span> (Day {currentCadenceDay})
                             </span>
                           </div>
-                          <span className="text-[10px] font-mono text-[#222021] font-semibold bg-white border border-[#222021]/10 px-2 py-0.5 rounded flex items-center gap-1">
-                            <Mail className="h-3 w-3 text-[#ED1C24]" />
+                          <span className="text-[10px] font-mono text-zinc-900 font-semibold bg-white border border-zinc-200 px-2 py-0.5 rounded flex items-center gap-1">
+                            <Mail className="h-3 w-3 text-zinc-900" />
                             Email Context Injected
                           </span>
                         </div>
@@ -2097,18 +2174,18 @@ export default function BorisCallingCockpit() {
                                 title={isLocked ? `Locked by Cadence Policy: Complete Day ${currentCadenceDay} call before advancing.` : `Switch to Day ${item.day} Call Script`}
                                 className={`px-2 py-1.5 rounded-lg text-left transition-all ${
                                   isCurrent
-                                    ? 'bg-[#ED1C24] text-white shadow font-bold cursor-pointer'
+                                    ? 'bg-zinc-900 text-white shadow font-bold cursor-pointer'
                                     : isLocked
-                                    ? 'bg-transparent border border-dashed border-[#222021]/10 text-[#6b6968]/40 opacity-40 cursor-not-allowed pointer-events-none'
-                                    : 'bg-white hover:bg-stone-50 border border-[#222021]/10 text-[#222021] cursor-pointer'
+                                    ? 'bg-transparent border border-dashed border-zinc-200 text-zinc-500/40 opacity-40 cursor-not-allowed pointer-events-none'
+                                    : 'bg-white hover:bg-stone-50 border border-zinc-200 text-zinc-900 cursor-pointer'
                                 }`}
                               >
                                 <div className="flex items-center gap-1 text-[11px] font-mono font-black">
-                                  {isLocked && <Lock className="h-2.5 w-2.5 text-[#6b6968]" />}
+                                  {isLocked && <Lock className="h-2.5 w-2.5 text-zinc-500" />}
                                   {isPast && <Check className="h-2.5 w-2.5 text-emerald-600" />}
                                   <span>{item.label}</span>
                                 </div>
-                                <div className="text-[9px] truncate text-[#6b6968]">
+                                <div className="text-[9px] truncate text-zinc-500">
                                   {isLocked ? 'Locked by Cadence' : item.desc}
                                 </div>
                               </button>
@@ -2118,34 +2195,63 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* Prior Email Sent Context Card */}
-                      <div className="p-3.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 text-[#222021] space-y-1.5">
-                        <div className="flex items-center justify-between text-xs font-bold text-[#222021]">
+                      <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-bold text-zinc-900">
                           <div className="flex items-center gap-1.5">
-                            <Mail className="h-4 w-4 text-[#ED1C24]" />
+                            <Mail className="h-4 w-4 text-zinc-900" />
                             <span>Prior Outreach Context: <strong>{currentPhoneConfig.priorEmail.touchName}</strong></span>
                           </div>
-                          <span className="text-[10px] font-mono bg-white text-[#222021] px-2 py-0.5 rounded-full border border-[#222021]/10 font-semibold">
+                          <span className="text-[10px] font-mono bg-white text-zinc-900 px-2 py-0.5 rounded-full border border-zinc-200 font-semibold">
                             {currentPhoneConfig.priorEmail.daySent}
                           </span>
                         </div>
-                        <div className="text-xs text-[#222021]">
-                          <span className="text-[#6b6968]">Email Subject Injected: </span>
-                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-[#222021]/10 text-[#222021]">
+                        <div className="text-xs text-zinc-900">
+                          <span className="text-zinc-500">Email Subject Injected: </span>
+                          <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-zinc-200 text-zinc-900">
                             "{currentPhoneConfig.priorEmail.subject.replace(/\{\{company\}\}/g, partnerName)}"
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#6b6968] leading-tight">
-                          <strong className="text-[#222021]">Tactical Friction-Reducer:</strong> {currentPhoneConfig.reducedFrictionNote}
+                        <p className="text-[11px] text-zinc-500 leading-tight">
+                          <strong className="text-zinc-900">Tactical Friction-Reducer:</strong> {currentPhoneConfig.reducedFrictionNote}
                         </p>
                       </div>
 
                       {/* Spoken Lines */}
                       <div className="space-y-3">
+                        {/* AI B2B COLD CALL GURU COPILOT (DROPDOWN + CSV PERSONA GROUNDED) */}
+                        <AiOutboundCopilot
+                          channel="Phone"
+                          touchType="Cold Call"
+                          lead={{
+                            name: customerName,
+                            company: partnerName,
+                            title,
+                            department,
+                            headcount,
+                            phone,
+                            email: directEmail,
+                            website: leadWebsite,
+                            linkedinUrl: leadLinkedinUrl,
+                            techStack: leadTechStack,
+                            painPoint: leadPainPoint,
+                            outsourcer: leadOutsourcer,
+                            buyingSignals: leadBuyingSignals,
+                            customVariables: leadCustomVars
+                          }}
+                          currentBody={approvedColdCallOpener || getInjectedOpenerText()}
+                          onApplyCopy={(_subject, body) => {
+                            setApprovedColdCallOpener(body);
+                          }}
+                          onResetOriginal={() => {
+                            setApprovedColdCallOpener(null);
+                          }}
+                        />
+
                         {/* Spoken Line 1: Email-Injected Opener */}
                         <div className="p-4 rounded-xl bg-slate-50 border-2 border-slate-300/80 shadow-xs space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#ED1C24] flex items-center gap-1.5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-[#ED1C24]"></span>
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-zinc-900"></span>
                               SPOKEN OPENER (EMAIL REFERENCED RIGHT OFF THE BAT):
                             </span>
                             <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
@@ -2153,22 +2259,22 @@ export default function BorisCallingCockpit() {
                             </span>
                           </div>
 
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
-                            {getInjectedOpenerText()}
+                            {approvedColdCallOpener || getInjectedOpenerText()}
                           </p>
 
                           <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
                             <button
-                              onClick={() => playSpeech(getInjectedOpenerText(), 's1_l1')}
+                              onClick={() => playSpeech(approvedColdCallOpener || getInjectedOpenerText(), 's1_l1')}
                               className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
                             >
-                              <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
+                              <Volume2 className="h-3.5 w-3.5 text-zinc-900" />
                               <span>Hear Opener</span>
                             </button>
                             <button
-                              onClick={() => copyText(getInjectedOpenerText(), 's1_l1_cp')}
+                              onClick={() => copyText(approvedColdCallOpener || getInjectedOpenerText(), 's1_l1_cp')}
                               className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
                             >
                               {copiedKey === 's1_l1_cp' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
@@ -2182,7 +2288,7 @@ export default function BorisCallingCockpit() {
                           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600 block">
                             STEP 1B: ROLE VERIFICATION & CONVERSATION BRIDGE:
                           </span>
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             {getInjectedVerificationText()}
@@ -2192,7 +2298,7 @@ export default function BorisCallingCockpit() {
                               onClick={() => playSpeech(getInjectedVerificationText(), 's1_l2')}
                               className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
                             >
-                              <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
+                              <Volume2 className="h-3.5 w-3.5 text-zinc-900" />
                               <span>Hear Line</span>
                             </button>
                             <button
@@ -2241,8 +2347,8 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* Role Verification Gate Buttons */}
-                      <div className="bg-[#F2F0EF] p-3.5 rounded-xl border border-[#222021]/10 space-y-2.5">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968] block">
+                      <div className="bg-zinc-50 p-3.5 rounded-xl border border-zinc-200 space-y-2.5">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 block">
                           ROLE & DEPARTMENT VERIFICATION GATE:
                         </span>
                         
@@ -2253,7 +2359,7 @@ export default function BorisCallingCockpit() {
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
                               roleStatus === 'confirmed'
                                 ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021] hover:border-emerald-600'
+                                : 'bg-white border-zinc-200 text-zinc-900 hover:border-emerald-600'
                             }`}
                           >
                             <Check className="h-3.5 w-3.5" />
@@ -2266,7 +2372,7 @@ export default function BorisCallingCockpit() {
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
                               roleStatus === 'promoted'
                                 ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021] hover:border-blue-600'
+                                : 'bg-white border-zinc-200 text-zinc-900 hover:border-blue-600'
                             }`}
                           >
                             <span>✏️ Promoted / New Title</span>
@@ -2278,7 +2384,7 @@ export default function BorisCallingCockpit() {
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
                               roleStatus === 'changed'
                                 ? 'bg-zinc-800 border-zinc-800 text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021] hover:border-zinc-800'
+                                : 'bg-white border-zinc-200 text-zinc-900 hover:border-zinc-800'
                             }`}
                           >
                             <X className="h-3.5 w-3.5" />
@@ -2296,7 +2402,7 @@ export default function BorisCallingCockpit() {
                                 value={promotedTitleInput}
                                 onChange={(e) => setPromotedTitleInput(e.target.value)}
                                 placeholder="e.g. Chief Revenue Officer / VP Global Ops"
-                                className="flex-1 bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs text-[#222021]"
+                                className="flex-1 bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900"
                               />
                               <button
                                 type="button"
@@ -2326,7 +2432,7 @@ export default function BorisCallingCockpit() {
                                 value={referralContactInput}
                                 onChange={(e) => setReferralContactInput(e.target.value)}
                                 placeholder="New contact name & email/phone"
-                                className="flex-1 bg-white border border-zinc-300 rounded-lg px-2.5 py-1.5 text-xs text-[#222021]"
+                                className="flex-1 bg-white border border-zinc-300 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900"
                               />
                               <button
                                 type="button"
@@ -2379,7 +2485,7 @@ export default function BorisCallingCockpit() {
                       {/* Teleprompter Script */}
                       <div className="space-y-3">
                         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             "Awesome, glad I have the right person. We work with BPO leadership teams navigating client acquisition and vendor lists. Most operators we speak with buy data or appointment-ready leads from directories like <span className="bg-purple-100 font-bold text-purple-950 px-1 rounded">Outsource Accelerator</span>—does that name ring a bell?"
@@ -2410,12 +2516,12 @@ export default function BorisCallingCockpit() {
                         </div>
 
                         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             "Got it. The biggest headache BPO bosses share with us is that lead vendors sell those exact same names to 3 to 5 other BPOs. So when your team gets on the phone, the buyer hits them right away saying: <span className="bg-amber-100 text-amber-950 px-1 rounded font-bold">'I already talked to three other BPOs this week, and someone else said they'll do it way cheaper.'</span>"
                           </p>
-                          <p className={`font-extrabold text-[#222021] leading-relaxed pt-2 ${
+                          <p className={`font-extrabold text-zinc-900 leading-relaxed pt-2 ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             "Are you guys noticing that too, where your team is constantly fighting off cheaper prices on those shared leads?"
@@ -2425,7 +2531,7 @@ export default function BorisCallingCockpit() {
                               onClick={() => playSpeech(`The biggest headache BPO bosses share with us is that lead vendors sell those exact same names to 3 to 5 other BPOs. Are you guys noticing that too, where your team is constantly fighting off cheaper prices on those shared leads?`, 's2_speech')}
                               className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100"
                             >
-                              <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
+                              <Volume2 className="h-3.5 w-3.5 text-zinc-900" />
                               <span>Hear it</span>
                             </button>
                             <button
@@ -2459,7 +2565,7 @@ export default function BorisCallingCockpit() {
                             className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 cursor-pointer ${
                               priceTrapStatus === 'confirmed'
                                 ? 'bg-amber-600 border-amber-600 text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021] hover:border-amber-600'
+                                : 'bg-white border-zinc-200 text-zinc-900 hover:border-amber-600'
                             }`}
                           >
                             <Check className="h-4 w-4 shrink-0" />
@@ -2472,7 +2578,7 @@ export default function BorisCallingCockpit() {
                             className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 cursor-pointer ${
                               priceTrapStatus === 'denial'
                                 ? 'bg-zinc-800 border-zinc-800 text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021] hover:border-zinc-800'
+                                : 'bg-white border-zinc-200 text-zinc-900 hover:border-zinc-800'
                             }`}
                           >
                             <X className="h-4 w-4 shrink-0" />
@@ -2555,7 +2661,7 @@ export default function BorisCallingCockpit() {
                           </p>
                         </div>
 
-                        <p className={`font-extrabold text-[#222021] pt-2 ${
+                        <p className={`font-extrabold text-zinc-900 pt-2 ${
                           textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                         }`}>
                           "To see how this fits your model—what are your top 2 or 3 kinds of businesses to work with? And what services bring in the most money—is it customer service, sales, or bookkeeping?"
@@ -2566,7 +2672,7 @@ export default function BorisCallingCockpit() {
                             onClick={() => playSpeech(`Here is the bigger picture of what is really happening. When you buy shared leads and hand them straight to your reps, you are paying top dollar for leads, but your reps are using those expensive calls as practice swings. To see how this fits your model—what are your top 2 or 3 kinds of businesses to work with? And what services bring in the most money—is it customer service, sales, or bookkeeping?`, 's3_speech')}
                             className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100"
                           >
-                            <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
+                            <Volume2 className="h-3.5 w-3.5 text-zinc-900" />
                             <span>Hear it</span>
                           </button>
                           <button
@@ -2580,20 +2686,20 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* Screen 3 Telemetry Gate: Pitched 2-Part Fix */}
-                      <div className="bg-[#F2F0EF] p-3.5 rounded-xl border border-[#222021]/10 flex flex-col sm:flex-row items-center justify-between gap-2">
+                      <div className="bg-zinc-50 p-3.5 rounded-xl border border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={handleToggleProblemFix}
                           className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                             telemetry.problemFixDiscussed
                               ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                              : 'bg-white border-[#222021]/15 text-[#222021] hover:border-emerald-600'
+                              : 'bg-white border-zinc-200 text-zinc-900 hover:border-emerald-600'
                           }`}
                         >
                           <Check className="h-3.5 w-3.5" />
                           <span>{telemetry.problemFixDiscussed ? '✓ Pitched 2-Part Fix (Claude AI Lists + Sparring)' : 'Pitched 2-Part Fix'}</span>
                         </button>
-                        <span className="text-[10px] font-mono text-[#6b6968]">
+                        <span className="text-[10px] font-mono text-zinc-500">
                           {telemetry.problemFixDiscussed ? '✓ Auto-logged to Section 3 of CRM Call Notes' : 'Click to log pitch completion'}
                         </span>
                       </div>
@@ -2602,7 +2708,7 @@ export default function BorisCallingCockpit() {
                       <button
                         type="button"
                         onClick={() => setCurrentStep(4)}
-                        className="w-full py-2.5 px-4 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                        className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                       >
                         <span>Continue to Screen 4: Dynamic Diagnostic Engine</span>
                         <ArrowRight className="h-4 w-4" />
@@ -2616,8 +2722,8 @@ export default function BorisCallingCockpit() {
                   {currentStep === 4 && (
                     <div className="space-y-4">
                       {/* Control 1: Top 3 Target Industry Focus Tags */}
-                      <div className="bg-[#F2F0EF] p-3.5 rounded-xl border border-[#222021]/10 space-y-2">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968] block">
+                      <div className="bg-zinc-50 p-3.5 rounded-xl border border-zinc-200 space-y-2">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 block">
                           INPUT SELECTOR 1: TOP 3 TARGET INDUSTRY FOCUS (MULTI-SELECT TAGS):
                         </span>
                         <div className="flex flex-wrap gap-1.5">
@@ -2635,8 +2741,8 @@ export default function BorisCallingCockpit() {
                               onClick={() => handleToggleIndustry(tag)}
                               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
                                 targetIndustries.includes(tag)
-                                  ? 'bg-[#222021] text-white border-[#222021] shadow-2xs'
-                                  : 'bg-white border-[#222021]/15 text-[#222021] hover:border-[#222021]'
+                                  ? 'bg-zinc-900 text-white border-[#222021] shadow-2xs'
+                                  : 'bg-white border-zinc-200 text-zinc-900 hover:border-[#222021]'
                               }`}
                             >
                               <span>{targetIndustries.includes(tag) ? '✓ ' : '+ '}{tag}</span>
@@ -2646,8 +2752,8 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* Control 2: Primary Revenue Service (Triggers Live Script) */}
-                      <div className="bg-[#F2F0EF] p-3.5 rounded-xl border border-[#222021]/10 space-y-2">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968] block">
+                      <div className="bg-zinc-50 p-3.5 rounded-xl border border-zinc-200 space-y-2">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 block">
                           INPUT SELECTOR 2: PRIMARY REVENUE SERVICE (TRIGGERS LIVE SCRIPT):
                         </span>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
@@ -2656,8 +2762,8 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSetService('customer-service')}
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
                               primaryService === 'customer-service'
-                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021]'
+                                ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs'
+                                : 'bg-white border-zinc-200 text-zinc-900'
                             }`}
                           >
                             🎧 Customer Support
@@ -2668,8 +2774,8 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSetService('bookkeeping')}
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
                               primaryService === 'bookkeeping'
-                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021]'
+                                ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs'
+                                : 'bg-white border-zinc-200 text-zinc-900'
                             }`}
                           >
                             📊 Bookkeeping / Back-Office
@@ -2680,8 +2786,8 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSetService('outbound-sales')}
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
                               primaryService === 'outbound-sales'
-                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021]'
+                                ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs'
+                                : 'bg-white border-zinc-200 text-zinc-900'
                             }`}
                           >
                             📞 Outbound Sales / SDR
@@ -2692,8 +2798,8 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSetService('technical-support')}
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
                               primaryService === 'technical-support'
-                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021]'
+                                ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs'
+                                : 'bg-white border-zinc-200 text-zinc-900'
                             }`}
                           >
                             💻 Technical Support / IT
@@ -2704,8 +2810,8 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSetService('other')}
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer col-span-2 sm:col-span-1 ${
                               primaryService === 'other'
-                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
-                                : 'bg-white border-[#222021]/15 text-[#222021]'
+                                ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs'
+                                : 'bg-white border-zinc-200 text-zinc-900'
                             }`}
                           >
                             ✨ Other Service / Niche
@@ -2720,7 +2826,7 @@ export default function BorisCallingCockpit() {
                               value={customServiceInput}
                               onChange={(e) => handleSetCustomService(e.target.value)}
                               placeholder="Type service here: e.g. Data Annotation, Virtual Assistance, Legal Intake"
-                              className="w-full bg-white border border-[#222021]/20 rounded-xl px-3 py-2 text-xs text-[#222021] placeholder-[#6b6968] focus:outline-none focus:border-[#ED1C24]"
+                              className="w-full bg-white border border-zinc-300 rounded-xl px-3 py-2 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-zinc-900"
                             />
                           </div>
                         )}
@@ -2733,7 +2839,7 @@ export default function BorisCallingCockpit() {
                         </span>
 
                         {primaryService === 'customer-service' && (
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             "Got it. If your callers just talk about basic support, buyers treat you like a cheap commodity. The AI Sparring Agent acts like a tough buyer who wants an $8 rate, training your rep to focus on quality, retention, and fast response times instead of lowering your price."
@@ -2741,7 +2847,7 @@ export default function BorisCallingCockpit() {
                         )}
 
                         {primaryService === 'bookkeeping' && (
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             "Makes sense. Bookkeeping needs trust. The AI Sparring Agent tests your reps on accounting software like QuickBooks or NetSuite and compliance questions, so your team sounds like real financial pros on call one."
@@ -2749,7 +2855,7 @@ export default function BorisCallingCockpit() {
                         )}
 
                         {primaryService === 'outbound-sales' && (
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             "Understood. The AI Sparring Agent acts like an angry boss trying to hang up fast, training your reps to hook their attention in 10 seconds so they don't waste your leads."
@@ -2757,7 +2863,7 @@ export default function BorisCallingCockpit() {
                         )}
 
                         {primaryService === 'technical-support' && (
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             "Got it. In technical support, buyers test reps on Tier 1 vs. Tier 2 problem resolution right away. The AI Sparring Agent drills your reps on IT troubleshooting language so they sound technical and qualified, not like a generic answering service."
@@ -2765,10 +2871,10 @@ export default function BorisCallingCockpit() {
                         )}
 
                         {primaryService === 'other' && (
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
-                            "That's a critical line of business. With <span className="font-bold text-[#ED1C24]">{customServiceInput || 'specialized services'}</span>, if callers don't understand the exact day-to-day workflow, buyers will always try to treat it as cheap hourly data entry. The AI Sparring Agent trains your reps on the specific terminology and procurement objections for {customServiceInput || 'specialized services'}, so they lead with competence and protect your billable rates."
+                            "That's a critical line of business. With <span className="font-bold text-zinc-900">{customServiceInput || 'specialized services'}</span>, if callers don't understand the exact day-to-day workflow, buyers will always try to treat it as cheap hourly data entry. The AI Sparring Agent trains your reps on the specific terminology and procurement objections for {customServiceInput || 'specialized services'}, so they lead with competence and protect your billable rates."
                           </p>
                         )}
 
@@ -2784,7 +2890,7 @@ export default function BorisCallingCockpit() {
                             )}
                             className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100"
                           >
-                            <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
+                            <Volume2 className="h-3.5 w-3.5 text-zinc-900" />
                             <span>Hear it</span>
                           </button>
                         </div>
@@ -2794,7 +2900,7 @@ export default function BorisCallingCockpit() {
                       <button
                         type="button"
                         onClick={() => setCurrentStep(5)}
-                        className="w-full py-2.5 px-4 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                        className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                       >
                         <span>Proceed to Screen 5: The Close & Emil Calendly</span>
                         <ArrowRight className="h-4 w-4" />
@@ -2809,17 +2915,17 @@ export default function BorisCallingCockpit() {
                     <div className="space-y-4">
                       {/* Teleprompter Script */}
                       <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                        <p className={`font-semibold text-[#222021] leading-relaxed ${
+                        <p className={`font-semibold text-zinc-900 leading-relaxed ${
                           textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                         }`}>
-                          "Look, <span className="font-bold text-[#ED1C24]">{customerName.split(' ')[0] || 'there'}</span>, we didn't build this software in a bubble. Our founder, <strong className="text-[#222021]">Emil</strong>, was a BPO business development director for over 17 years. He lived through this exact pain and built this system right from the trenches to stop BPOs from losing deals to cheaper rivals."
+                          "Look, <span className="font-bold text-zinc-900">{customerName.split(' ')[0] || 'there'}</span>, we didn't build this software in a bubble. Our founder, <strong className="text-zinc-900">Emil</strong>, was a BPO business development director for over 17 years. He lived through this exact pain and built this system right from the trenches to stop BPOs from losing deals to cheaper rivals."
                         </p>
-                        <p className={`font-semibold text-[#222021] leading-relaxed pt-1 ${
+                        <p className={`font-semibold text-zinc-900 leading-relaxed pt-1 ${
                           textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                         }`}>
                           "I'd love to set up a quick 20-minute screen share with Emil. He'll show you the big picture in action—how we build your private list and how your reps use the AI Sparring Agent to warm up before dialing."
                         </p>
-                        <p className={`font-extrabold text-[#222021] leading-relaxed pt-1 ${
+                        <p className={`font-extrabold text-zinc-900 leading-relaxed pt-1 ${
                           textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                         }`}>
                           "Do you have your calendar open—would <span className="bg-emerald-100 text-emerald-950 px-1 rounded font-mono font-bold">Thursday at 2:00 PM</span> work, or is <span className="bg-emerald-100 text-emerald-950 px-1 rounded font-mono font-bold">Friday morning</span> better for 20 minutes with Emil?"
@@ -2830,7 +2936,7 @@ export default function BorisCallingCockpit() {
                             onClick={() => playSpeech(`Look, ${customerName.split(' ')[0] || 'there'}, we didn't build this software in a bubble. Our founder, Emil, was a BPO business development director for over 17 years. He lived through this exact pain and built this system right from the trenches to stop BPOs from losing deals to cheaper rivals. Do you have your calendar open—would Thursday at 2:00 PM work, or is Friday morning better for 20 minutes with Emil?`, 'close_speech')}
                             className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100"
                           >
-                            <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
+                            <Volume2 className="h-3.5 w-3.5 text-zinc-900" />
                             <span>Hear it</span>
                           </button>
                           <button
@@ -2844,10 +2950,10 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* Live Booking Slots & Direct Calendly Embed */}
-                      <div className="bg-[#222021] text-white p-4 rounded-2xl border border-[#222021] space-y-3">
+                      <div className="bg-zinc-900 text-white p-4 rounded-2xl border border-[#222021] space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#ED1C24]" />
+                            <span className="w-2 h-2 rounded-full bg-zinc-900" />
                             <span className="text-xs font-bold text-white tracking-wide uppercase font-mono">
                               Founder Emil's Live Availability
                             </span>
@@ -2883,7 +2989,7 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSelectSlot('Thursday 2:00 PM')}
                             className={`py-2 px-3 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                               bookingSlot === 'Thursday 2:00 PM'
-                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
+                                ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs'
                                 : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
                             }`}
                           >
@@ -2896,7 +3002,7 @@ export default function BorisCallingCockpit() {
                             onClick={() => handleSelectSlot('Friday 10:00 AM')}
                             className={`py-2 px-3 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                               bookingSlot === 'Friday 10:00 AM'
-                                ? 'bg-[#ED1C24] border-[#ED1C24] text-white shadow-xs'
+                                ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs'
                                 : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
                             }`}
                           >
@@ -2982,14 +3088,14 @@ export default function BorisCallingCockpit() {
                             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
                               SCREEN 6: SETTING EXPECTATIONS & CLOSING
                             </span>
-                            <span className="text-xs font-extrabold text-[#222021]">
-                              Locked Slot: <span className="text-[#ED1C24] font-mono">{bookingSlot || 'Thursday 2:00 PM'}</span>
+                            <span className="text-xs font-extrabold text-zinc-900">
+                              Locked Slot: <span className="text-zinc-900 font-mono">{bookingSlot || 'Thursday 2:00 PM'}</span>
                             </span>
                           </div>
                           <button
                             type="button"
                             onClick={() => setCurrentStep(5)}
-                            className="text-xs text-[#6b6968] hover:text-[#222021] flex items-center gap-1 font-semibold cursor-pointer"
+                            className="text-xs text-zinc-500 hover:text-zinc-900 flex items-center gap-1 font-semibold cursor-pointer"
                           >
                             <span>Change Slot / Calendar</span>
                             <ChevronRight className="h-3 w-3" />
@@ -3001,10 +3107,10 @@ export default function BorisCallingCockpit() {
                           <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide">
                             1. Set Screen Share Expectations
                           </span>
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
-                            "Perfect, <span className="font-bold text-[#ED1C24]">{customerName.split(' ')[0] || 'there'}</span>. Just so you know what to expect on <span className="bg-emerald-100 text-emerald-950 px-1.5 py-0.5 rounded font-mono font-bold">{bookingSlot || 'Thursday at 2:00 PM'}</span>—Emil will share his screen directly to walk you through how Claude AI builds your private list, and run a quick 2-minute sparring simulation tuned for your <strong className="text-[#222021]">{activeServiceLabel}</strong> team."
+                            "Perfect, <span className="font-bold text-zinc-900">{customerName.split(' ')[0] || 'there'}</span>. Just so you know what to expect on <span className="bg-emerald-100 text-emerald-950 px-1.5 py-0.5 rounded font-mono font-bold">{bookingSlot || 'Thursday at 2:00 PM'}</span>—Emil will share his screen directly to walk you through how Claude AI builds your private list, and run a quick 2-minute sparring simulation tuned for your <strong className="text-zinc-900">{activeServiceLabel}</strong> team."
                           </p>
                         </div>
 
@@ -3013,10 +3119,10 @@ export default function BorisCallingCockpit() {
                           <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide">
                             2. Zero Prep Guarantee
                           </span>
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
-                            "He'll already have <strong className="text-[#222021]">{partnerName}</strong>'s market profile and competitor pricing pulled up beforehand, so there is <span className="underline decoration-emerald-500 decoration-2 font-bold text-emerald-900 bg-emerald-50 px-1 rounded">zero preparation needed</span> on your end."
+                            "He'll already have <strong className="text-zinc-900">{partnerName}</strong>'s market profile and competitor pricing pulled up beforehand, so there is <span className="underline decoration-emerald-500 decoration-2 font-bold text-emerald-900 bg-emerald-50 px-1 rounded">zero preparation needed</span> on your end."
                           </p>
                         </div>
 
@@ -3025,7 +3131,7 @@ export default function BorisCallingCockpit() {
                           <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide">
                             3. Attendance & Contact Verification
                           </span>
-                          <p className={`font-extrabold text-[#222021] leading-relaxed ${
+                          <p className={`font-extrabold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
                             "Are you usually at your desk with your laptop open around that time, or will you be mobile? And what is the best direct email and cell number to send the calendar invite and text a 10-minute heads-up?"
@@ -3037,10 +3143,10 @@ export default function BorisCallingCockpit() {
                           <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wide">
                             4. Calendar Invite & Professional Wrap-up
                           </span>
-                          <p className={`font-semibold text-[#222021] leading-relaxed ${
+                          <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
-                            "I'm dispatching the calendar invite right now from <span className="font-mono text-xs bg-slate-200 text-slate-900 px-1.5 py-0.5 rounded font-bold">emil@appointmentlyy.com</span> with the screen share link. Once you see it hit your inbox, go ahead and hit accept so it reserves that slot on Emil's schedule. Really appreciate your time today, <span className="font-bold text-[#ED1C24]">{customerName.split(' ')[0] || 'there'}</span>—talk soon!"
+                            "I'm dispatching the calendar invite right now from <span className="font-mono text-xs bg-slate-200 text-slate-900 px-1.5 py-0.5 rounded font-bold">emil@appointmentlyy.com</span> with the screen share link. Once you see it hit your inbox, go ahead and hit accept so it reserves that slot on Emil's schedule. Really appreciate your time today, <span className="font-bold text-zinc-900">{customerName.split(' ')[0] || 'there'}</span>—talk soon!"
                           </p>
                         </div>
 
@@ -3051,7 +3157,7 @@ export default function BorisCallingCockpit() {
                             onClick={() => playSpeech(`Perfect, ${customerName.split(' ')[0] || 'there'}. Just so you know what to expect on ${bookingSlot || 'Thursday at 2:00 PM'}—Emil will share his screen directly to walk you through how Claude AI builds your private list. Zero preparation needed on your end. I'm dispatching the calendar invite right now from emil@appointmentlyy.com with the screen share link. Once you see it hit your inbox, go ahead and hit accept. Talk soon!`, 'expect_speech')}
                             className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 cursor-pointer shadow-2xs"
                           >
-                            <Volume2 className="h-3.5 w-3.5 text-[#ED1C24]" />
+                            <Volume2 className="h-3.5 w-3.5 text-zinc-900" />
                             <span>Hear Wrap-Up Script</span>
                           </button>
                           <button
@@ -3066,14 +3172,14 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* Attendance Verification & Contact Confirmation Box */}
-                      <div className="p-4 rounded-xl border border-[#222021]/15 bg-white space-y-3.5 shadow-2xs">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6b6968] block">
+                      <div className="p-4 rounded-xl border border-zinc-200 bg-white space-y-3.5 shadow-2xs">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 block">
                           ATTENDANCE VERIFICATION & DIRECT CONTACT
                         </span>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[11px] font-bold text-[#222021] block mb-1">
+                            <label className="text-[11px] font-bold text-zinc-900 block mb-1">
                               Direct Calendar Invite Email
                             </label>
                             <input
@@ -3084,12 +3190,12 @@ export default function BorisCallingCockpit() {
                                 setNotesDraft(buildNotes());
                               }}
                               placeholder="e.g. julian@apexglobalbpo.com"
-                              className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-mono text-zinc-900 focus:outline-none focus:bg-white focus:border-zinc-900"
                             />
                           </div>
 
                           <div>
-                            <label className="text-[11px] font-bold text-[#222021] block mb-1">
+                            <label className="text-[11px] font-bold text-zinc-900 block mb-1">
                               Direct Cell / Mobile (for 10-min SMS heads-up)
                             </label>
                             <div className="flex items-center gap-2">
@@ -3104,7 +3210,7 @@ export default function BorisCallingCockpit() {
                                   setNotesDraft(buildNotes({ tel: nextTel, cPhone: val }));
                                 }}
                                 placeholder="e.g. +1 (415) 890-1284"
-                                className="flex-1 bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                                className="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-mono text-zinc-900 focus:outline-none focus:bg-white focus:border-zinc-900"
                               />
                               <a
                                 href={!isQuarantined && cellPhone ? `tel:${cellPhone.replace(/[^\d+]/g, '')}` : '#'}
@@ -3137,7 +3243,7 @@ export default function BorisCallingCockpit() {
                             className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                               telemetry.attendanceVerified
                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
-                                : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
+                                : 'bg-zinc-50 border-zinc-200 text-zinc-500'
                             }`}
                           >
                             <span>💻</span>
@@ -3150,7 +3256,7 @@ export default function BorisCallingCockpit() {
                             className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                               telemetry.zeroPrepConfirmed
                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
-                                : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
+                                : 'bg-zinc-50 border-zinc-200 text-zinc-500'
                             }`}
                           >
                             <span>{telemetry.zeroPrepConfirmed ? '✅' : '⚪'}</span>
@@ -3167,7 +3273,7 @@ export default function BorisCallingCockpit() {
                             className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                               inviteAccepted
                                 ? 'bg-purple-50 border-purple-300 text-purple-900 shadow-2xs'
-                                : 'bg-[#F2F0EF] border-[#222021]/10 text-[#6b6968]'
+                                : 'bg-zinc-50 border-zinc-200 text-zinc-500'
                             }`}
                           >
                             <span>{inviteAccepted ? '✉️' : '📨'}</span>
@@ -3181,7 +3287,7 @@ export default function BorisCallingCockpit() {
                         <button
                           type="button"
                           onClick={() => setCurrentStep(5)}
-                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] font-bold text-xs flex items-center justify-center gap-1.5 border border-[#222021]/10 transition-colors cursor-pointer"
+                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-bold text-xs flex items-center justify-center gap-1.5 border border-zinc-200 transition-colors cursor-pointer"
                         >
                           <span>⬅ Back to Calendar</span>
                         </button>
@@ -3210,14 +3316,14 @@ export default function BorisCallingCockpit() {
               <div className="lg:col-span-3 flex flex-col gap-4">
                 
                 {/* Auto-Updating Call Notes Card */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-extrabold text-[#222021] tracking-tight flex items-center gap-1.5">
+                      <h3 className="text-sm font-extrabold text-zinc-900 tracking-tight flex items-center gap-1.5">
                         <span>📝</span>
                         <span>CRM Call Notes</span>
                       </h3>
-                      <p className="text-[11px] text-[#6b6968] mt-0.5 leading-snug">
+                      <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug">
                         Auto-updates live from your button clicks. Ready to paste into CRM.
                       </p>
                     </div>
@@ -3228,7 +3334,7 @@ export default function BorisCallingCockpit() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => copyText(notesDraft, 'notes_copy')}
-                        className="flex-1 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
+                        className="flex-1 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
                       >
                         {copiedKey === 'notes_copy' ? <Check className="h-3 w-3 text-white" /> : <Copy className="h-3 w-3" />}
                         <span>{copiedKey === 'notes_copy' ? 'Copied to Clipboard!' : '📋 Copy CRM Notes'}</span>
@@ -3261,7 +3367,7 @@ export default function BorisCallingCockpit() {
                     rows={9}
                     value={notesDraft}
                     onChange={(e) => setNotesDraft(e.target.value)}
-                    className="w-full bg-[#F2F0EF] border border-[#222021]/10 rounded-xl p-2.5 text-[11px] leading-relaxed text-[#222021] font-mono focus:outline-none focus:bg-white focus:border-[#ED1C24]"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-[11px] leading-relaxed text-zinc-900 font-mono focus:outline-none focus:bg-white focus:border-zinc-900"
                   />
 
                   {/* Reset for Next Call */}
@@ -3297,7 +3403,7 @@ export default function BorisCallingCockpit() {
                         customRepNotes: ''
                       }));
                     }}
-                    className="w-full text-center text-xs text-[#6b6968] hover:text-[#222021] flex items-center justify-center gap-1 py-1 transition-colors cursor-pointer"
+                    className="w-full text-center text-xs text-zinc-500 hover:text-zinc-900 flex items-center justify-center gap-1 py-1 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="h-3 w-3" />
                     <span>Next call: clear & reset telemetry</span>
@@ -3305,24 +3411,24 @@ export default function BorisCallingCockpit() {
                 </div>
 
                 {/* 1-Click Cadence Step Completion & Tracking */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-2.5">
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-2xs space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#6b6968] block">
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-500 block">
                       CADENCE ACTIVITY LOGGING
                     </span>
-                    <span className="text-[10px] font-mono font-bold bg-[#F2F0EF] px-2 py-0.5 rounded text-[#222021] border border-[#222021]/10">
+                    <span className="text-[10px] font-mono font-bold bg-zinc-50 px-2 py-0.5 rounded text-zinc-900 border border-zinc-200">
                       Day {currentCadenceDay} • Touch #{activeCadenceTouchNumber}
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-[#6b6968] leading-snug">
+                  <p className="text-[11px] text-zinc-500 leading-snug">
                     Reps must mark touches as completed on their end to generate the daily activity report.
                   </p>
 
                   <button
                     type="button"
                     onClick={() => handleCompleteCadenceTouch()}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[#222021] hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer"
+                    className="w-full py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer"
                   >
                     <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                     <span>✓ Mark Cadence Step Completed</span>
@@ -3330,15 +3436,15 @@ export default function BorisCallingCockpit() {
                 </div>
 
                 {/* Call Disposition Dropdown List */}
-                <div className="bg-white border border-[#222021]/10 rounded-2xl p-4 shadow-2xs space-y-3">
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#6b6968] block">
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-500 block">
                       CALL DISPOSITION
                     </span>
                     {disposition && (
                       <button
                         onClick={() => handleSetDisposition(null)}
-                        className="text-[10px] font-bold text-[#ED1C24] hover:underline cursor-pointer"
+                        className="text-[10px] font-bold text-zinc-900 hover:underline cursor-pointer"
                       >
                         Reset
                       </button>
@@ -3350,7 +3456,7 @@ export default function BorisCallingCockpit() {
                     <select
                       value={disposition || ''}
                       onChange={(e) => handleSetDisposition(e.target.value || null)}
-                      className="w-full bg-[#F2F0EF] border border-[#222021]/15 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#222021] focus:outline-none focus:ring-2 focus:ring-[#ED1C24] focus:border-[#ED1C24] transition-all cursor-pointer"
+                      className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-1 focus:ring-zinc-900/10 focus:border-zinc-400 focus:border-zinc-900 transition-all cursor-pointer"
                     >
                       <option value="">-- Select Call Disposition --</option>
                       {activeCampaignDispositions.map((disp) => {
@@ -3373,13 +3479,13 @@ export default function BorisCallingCockpit() {
                       <button
                         type="button"
                         onClick={handleProceedToNextLead}
-                        className="w-full py-3 px-4 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                        className="w-full py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                       >
                         <span>Proceed to Next Lead ({nextLeadCandidate.name})</span>
                         <ArrowRight className="h-4 w-4" />
                       </button>
 
-                      <div className="p-2.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/15 text-[#222021] text-xs font-bold flex items-center justify-between">
+                      <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-xs font-bold flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span
                             className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -3387,12 +3493,12 @@ export default function BorisCallingCockpit() {
                           />
                           <span>Logged: {disposition}</span>
                           {selectedDispositionRecord && (
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-[#222021]/10 text-[#222021] font-normal">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-zinc-200 text-zinc-900 font-normal">
                               {selectedDispositionRecord.code}
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-[#222021]/10">CRM SYNCED</span>
+                        <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-zinc-200">CRM SYNCED</span>
                       </div>
 
                       {/* AI Boris Script Rebuttal & Guidance Box (if configured for this disposition in Admin Control) */}
@@ -3467,8 +3573,8 @@ export default function BorisCallingCockpit() {
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer ${
                       selectedCategory === cat.id
-                        ? 'bg-[#ED1C24] text-white shadow-xs'
-                        : 'bg-white border border-[#222021]/10 text-[#6b6968] hover:text-[#222021]'
+                        ? 'bg-zinc-900 text-white shadow-xs'
+                        : 'bg-white border border-zinc-200 text-zinc-500 hover:text-zinc-900'
                     }`}
                   >
                     {cat.label}
@@ -3481,7 +3587,7 @@ export default function BorisCallingCockpit() {
                 {filteredRebuttals.map((reb) => (
                   <div 
                     key={reb.id}
-                    className="bg-white border border-[#222021]/10 rounded-2xl p-6 shadow-2xs space-y-4 hover:border-[#222021]/20 transition-all"
+                    className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4 hover:border-zinc-300 transition-all"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-4">
@@ -3490,11 +3596,11 @@ export default function BorisCallingCockpit() {
                           <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border ${reb.categoryColor}`}>
                             {reb.category}
                           </span>
-                          <span className="text-xs text-[#6b6968] italic">
+                          <span className="text-xs text-zinc-500 italic">
                             Listen for: {reb.listenFor}
                           </span>
                         </div>
-                        <h3 className="text-xl font-black text-[#222021] tracking-tight mt-1.5">
+                        <h3 className="text-xl font-black text-zinc-900 tracking-tight mt-1.5">
                           "{reb.trigger}"
                         </h3>
                       </div>
@@ -3504,7 +3610,7 @@ export default function BorisCallingCockpit() {
                         <button
                           onClick={() => playSpeech(reb.fullSpoken, reb.id)}
                           className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                            isPlayingAudio === reb.id ? 'bg-[#ED1C24] border-[#ED1C24] text-white' : 'bg-[#F2F0EF] hover:bg-[#e7e4e2] text-[#222021] border-[#222021]/10'
+                            isPlayingAudio === reb.id ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-900 border-zinc-200'
                           }`}
                         >
                           <Volume2 className="h-3.5 w-3.5" />
@@ -3512,7 +3618,7 @@ export default function BorisCallingCockpit() {
                         </button>
                         <button
                           onClick={() => copyText(reb.fullSpoken, `copy_${reb.id}`)}
-                          className="px-3 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                         >
                           {copiedKey === `copy_${reb.id}` ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                           <span>{copiedKey === `copy_${reb.id}` ? 'Copied' : 'Copy'}</span>
@@ -3521,15 +3627,15 @@ export default function BorisCallingCockpit() {
                     </div>
 
                     {/* ARM Framework Breakdown */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-[#222021]/10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-zinc-200">
                       
                       {/* [A] Acknowledge */}
-                      <div className="p-3.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-1">
-                        <span className="text-[10px] font-mono font-bold uppercase text-[#6b6968] flex items-center gap-1">
+                      <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 space-y-1">
+                        <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 flex items-center gap-1">
                           <span className="h-2 w-2 rounded-full bg-blue-500" />
                           <span>[A] Acknowledge</span>
                         </span>
-                        <p className={`font-semibold text-[#222021] leading-snug ${
+                        <p className={`font-semibold text-zinc-900 leading-snug ${
                           textSize === 'huge' ? 'text-base' : 'text-xs'
                         }`}>
                           "{reb.acknowledge}"
@@ -3537,12 +3643,12 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* [R] Respond */}
-                      <div className="p-3.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-1">
-                        <span className="text-[10px] font-mono font-bold uppercase text-[#ED1C24] flex items-center gap-1">
-                          <span className="h-2 w-2 rounded-full bg-[#ED1C24]" />
+                      <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 space-y-1">
+                        <span className="text-[10px] font-mono font-bold uppercase text-zinc-900 flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-zinc-900" />
                           <span>[R] Redirect / Real Fix</span>
                         </span>
-                        <p className={`font-semibold text-[#222021] leading-snug ${
+                        <p className={`font-semibold text-zinc-900 leading-snug ${
                           textSize === 'huge' ? 'text-base' : 'text-xs'
                         }`}>
                           "{reb.respond}"
@@ -3550,12 +3656,12 @@ export default function BorisCallingCockpit() {
                       </div>
 
                       {/* [M] Move */}
-                      <div className="p-3.5 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-1">
+                      <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 space-y-1">
                         <span className="text-[10px] font-mono font-bold uppercase text-emerald-700 flex items-center gap-1">
                           <span className="h-2 w-2 rounded-full bg-emerald-500" />
                           <span>[M] Move / Commit</span>
                         </span>
-                        <p className={`font-semibold text-[#222021] leading-snug ${
+                        <p className={`font-semibold text-zinc-900 leading-snug ${
                           textSize === 'huge' ? 'text-base' : 'text-xs'
                         }`}>
                           "{reb.move}"
@@ -3581,7 +3687,7 @@ export default function BorisCallingCockpit() {
               setActiveTab('rebuttals');
             }
           }}
-          className="px-4 py-2.5 rounded-full bg-[#ED1C24] hover:bg-[#d0181f] text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg transition-transform hover:scale-105 cursor-pointer"
+          className="px-4 py-2.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg transition-transform hover:scale-105 cursor-pointer"
         >
           <FileText className="h-4 w-4" />
           <span>{isRebuttalsMode ? 'Back to Steps' : 'ARM Rebuttals Drawer'}</span>
@@ -3641,24 +3747,24 @@ export default function BorisCallingCockpit() {
       {/* PLAYBOOK ARCHITECTURE SPEC MODAL */}
       {showPlaybookModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs">
-          <div className="relative w-full max-w-4xl h-[90vh] max-h-[820px] bg-white border border-[#222021]/15 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-[#222021]">
-            <div className="px-6 py-4 bg-[#F2F0EF] border-b border-[#222021]/10 flex items-center justify-between shrink-0">
+          <div className="relative w-full max-w-4xl h-[90vh] max-h-[820px] bg-white border border-zinc-200 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-zinc-900">
+            <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-xl bg-[#ED1C24] flex items-center justify-center text-white font-bold">
+                <div className="h-8 w-8 rounded-xl bg-zinc-900 flex items-center justify-center text-white font-bold">
                   <FileText className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black tracking-tight text-[#222021]">
+                  <h3 className="text-base font-black tracking-tight text-zinc-900">
                     BPO Client Acquisition: Cold Call Teleprompter, AI Assistant & Sparring Spec
                   </h3>
-                  <p className="text-xs text-[#6b6968]">
+                  <p className="text-xs text-zinc-500">
                     Reference guide based on bpo_bdr_playbook.md &bull; ARM Methodology
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowPlaybookModal(false)}
-                className="p-1.5 rounded-xl text-[#6b6968] hover:text-[#222021] hover:bg-black/5 transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl text-zinc-500 hover:text-zinc-900 hover:bg-black/5 transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -3705,29 +3811,29 @@ export default function BorisCallingCockpit() {
 
               {/* Methodology Highlights */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl bg-[#F2F0EF] border border-[#222021]/10 space-y-2">
-                  <div className="font-bold text-[#ED1C24] uppercase tracking-wider text-[11px]">
+                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                  <div className="font-bold text-zinc-900 uppercase tracking-wider text-[11px]">
                     1. Acknowledge (Agree)
                   </div>
-                  <p className="text-[#6b6968]">
+                  <p className="text-zinc-500">
                     Never argue or become defensive. Validate their constraint, tenure, or current lead vendor immediately using tactical empathy.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#F2F0EF] border border-[#222021]/10 space-y-2">
-                  <div className="font-bold text-[#ED1C24] uppercase tracking-wider text-[11px]">
+                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                  <div className="font-bold text-zinc-900 uppercase tracking-wider text-[11px]">
                     2. Redirect (Value Reframe)
                   </div>
-                  <p className="text-[#6b6968]">
+                  <p className="text-zinc-500">
                     Expose the hidden cost: shared leads mean 3-5 BPOs fighting over price ($8/hr), while reps burn expensive leads as warm-up swings.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#F2F0EF] border border-[#222021]/10 space-y-2">
-                  <div className="font-bold text-[#ED1C24] uppercase tracking-wider text-[11px]">
+                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                  <div className="font-bold text-zinc-900 uppercase tracking-wider text-[11px]">
                     3. Move (Low-Friction Ask)
                   </div>
-                  <p className="text-[#6b6968]">
+                  <p className="text-zinc-500">
                     Anchor Founder Emil (17+ years in BPO BDM trenches). Propose a low-friction 20-minute screen share on Thursday at 2:00 PM or Friday morning.
                   </p>
                 </div>
@@ -3735,12 +3841,12 @@ export default function BorisCallingCockpit() {
 
               {/* 10 Objections Intent Matrix */}
               <div className="space-y-3">
-                <h4 className="font-black text-sm uppercase tracking-wide text-[#222021]">
+                <h4 className="font-black text-sm uppercase tracking-wide text-zinc-900">
                   Intent Matching Matrix (Real-Time AI Script Assist)
                 </h4>
-                <div className="border border-[#222021]/10 rounded-2xl overflow-hidden">
+                <div className="border border-zinc-200 rounded-2xl overflow-hidden">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F2F0EF] font-bold text-[#222021] border-b border-[#222021]/10">
+                    <thead className="bg-zinc-50 font-bold text-zinc-900 border-b border-zinc-200">
                       <tr>
                         <th className="p-3">Objection Key</th>
                         <th className="p-3">Trigger Phrases</th>
@@ -3749,53 +3855,53 @@ export default function BorisCallingCockpit() {
                     </thead>
                     <tbody className="divide-y divide-[#222021]/10">
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_NEED_CLIENTS_NOT_TOOLS</td>
-                        <td className="p-3 text-[#6b6968]">"we just need clients", "don't need more tools", "need revenue not software"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_NEED_CLIENTS_NOT_TOOLS</td>
+                        <td className="p-3 text-zinc-500">"we just need clients", "don't need more tools", "need revenue not software"</td>
                         <td className="p-3">Can't pay payroll with software. Buying leads fails if reps get cut down on price.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_PRICE_TELL_ME_NOW</td>
-                        <td className="p-3 text-[#6b6968]">"how much is it", "give me the price", "what's the cost"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_PRICE_TELL_ME_NOW</td>
+                        <td className="p-3 text-zinc-500">"how much is it", "give me the price", "what's the cost"</td>
                         <td className="p-3">No flat price tag. Custom built based on monthly scope and script tuning.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_PRICE_RATE_CARD</td>
-                        <td className="p-3 text-[#6b6968]">"send rate card", "send pricing sheet", "email me the prices"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_PRICE_RATE_CARD</td>
+                        <td className="p-3 text-zinc-500">"send rate card", "send pricing sheet", "email me the prices"</td>
                         <td className="p-3">No generic rate cards. Custom data pipeline built for specific service lines.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_PRICE_NO_BUDGET</td>
-                        <td className="p-3 text-[#6b6968]">"no budget", "money is tight", "not spending on software"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_PRICE_NO_BUDGET</td>
+                        <td className="p-3 text-zinc-500">"no budget", "money is tight", "not spending on software"</td>
                         <td className="p-3">Replaces lead burn money. Fits inside existing lead data budget.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_VENDOR_OUTSOURCE_ACCELERATOR</td>
-                        <td className="p-3 text-[#6b6968]">"use Outsource Accelerator", "already with OA", "buying from brokers"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_VENDOR_OUTSOURCE_ACCELERATOR</td>
+                        <td className="p-3 text-zinc-500">"use Outsource Accelerator", "already with OA", "buying from brokers"</td>
                         <td className="p-3">Full price for shared leads pitched by 3-5 rivals. AI sparring protects margins.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_VENDOR_EXCLUSIVE_LEADS</td>
-                        <td className="p-3 text-[#6b6968]">"exclusive leads", "nobody else calling them", "our vendor is exclusive"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_VENDOR_EXCLUSIVE_LEADS</td>
+                        <td className="p-3 text-zinc-500">"exclusive leads", "nobody else calling them", "our vendor is exclusive"</td>
                         <td className="p-3">Market reality: prospect was pitched weeks ago. Reps get shopped on price.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_REPS_EXPERIENCED</td>
-                        <td className="p-3 text-[#6b6968]">"reps don't need training", "experienced callers", "senior reps only"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_REPS_EXPERIENCED</td>
+                        <td className="p-3 text-zinc-500">"reps don't need training", "experienced callers", "senior reps only"</td>
                         <td className="p-3">Leads cost too much for warm-up swings. Sharpen edge in 2 minutes before dialing.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_INTERNAL_LMS_EXISTS</td>
-                        <td className="p-3 text-[#6b6968]">"internal trainers", "have our own lms", "team leaders coach"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_INTERNAL_LMS_EXISTS</td>
+                        <td className="p-3 text-zinc-500">"internal trainers", "have our own lms", "team leaders coach"</td>
                         <td className="p-3">Managers don't have hours each morning. Reps get 5 automated practice calls.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_BRUSH_OFF_EMAIL</td>
-                        <td className="p-3 text-[#6b6968]">"send an email", "shoot me a message", "email me details"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_BRUSH_OFF_EMAIL</td>
+                        <td className="p-3 text-zinc-500">"send an email", "shoot me a message", "email me details"</td>
                         <td className="p-3">Static PDF won't show live voice coaching. 20-min test call with Emil.</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono font-bold text-[#ED1C24]">OBJ_TIMING_BUSY</td>
-                        <td className="p-3 text-[#6b6968]">"too busy", "call back in 6 months", "bad time", "running a floor"</td>
+                        <td className="p-3 font-mono font-bold text-zinc-900">OBJ_TIMING_BUSY</td>
+                        <td className="p-3 text-zinc-500">"too busy", "call back in 6 months", "bad time", "running a floor"</td>
                         <td className="p-3">Every month of waiting burns thousands on stolen shared leads. Grab 20 mins.</td>
                       </tr>
                     </tbody>
@@ -3804,13 +3910,13 @@ export default function BorisCallingCockpit() {
               </div>
             </div>
 
-            <div className="px-6 py-3 bg-[#F2F0EF] border-t border-[#222021]/10 flex items-center justify-between">
-              <span className="text-xs text-[#6b6968]">
+            <div className="px-6 py-3 bg-zinc-50 border-t border-zinc-200 flex items-center justify-between">
+              <span className="text-xs text-zinc-500">
                 Appointmentlyy SDR LMS &bull; Playbook Spec v2.4
               </span>
               <button
                 onClick={() => setShowPlaybookModal(false)}
-                className="px-4 py-1.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs"
+                className="px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs"
               >
                 Close Spec
               </button>

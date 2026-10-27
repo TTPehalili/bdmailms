@@ -8,17 +8,20 @@ import {
   Sparkles, 
   CheckCircle2, 
   Layers, 
-  ArrowLeft, 
   ShieldCheck, 
   Database,
   RefreshCw,
   Plus,
-  AlertCircle
+  AlertCircle,
+  PhoneCall,
+  Mail
 } from 'lucide-react';
 import { ExtractedArmEntry } from '@/lib/parsers/armExtractor';
 import AdminNavigationHeader from '@/components/AdminNavigationHeader';
+import OutboundFrameworkManager from '@/components/admin/OutboundFrameworkManager';
 
 export default function AdminFrameworksPage() {
+  const [activeView, setActiveView] = useState<'frameworks' | 'uploader'>('frameworks');
   const [file, setFile] = useState<File | null>(null);
   const [rawText, setRawText] = useState('');
   const [campaign, setCampaign] = useState('enterprise-outbound');
@@ -84,188 +87,220 @@ export default function AdminFrameworksPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col font-sans">
       <AdminNavigationHeader activeSection="playbooks" />
 
-      {/* Main Form Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Column: Upload Form (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          <form onSubmit={handleUpload} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                <UploadCloud className="h-4 w-4 text-[#ED1C24]" />
-                Upload Framework Playbook
-              </h2>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Upload sales training docs (.pdf, .docx, .md) to automatically parse into structured [A], [R], [M] entries.
-              </p>
-            </div>
-
-            {/* Campaign Select */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
-                Target Campaign
-              </label>
-              <select
-                value={campaign}
-                onChange={(e) => setCampaign(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#ED1C24]/20 focus:border-[#ED1C24]"
-              >
-                <option value="enterprise-outbound">Enterprise Outbound Q4</option>
-                <option value="b2b-saas-smb">Mid-Market SaaS Prospecting</option>
-                <option value="fintech-inbound">Fintech High-Velocity Inbound</option>
-              </select>
-            </div>
-
-            {/* Drag and Drop File Input */}
-            <div className="border-2 border-dashed border-slate-200 hover:border-[#ED1C24] rounded-2xl p-6 text-center cursor-pointer transition-colors bg-slate-50/70 hover:bg-slate-50 relative group">
-              <input
-                type="file"
-                accept=".pdf,.docx,.md,.txt"
-                onChange={handleFileChange}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-              <FileText className="h-8 w-8 text-slate-400 group-hover:text-[#ED1C24] mx-auto mb-2 transition-colors" />
-              {file ? (
-                <div>
-                  <p className="text-xs font-bold text-emerald-600">{file.name}</p>
-                  <p className="text-[11px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-xs font-semibold text-slate-800">Click or drag & drop playbook</p>
-                  <p className="text-[11px] text-slate-500 mt-1">PDF, DOCX, Markdown, or TXT</p>
-                </div>
-              )}
-            </div>
-
-            {/* Direct Paste Fallback */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
-                Or Paste Raw Framework Text
-              </label>
-              <textarea
-                value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
-                rows={4}
-                placeholder="Paste objection talk tracks, script playbooks, or rebuttals here..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ED1C24]/20 focus:border-[#ED1C24] font-mono"
-              />
-            </div>
-
-            {errorMsg && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
+      {/* SUB-HEADER / VIEW SELECTOR */}
+      <div className="bg-white border-b border-zinc-200 px-6 py-3">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-lg text-xs font-medium border border-zinc-200/60 w-fit">
+            <button
+              type="button"
+              onClick={() => setActiveView('frameworks')}
+              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeView === 'frameworks'
+                  ? 'bg-white text-zinc-950 font-bold shadow-xs'
+                  : 'text-zinc-600 hover:text-zinc-950'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Outbound Guru Frameworks Studio</span>
+            </button>
 
             <button
-              type="submit"
-              disabled={isUploading}
-              className="w-full py-3 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+              type="button"
+              onClick={() => setActiveView('uploader')}
+              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeView === 'uploader'
+                  ? 'bg-white text-zinc-950 font-bold shadow-xs'
+                  : 'text-zinc-600 hover:text-zinc-950'
+              }`}
             >
-              {isUploading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span>PARSING & VECTORIZING...</span>
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4" />
-                  <span>INGEST & VECTORIZE PLAYBOOK</span>
-                </>
-              )}
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Playbook Document Ingestion</span>
             </button>
-          </form>
+          </div>
 
-          {/* Architecture Card */}
-          <div className="bg-[#ED1C24]/10/60 border border-[#ED1C24]/15 rounded-2xl p-5 text-xs text-slate-600 space-y-2.5">
-            <h4 className="font-bold text-[#222021] uppercase tracking-wider text-[11px] flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-[#ED1C24]" />
-              Automatic Pipeline Tasks
-            </h4>
-            <p>1. Extracts clean text stream from document binary (strips XML/PDF formatting).</p>
-            <p>2. Restructures playbooks into strict ARM: Acknowledge, Respond, and Move.</p>
-            <p>3. Generates 1536-dimensional vector embeddings and writes to Supabase <code className="text-slate-800 font-mono bg-white px-1.5 py-0.5 rounded border border-[#ED1C24]/20">public.rebuttal_entries</code>.</p>
+          <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
+            <span>Floor Model:</span>
+            <span className="font-semibold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
+              Gemini 3.5 Flash
+            </span>
           </div>
         </div>
+      </div>
 
-        {/* Right Column: Ingested Entries Live Table (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex-1 flex flex-col">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-4">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                  <Database className="h-4 w-4 text-[#ED1C24]" />
-                  Indexed ARM Entries
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {uploadResult ? `${uploadResult.extractedCount} newly indexed entries from ${uploadResult.fileName}` : 'Ready for document ingestion'}
-                </p>
-              </div>
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {activeView === 'frameworks' ? (
+          <OutboundFrameworkManager />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Upload Form (5 cols) */}
+            <div className="lg:col-span-5 flex flex-col gap-6">
+              <form onSubmit={handleUpload} className="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs flex flex-col gap-4">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-900 flex items-center gap-2">
+                    <UploadCloud className="h-4 w-4 text-zinc-700" />
+                    Upload Framework Playbook
+                  </h2>
+                  <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+                    Upload sales training docs (.pdf, .docx, .md) to automatically parse into structured [A], [R], [M] entries.
+                  </p>
+                </div>
 
-              {uploadResult && (
-                <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold font-mono">
-                  1536-DIM VECTOR SYNCED
-                </span>
-              )}
+                {/* Campaign Select */}
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1 uppercase tracking-wider">
+                    Target Campaign
+                  </label>
+                  <select
+                    value={campaign}
+                    onChange={(e) => setCampaign(e.target.value)}
+                    className="w-full bg-white border border-zinc-200 rounded-lg p-2.5 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900/10 focus:border-zinc-400"
+                  >
+                    <option value="enterprise-outbound">Enterprise Outbound BDM</option>
+                    <option value="bpo-accelerator">BPO Client Acquisition</option>
+                    <option value="saas-discovery">SaaS Inbound SDR</option>
+                  </select>
+                </div>
+
+                {/* File Drop Area */}
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1 uppercase tracking-wider">
+                    Document File
+                  </label>
+                  <label className="border border-dashed border-zinc-300 hover:border-zinc-500 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-zinc-50/50">
+                    <FileText className="h-8 w-8 text-zinc-400 mb-2" />
+                    <span className="text-xs font-bold text-zinc-800">
+                      {file ? file.name : 'Choose a file or drag & drop'}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 mt-1">
+                      PDF, DOCX, TXT, or MD up to 10MB
+                    </span>
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      accept=".pdf,.docx,.txt,.md"
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {/* Text Fallback */}
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1 uppercase tracking-wider">
+                    Or Paste Text Directly
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    placeholder="Paste script rules, rebuttal notes, or raw objection training material here..."
+                    className="w-full bg-white border border-zinc-200 rounded-lg p-2.5 text-xs text-zinc-900 font-mono focus:outline-none focus:ring-1 focus:ring-zinc-900/10 focus:border-zinc-400"
+                  />
+                </div>
+
+                {errorMsg && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  className="w-full py-2.5 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 text-white font-medium text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+                >
+                  {isUploading ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      <span>Parsing & Vectorizing with Gemini...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>Parse Document with Gemini</span>
+                    </>
+                  )}
+                </button>
+              </form>
             </div>
 
-            {uploadResult && uploadResult.entries.length > 0 ? (
-              <div className="space-y-4 overflow-y-auto max-h-[620px] pr-2">
-                {uploadResult.entries.map((entry, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#ED1C24] px-2 py-0.5 rounded bg-[#ED1C24]/10 border border-[#ED1C24]/20">
-                        {entry.objection_category}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        Trigger: "{entry.objection_trigger}"
-                      </span>
-                    </div>
+            {/* Right Column: Output Entries (7 cols) */}
+            <div className="lg:col-span-7 bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs flex flex-col gap-4">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-200">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 flex items-center gap-2">
+                    <Database className="h-4 w-4 text-zinc-700" />
+                    Indexed ARM Entries
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    {uploadResult ? `${uploadResult.extractedCount} newly indexed entries from ${uploadResult.fileName}` : 'Ready for document ingestion'}
+                  </p>
+                </div>
 
-                    <div className="space-y-2 text-xs">
-                      <div className="flex gap-2">
-                        <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 font-black text-[10px] shrink-0 border border-purple-200">
-                          [A]
-                        </span>
-                        <p className="text-slate-700 italic">"{entry.arm_acknowledge}"</p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-black text-[10px] shrink-0 border border-emerald-200">
-                          [R]
-                        </span>
-                        <p className="text-slate-800 font-medium">"{entry.arm_respond}"</p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-black text-[10px] shrink-0 border border-blue-200">
-                          [M]
-                        </span>
-                        <p className="text-slate-800 font-medium">"{entry.arm_move}"</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {uploadResult && (
+                  <span className="text-[10px] px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold font-mono">
+                    VECTOR SYNCED
+                  </span>
+                )}
               </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center py-20 text-center text-slate-500">
-                <FileText className="h-10 w-10 text-slate-300 mb-3" />
-                <p className="text-sm font-semibold text-slate-700">No document processed yet in this session</p>
-                <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                  Upload a BPO training playbook on the left to extract ARM entries and calculate vector similarity embeddings.
-                </p>
-              </div>
-            )}
+
+              {uploadResult && uploadResult.entries.length > 0 ? (
+                <div className="space-y-3 overflow-y-auto max-h-[620px] pr-1">
+                  {uploadResult.entries.map((entry, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-lg bg-zinc-50 border border-zinc-200 flex flex-col gap-2.5 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-zinc-900 px-2 py-0.5 rounded bg-zinc-200 border border-zinc-300">
+                          {entry.objection_category}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          Trigger: "{entry.objection_trigger}"
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex gap-2">
+                          <span className="px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-800 font-black text-[10px] shrink-0 border border-zinc-300">
+                            [A]
+                          </span>
+                          <p className="text-zinc-700 italic">"{entry.arm_acknowledge}"</p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <span className="px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-800 font-black text-[10px] shrink-0 border border-zinc-300">
+                            [R]
+                          </span>
+                          <p className="text-zinc-800 font-medium">"{entry.arm_respond}"</p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <span className="px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-800 font-black text-[10px] shrink-0 border border-zinc-300">
+                            [M]
+                          </span>
+                          <p className="text-zinc-800 font-medium">"{entry.arm_move}"</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center py-20 text-center text-zinc-400">
+                  <FileText className="h-8 w-8 text-zinc-300 mb-2" />
+                  <p className="text-xs font-semibold text-zinc-700">No document processed yet in this session</p>
+                  <p className="text-xs text-zinc-500 mt-1 max-w-sm">
+                    Upload a training playbook on the left to extract ARM entries.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

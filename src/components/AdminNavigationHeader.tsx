@@ -4,14 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  ShieldCheck, 
+  Shield, 
   BookOpen, 
   Users, 
   FileSpreadsheet, 
   ArrowLeft,
-  ChevronRight,
-  Database,
-  ExternalLink
+  LayoutGrid
 } from 'lucide-react';
 
 export default function AdminNavigationHeader({ activeSection }: { activeSection?: string }) {
@@ -19,19 +17,26 @@ export default function AdminNavigationHeader({ activeSection }: { activeSection
 
   const adminNav = [
     { 
-      label: 'Playbook Vector Ingestion', 
+      label: 'Tenant Overview', 
+      href: '/admin', 
+      match: '/admin',
+      exact: true,
+      icon: LayoutGrid 
+    },
+    { 
+      label: 'Playbook Ingestion', 
       href: '/admin/frameworks', 
       match: '/admin/frameworks',
       icon: BookOpen 
     },
     { 
-      label: 'Campaign Leads & Cadence', 
+      label: 'Leads & Cadence', 
       href: '/admin/campaigns/enterprise-outbound/leads', 
       match: '/admin/campaigns',
       icon: FileSpreadsheet 
     },
     { 
-      label: 'Rep Roster & Certification', 
+      label: 'Reps & Certification', 
       href: '/admin/reps', 
       match: '/admin/reps',
       icon: Users 
@@ -39,65 +44,44 @@ export default function AdminNavigationHeader({ activeSection }: { activeSection
   ];
 
   return (
-    <header className="border-b border-[#222021]/10 bg-white sticky top-0 z-40 shadow-2xs">
-      {/* Top Utility Bar */}
-      <div className="h-13 px-6 flex items-center justify-between border-b border-[#222021]/10">
-        
-        {/* Brand & Admin Identity */}
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-[#222021] text-white flex items-center justify-center shadow-2xs">
-            <ShieldCheck className="h-4.5 w-4.5 text-[#ED1C24]" />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm tracking-tight text-[#222021]">
-                APPOINTMENTLYY // CONTROL CENTRE
-              </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#ED1C24]/10 text-[#ED1C24] font-mono font-bold border border-[#ED1C24]/20">
-                SUPERVISOR
-              </span>
-            </div>
-          </div>
+    <header className="border-b border-zinc-200 bg-white sticky top-0 z-30">
+      {/* Top Bar */}
+      <div className="h-12 px-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-zinc-900" />
+          <span className="font-bold text-xs tracking-tight text-zinc-900">
+            Control Centre
+          </span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 font-mono font-medium">
+            Admin
+          </span>
         </div>
 
-        {/* Back to Live Outbound Cockpit */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/cockpit"
-            className="px-3.5 py-1.5 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Return to AI Boris Cockpit</span>
-          </Link>
-        </div>
+        <Link
+          href="/cockpit"
+          className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs flex items-center gap-1.5 transition-colors"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          <span>Calling Floor</span>
+        </Link>
       </div>
 
-      {/* Sub Navigation Strip */}
-      <div className="h-10 px-6 flex items-center gap-6 text-xs font-semibold overflow-x-auto bg-[#F2F0EF]/40">
-        <Link
-          href="/admin"
-          className={`py-2 border-b-2 transition-colors flex items-center gap-1.5 ${
-            pathname === '/admin'
-              ? 'border-[#ED1C24] text-[#ED1C24] font-bold'
-              : 'border-transparent text-[#6b6968] hover:text-[#222021]'
-          }`}
-        >
-          <Database className="h-3.5 w-3.5" />
-          <span>Tenant Overview</span>
-        </Link>
-
+      {/* Tabs */}
+      <div className="h-9 px-6 flex items-center gap-5 text-xs font-medium overflow-x-auto border-t border-zinc-100">
         {adminNav.map((tab) => {
           const Icon = tab.icon;
-          const isActive = pathname.startsWith(tab.match);
+          const isActive = tab.exact 
+            ? pathname === tab.match 
+            : pathname.startsWith(tab.match);
+
           return (
             <Link
               key={tab.label}
               href={tab.href}
-              className={`py-2 border-b-2 transition-colors flex items-center gap-1.5 ${
+              className={`h-full flex items-center gap-1.5 border-b-2 transition-colors ${
                 isActive
-                  ? 'border-[#ED1C24] text-[#ED1C24] font-bold'
-                  : 'border-transparent text-[#6b6968] hover:text-[#222021]'
+                  ? 'border-zinc-950 text-zinc-950 font-semibold'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-900'
               }`}
             >
               <Icon className="h-3.5 w-3.5" />

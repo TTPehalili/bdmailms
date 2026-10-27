@@ -7,8 +7,6 @@ import {
   Target, 
   Swords, 
   Headphones, 
-  PhoneCall, 
-  CalendarDays, 
   BookOpen, 
   Radio, 
   ShieldCheck,
@@ -17,259 +15,189 @@ import {
   ChevronRight,
   Workflow,
   BarChart3,
-  Sparkles
+  Bot,
+  Building2,
+  Lock
 } from 'lucide-react';
-import BorisOperationsIcon from '@/components/icons/BorisOperationsIcon';
+import { useSession } from '@/lib/session';
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  // State: 'expanded' (w-60 with labels), 'icons' (w-16 compact dock), or 'hidden' (w-0 full screen)
-  const [trayState, setTrayState] = useState<'expanded' | 'icons' | 'hidden'>('icons');
-  const [userRole, setUserRole] = useState<string>('Super Admin');
+  const { session, role, isAdmin, tenantName, repName } = useSession();
 
-  // Load user preference & role from localStorage if available
+  // State: 'expanded' (w-56) or 'icons' (w-14)
+  const [collapsed, setCollapsed] = useState(false);
+
   useEffect(() => {
-    const saved = localStorage.getItem('sdr_tray_state');
-    if (saved === 'expanded' || saved === 'icons' || saved === 'hidden') {
-      setTrayState(saved);
-    }
-    const savedRole = localStorage.getItem('user_role');
-    if (savedRole) {
-      setUserRole(savedRole);
-    } else {
-      localStorage.setItem('user_role', 'Super Admin');
-      setUserRole('Super Admin');
+    const saved = localStorage.getItem('sdr_sidebar_collapsed');
+    if (saved === 'true') {
+      setCollapsed(true);
     }
   }, []);
 
-  const updateTrayState = (state: 'expanded' | 'icons' | 'hidden') => {
-    setTrayState(state);
-    localStorage.setItem('sdr_tray_state', state);
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem('sdr_sidebar_collapsed', String(next));
   };
 
-  const isMission = pathname === '/';
-  const isDojo = pathname === '/cockpit';
-  const isSparring = pathname.startsWith('/sparring');
-  const isGuide = pathname.startsWith('/guide');
-  const isMonitoring = pathname.startsWith('/monitoring');
-  const isWorkflows = pathname.startsWith('/workflows') || pathname.startsWith('/automation');
-  const isAdmin = pathname.startsWith('/admin');
-
-  const isAdminUser = userRole === 'Super Admin' || userRole === 'Admin' || userRole === 'Manager';
-
-  // Front-Line SDR Navigation Stack
-  const navItems = [
-    { 
-      label: 'Mission & Targets', 
-      href: '/', 
-      icon: Target, 
-      isActive: isMission, 
-      tag: 'ABOUT' 
-    },
-    { 
-      label: 'AI Boris', 
-      href: '/cockpit', 
-      icon: Swords, 
-      isActive: isDojo, 
-      tag: 'LIVE' 
-    },
-    { 
-      label: 'AI Sparring Arena', 
-      href: '/sparring', 
-      icon: Headphones, 
-      isActive: isSparring, 
-      tag: 'VOICE' 
-    },
-    { 
-      label: 'User Guide', 
-      href: '/guide', 
-      icon: BookOpen, 
-      isActive: isGuide, 
-      tag: 'GUIDE' 
-    },
-    { 
-      label: 'Live Monitoring', 
-      href: '/monitoring', 
-      icon: Radio, 
-      isActive: isMonitoring, 
-      tag: 'LIVE' 
-    },
-    { 
-      label: 'Workflow Studio', 
-      href: '/workflows', 
-      icon: Workflow, 
-      isActive: isWorkflows, 
-      tag: 'N8N',
-      adminOnly: true
-    },
-    { 
-      label: 'Performance & KPIs', 
-      href: '/analytics', 
-      icon: BarChart3, 
-      isActive: pathname.startsWith('/analytics'), 
-      tag: 'METRICS' 
-    },
-    { 
-      label: 'Operations Intel', 
-      href: '/assistant', 
-      icon: BorisOperationsIcon, 
-      isActive: pathname.startsWith('/assistant'), 
-      tag: 'AI' 
-    },
-    { 
-      label: 'Admin Control', 
-      href: '/admin', 
-      icon: ShieldCheck, 
-      isActive: isAdmin, 
-      tag: 'ADMIN' 
-    },
+  // Nav Groups
+  const frontlineItems = [
+    { label: 'Calling Floor', href: '/cockpit', icon: Swords },
+    { label: 'Sparring Arena', href: '/sparring', icon: Headphones },
+    { label: 'Mission Overview', href: '/', icon: Target },
+    { label: 'Performance', href: '/analytics', icon: BarChart3 },
+    { label: 'Playbooks & Guide', href: '/guide', icon: BookOpen },
   ];
 
-  // If tray is completely hidden, show floating edge toggle button
-  if (trayState === 'hidden') {
-    return (
-      <button
-        onClick={() => updateTrayState('icons')}
-        title="Open Tools Icon Tray (Ctrl+B)"
-        className="fixed left-2 top-16 z-50 h-9 w-9 rounded-xl bg-[#222021] text-[#F2F0EF] border border-[#ED1C24]/30 hover:border-[#ED1C24] shadow-lg flex items-center justify-center transition-all hover:scale-105 group"
-      >
-        <PanelLeftOpen className="h-4 w-4 text-[#ED1C24] group-hover:scale-110 transition-transform" />
-      </button>
-    );
-  }
+  const managementItems = [
+    { label: 'Floor Monitor', href: '/monitoring', icon: Radio },
+    { label: 'Workflow Studio', href: '/workflows', icon: Workflow },
+    { label: 'Operations Intel', href: '/assistant', icon: Bot },
+    { label: 'Admin Control', href: '/admin', icon: ShieldCheck },
+  ];
 
-  const isExpanded = trayState === 'expanded';
+  const isItemActive = (href: string) => {
+    if (href === '/') return pathname === '/';
+    return pathname.startsWith(href);
+  };
 
   return (
-    <aside 
-      className={`bg-[#222021] border-r border-white/10 shrink-0 select-none z-40 flex flex-col justify-between py-4 transition-all duration-200 ease-in-out ${
-        isExpanded ? 'w-64 px-3' : 'w-16 px-2'
+    <aside
+      className={`bg-zinc-50/90 border-r border-zinc-200 shrink-0 select-none z-40 flex flex-col justify-between py-3 transition-all duration-150 ease-in-out ${
+        collapsed ? 'w-15 px-2' : 'w-56 px-3'
       }`}
     >
-      {/* Top Branding & Collapse Controls */}
-      <div className="flex flex-col gap-5 w-full">
-        
-        {/* Brand Header */}
-        <div className={`flex items-center ${isExpanded ? 'justify-between px-1' : 'justify-center'}`}>
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="h-9 w-9 rounded-xl overflow-hidden bg-black flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0 border border-white/10">
-              <img 
-                src="/boris-operations-icon.jpg" 
-                alt="Appointmentlyy SDR Logo" 
-                className="h-full w-full object-cover" 
-              />
+      {/* Top Section */}
+      <div className="flex flex-col gap-4">
+        {/* Workspace Brand / Header */}
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between px-1'}`}>
+          <Link href="/" className="flex items-center gap-2 group overflow-hidden">
+            <div className="h-7 w-7 rounded-md bg-zinc-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
+              A
             </div>
-            {isExpanded && (
-              <div className="flex flex-col leading-none overflow-hidden">
-                <span className="font-black text-sm text-[#F2F0EF] tracking-tight truncate">
-                  APPOINTMENTLYY
+            {!collapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="font-bold text-xs text-zinc-900 truncate tracking-tight">
+                  {tenantName}
                 </span>
-                <span className="text-[10px] text-[#ED1C24] font-mono font-bold mt-0.5">
-                  BORIS SDR INTELLIGENCE
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  SDR Workspace
                 </span>
               </div>
             )}
           </Link>
 
-          {/* Toggle Button: Icon Tray <-> Expanded Sidebar */}
-          {isExpanded && (
+          {!collapsed && (
             <button
-              onClick={() => updateTrayState('icons')}
-              title="Collapse to icons"
-              className="p-1.5 rounded-lg text-[#F2F0EF]/60 hover:text-white hover:bg-white/10 transition-colors"
+              onClick={toggleCollapsed}
+              className="p-1 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-colors"
+              title="Collapse sidebar"
             >
-              <PanelLeftClose className="h-4 w-4" />
+              <PanelLeftClose className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
 
-        {/* When in icon dock, subtle expand / hide controls */}
-        {!isExpanded && (
-          <div className="flex items-center justify-center gap-1">
+        {collapsed && (
+          <div className="flex justify-center">
             <button
-              onClick={() => updateTrayState('expanded')}
-              title="Expand Tools Tray (with labels)"
-              className="p-1 rounded-md text-[#F2F0EF]/40 hover:text-[#ED1C24] hover:bg-white/5 transition-colors"
+              onClick={toggleCollapsed}
+              className="p-1 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-colors"
+              title="Expand sidebar"
             >
               <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => updateTrayState('hidden')}
-              title="Hide tools tray completely"
-              className="p-1 rounded-md text-[#F2F0EF]/40 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <PanelLeftClose className="h-3.5 w-3.5" />
             </button>
           </div>
         )}
 
-        {/* Navigation Items */}
-        <nav className="flex flex-col gap-1.5 w-full">
-          {navItems
-            .filter((item) => !item.adminOnly || isAdminUser)
-            .map((item) => {
+        {/* Frontline Navigation */}
+        <nav className="flex flex-col gap-0.5">
+          {!collapsed && (
+            <div className="px-2 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+              Tools
+            </div>
+          )}
+          {frontlineItems.map((item) => {
             const Icon = item.icon;
+            const active = isItemActive(item.href);
             return (
               <Link
-                key={item.label}
+                key={item.href}
                 href={item.href}
-                title={!isExpanded ? item.label : undefined}
-                className={`flex items-center rounded-xl transition-all ${
-                  isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center h-10 w-10 mx-auto'
+                title={collapsed ? item.label : undefined}
+                className={`flex items-center rounded-lg text-xs font-medium transition-colors ${
+                  collapsed
+                    ? 'justify-center h-9 w-9 mx-auto'
+                    : 'gap-2.5 px-2.5 py-2'
                 } ${
-                  item.isActive
-                    ? 'bg-[#ED1C24] text-white shadow-sm font-bold'
-                    : 'text-[#F2F0EF]/60 hover:text-white hover:bg-white/10'
+                  active
+                    ? 'bg-zinc-900 text-white font-semibold shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/50'
                 }`}
               >
-                <Icon className="h-5 w-5 shrink-0" />
-                {isExpanded && (
-                  <div className="flex items-center justify-between flex-1 min-w-0">
-                    <span className="text-xs truncate font-semibold">
-                      {item.label}
-                    </span>
-                    <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded ${
-                      item.isActive ? 'bg-white/20 text-white' : 'bg-white/5 text-[#F2F0EF]/40'
-                    }`}>
-                      {item.tag}
-                    </span>
-                  </div>
-                )}
+                <Icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
           })}
         </nav>
+
+        {/* Management Navigation (Admin & Manager) */}
+        {isAdmin && (
+          <nav className="flex flex-col gap-0.5 pt-2 border-t border-zinc-200/60">
+            {!collapsed && (
+              <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                Management
+              </div>
+            )}
+            {managementItems.map((item) => {
+              const Icon = item.icon;
+              const active = isItemActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={collapsed ? item.label : undefined}
+                  className={`flex items-center rounded-lg text-xs font-medium transition-colors ${
+                    collapsed
+                      ? 'justify-center h-9 w-9 mx-auto'
+                      : 'gap-2.5 px-2.5 py-2'
+                  } ${
+                    active
+                      ? 'bg-zinc-900 text-white font-semibold shadow-xs'
+                      : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/50'
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </div>
 
-      {/* Bottom: GPA Score & Collapse Trigger */}
-      <div className={`flex flex-col pt-4 border-t border-white/10 ${isExpanded ? 'px-2' : 'items-center'}`}>
-        {isExpanded ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-full border-2 border-[#ED1C24] bg-[#ED1C24]/10 flex items-center justify-center text-[#ED1C24] font-black text-[10px] font-mono">
-                92.5
+      {/* Bottom User Capsule */}
+      <div className={`pt-2 border-t border-zinc-200/80 ${collapsed ? 'flex justify-center' : 'px-1'}`}>
+        {!collapsed ? (
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-6 w-6 rounded bg-zinc-200 text-zinc-800 flex items-center justify-center font-bold text-[10px] shrink-0">
+                {repName.charAt(0)}
               </div>
-              <div className="flex flex-col leading-none">
-                <span className="text-xs font-bold text-[#F2F0EF]">Rep Quality GPA</span>
-                <span className="text-[10px] text-[#6b6968] font-mono mt-0.5">Floor Rank: #2</span>
+              <div className="flex flex-col min-w-0 leading-tight">
+                <span className="font-semibold text-zinc-900 truncate text-[11px]">{repName}</span>
+                <span className="text-[10px] text-zinc-400 font-mono truncate">{role}</span>
               </div>
             </div>
-
-            <button
-              onClick={() => updateTrayState('hidden')}
-              title="Hide tools tray"
-              className="p-1 rounded text-[#F2F0EF]/40 hover:text-white transition-colors"
-            >
-              <PanelLeftClose className="h-4 w-4" />
-            </button>
           </div>
         ) : (
-          <div 
-            title="Overall Rep Quality Score: 92.5% (Click to expand tray)"
-            onClick={() => updateTrayState('expanded')}
-            className="h-8 w-8 rounded-full border-2 border-[#ED1C24] bg-[#ED1C24]/10 flex items-center justify-center text-[#ED1C24] font-black text-[10px] font-mono shadow-xs cursor-pointer hover:scale-105 transition-transform"
+          <div
+            title={`${repName} (${role})`}
+            className="h-6 w-6 rounded bg-zinc-200 text-zinc-800 flex items-center justify-center font-bold text-[10px]"
           >
-            92.5
+            {repName.charAt(0)}
           </div>
         )}
       </div>

@@ -1,124 +1,398 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Search, 
   BookOpen, 
   Bell, 
   ChevronDown, 
-  Radio, 
   CheckCircle2, 
-  LogOut 
+  LogOut,
+  Building2,
+  User,
+  Shield,
+  X,
+  Target,
+  Swords,
+  Headphones,
+  Radio,
+  Workflow,
+  BarChart3,
+  Check
 } from 'lucide-react';
+import { useSession, UserRole } from '@/lib/session';
+
+interface NavCommand {
+  title: string;
+  category: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const COMMANDS: NavCommand[] = [
+  { title: 'AI Boris Calling Cockpit', category: 'Calling Floor', href: '/cockpit', icon: Swords },
+  { title: 'AI Sparring Arena', category: 'Training', href: '/sparring', icon: Headphones },
+  { title: 'Live Floor Monitoring', category: 'Supervision', href: '/monitoring', icon: Radio },
+  { title: 'Mission & Targets Hub', category: 'Overview', href: '/', icon: Target },
+  { title: 'Workflow Automation Studio', category: 'Automation', href: '/workflows', icon: Workflow },
+  { title: 'Performance & Quotas', category: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { title: 'User Guide & Playbooks', category: 'Enablement', href: '/guide', icon: BookOpen },
+  { title: 'Admin Control Centre', category: 'Administration', href: '/admin', icon: Shield },
+];
+
+const TENANTS_LIST = [
+  { name: 'Apex Global BPO', code: 'APEX-GLOBAL' },
+  { name: 'ShorePartners BPO', code: 'SHORE-PARTNERS' },
+  { name: 'CloudStaff Outsourcing', code: 'CLOUD-STAFF' },
+  { name: 'Vanguard BPO Solutions', code: 'VANGUARD-PH' },
+];
 
 export default function GlobalTopHeader() {
-  const [bneTime, setBneTime] = useState('16:57:57 AEST');
+  const router = useRouter();
+  const pathname = usePathname();
+  const { session, role, tenantName, repName, email, updateSession, logout } = useSession();
 
+  const [bneTime, setBneTime] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
+
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const tenantMenuRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Brisbane AEST Time Clock
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      // Format to Australian Eastern Standard Time (AEST / Brisbane UTC+10)
       const options: Intl.DateTimeFormatOptions = {
         timeZone: 'Australia/Brisbane',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
         hour12: false
       };
-      const formatted = new Intl.DateTimeFormat('en-AU', options).format(now);
-      setBneTime(`${formatted} AEST`);
+      setBneTime(new Intl.DateTimeFormat('en-AU', options).format(now));
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 1000);
+    const interval = setInterval(updateTime, 10000);
     return () => clearInterval(interval);
   }, []);
 
+  // Cmd+K hotkey for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      } else if (e.key === 'Escape') {
+        setSearchOpen(false);
+        setUserMenuOpen(false);
+        setNotificationsOpen(false);
+        setTenantMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Focus search input on open
+  useEffect(() => {
+    if (searchOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [searchOpen]);
+
+  // Click outside listener
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+      if (tenantMenuRef.current && !tenantMenuRef.current.contains(e.target as Node)) {
+        setTenantMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleRoleSwitch = (newRole: UserRole) => {
+    updateSession({ role: newRole });
+    setUserMenuOpen(false);
+  };
+
+  const handleTenantSwitch = (t: { name: string; code: string }) => {
+    updateSession({ tenantName: t.name, tenantCode: t.code });
+    setTenantMenuOpen(false);
+  };
+
+  const handleSignOut = () => {
+    logout();
+    router.push('/login');
+  };
+
+  const filteredCommands = COMMANDS.filter((cmd) =>
+    `${cmd.title} ${cmd.category}`.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <header className="h-14 bg-white border-b border-[#222021]/10 px-5 flex items-center justify-between shrink-0 select-none z-30">
-      
-      {/* Left: Official Appointmentlyy SDR Logo & Brisbane Time */}
-      <div className="flex items-center gap-3">
-        {/* Official Appointmentlyy Logo Mark */}
-        <div className="flex items-center gap-2 pr-2 border-r border-[#222021]/10">
-          <div className="h-7 w-7 rounded-lg overflow-hidden bg-black flex items-center justify-center shrink-0 border border-black/10">
-            <img 
-              src="/boris-operations-icon.jpg" 
-              alt="Appointmentlyy SDR Logo" 
-              className="h-full w-full object-cover" 
-            />
+    <>
+      <header className="h-13 bg-white border-b border-zinc-200 px-4 sm:px-6 flex items-center justify-between shrink-0 select-none z-30">
+        {/* Left: Brand & Tenant Switcher */}
+        <div className="flex items-center gap-3">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="h-7 w-7 rounded-md bg-zinc-900 text-white flex items-center justify-center font-black text-xs tracking-tighter">
+              A
+            </div>
+            <span className="font-bold text-xs tracking-tight text-zinc-900 hidden md:inline">
+              APPOINTMENTLYY <span className="font-normal text-zinc-400">SDR</span>
+            </span>
+          </Link>
+
+          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
+
+          {/* Active Tenant Selector */}
+          <div className="relative" ref={tenantMenuRef}>
+            <button
+              onClick={() => setTenantMenuOpen(!tenantMenuOpen)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200/70 text-xs text-zinc-800 font-medium transition-colors"
+            >
+              <Building2 className="h-3.5 w-3.5 text-zinc-500" />
+              <span className="max-w-[130px] truncate">{tenantName}</span>
+              <ChevronDown className="h-3 w-3 text-zinc-400" />
+            </button>
+
+            {tenantMenuOpen && (
+              <div className="absolute left-0 mt-1 w-56 bg-white border border-zinc-200 rounded-xl shadow-lg p-1.5 z-50">
+                <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                  Switch Workspace
+                </div>
+                {TENANTS_LIST.map((t) => (
+                  <button
+                    key={t.code}
+                    onClick={() => handleTenantSwitch(t)}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs hover:bg-zinc-100 transition-colors text-left"
+                  >
+                    <span className="truncate">{t.name}</span>
+                    {tenantName === t.name && <Check className="h-3.5 w-3.5 text-zinc-900" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <span className="font-black text-xs text-[#222021] tracking-tight hidden sm:inline">
-            APPOINTMENTLYY <span className="text-[#ED1C24]">SDR</span>
-          </span>
+
+          {/* Brisbane Time */}
+          {bneTime && (
+            <span className="text-[11px] font-mono text-zinc-400 hidden lg:inline">
+              {bneTime} AEST
+            </span>
+          )}
         </div>
 
-        {/* Brisbane Time Pill */}
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#F2F0EF] border border-[#222021]/10 text-xs font-mono font-semibold text-[#222021]">
-          <span className="text-[10px] uppercase font-bold text-[#6b6968]">BNE</span>
-          <span className="tabular-nums">{bneTime}</span>
+        {/* Center: Minimalist Search Launcher */}
+        <div className="flex-1 max-w-sm mx-4 hidden md:block">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200/60 border border-zinc-200/60 text-xs text-zinc-500 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Search className="h-3.5 w-3.5 text-zinc-400" />
+              <span>Jump to tool or lead...</span>
+            </div>
+            <kbd className="text-[10px] font-mono bg-white border border-zinc-200 px-1.5 py-0.2 rounded text-zinc-500">
+              ⌘K
+            </kbd>
+          </button>
         </div>
 
-        {/* Global Search Button */}
-        <button 
-          title="Search scripts, leads, playbooks (Cmd+K)"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#F2F0EF] hover:bg-[#e7e4e2] text-xs text-[#6b6968] font-medium transition-colors"
-        >
-          <Search className="h-3.5 w-3.5 text-[#6b6968]" />
-          <span>Search</span>
-          <kbd className="text-[10px] bg-white border border-[#222021]/15 px-1 rounded font-mono text-[#222021]">⌘K</kbd>
-        </button>
-      </div>
+        {/* Right: Actions & User Account */}
+        <div className="flex items-center gap-2">
+          {/* Mobile search trigger */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-600 md:hidden"
+            title="Search"
+          >
+            <Search className="h-4 w-4" />
+          </button>
 
-      {/* Right Utility Navigation Actions */}
-      <div className="flex items-center gap-3">
-        
-        {/* Knowledge & Playbooks */}
-        <button 
-          title="Knowledge Base & ARM Frameworks"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#F2F0EF] text-xs font-semibold text-[#222021] transition-colors"
-        >
-          <BookOpen className="h-4 w-4 text-[#6b6968]" />
-          <span>Knowledge</span>
-        </button>
+          {/* Guide Shortcut */}
+          <Link
+            href="/guide"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>Guide</span>
+          </Link>
 
-        {/* Notification Bell with Badge */}
-        <button 
-          title="Notifications"
-          className="relative p-2 rounded-lg hover:bg-[#F2F0EF] text-[#6b6968] hover:text-[#222021] transition-colors"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#ED1C24] ring-2 ring-white" />
-        </button>
+          {/* Notifications */}
+          <div className="relative">
+            <button
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-600 transition-colors relative"
+              title="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-zinc-900" />
+            </button>
 
-        <div className="h-4 w-[1px] bg-[#222021]/10" />
+            {notificationsOpen && (
+              <div className="absolute right-0 mt-1 w-72 bg-white border border-zinc-200 rounded-xl shadow-lg p-3 z-50 text-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-zinc-100 mb-2 font-semibold">
+                  <span>Floor Activity</span>
+                  <span className="text-[10px] text-zinc-400">Live</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-100">
+                    <div className="font-medium text-zinc-900">Julian Vance (Apex Global)</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">Callback confirmed for Thursday 2:00 PM</div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-100">
+                    <div className="font-medium text-zinc-900">Leads CSV Loaded</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">Queue refreshed with 3 target accounts</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
-        {/* AI Copilot Status Pill (Active) */}
-        <div 
-          title="ElevenLabs Real-time STT / TTS Pipeline Active"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ED1C24]/10 border border-[#ED1C24]/30 text-xs font-semibold text-[#ED1C24]"
-        >
-          <span className="h-2 w-2 rounded-full bg-[#ED1C24] animate-pulse" />
-          <span className="font-mono text-[11px] font-bold tracking-tight">AI COPILOT</span>
+          <div className="h-4 w-[1px] bg-zinc-200" />
+
+          {/* User Profile & Role Selector */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2 pl-1.5 pr-2 py-1 rounded-lg hover:bg-zinc-100 transition-colors"
+            >
+              <div className="h-6 w-6 rounded-md bg-zinc-900 text-white flex items-center justify-center font-bold text-[10px]">
+                {repName.charAt(0)}
+              </div>
+              <div className="text-left hidden sm:block">
+                <div className="text-xs font-semibold text-zinc-900 leading-tight truncate max-w-[100px]">
+                  {repName}
+                </div>
+                <div className="text-[10px] text-zinc-400 font-mono">
+                  {role}
+                </div>
+              </div>
+              <ChevronDown className="h-3 w-3 text-zinc-400" />
+            </button>
+
+            {userMenuOpen && (
+              <div className="absolute right-0 mt-1 w-60 bg-white border border-zinc-200 rounded-xl shadow-xl p-2 z-50">
+                <div className="px-2 py-1.5 border-b border-zinc-100 mb-1.5">
+                  <div className="text-xs font-semibold text-zinc-900">{repName}</div>
+                  <div className="text-[11px] text-zinc-500 truncate">{email}</div>
+                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-zinc-100 text-zinc-700 font-medium">
+                    Role: {role}
+                  </span>
+                </div>
+
+                <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                  Switch Role (Testing)
+                </div>
+                {(['Rep', 'Manager', 'Super Admin'] as UserRole[]).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => handleRoleSwitch(r)}
+                    className="w-full flex items-center justify-between px-2.5 py-1 rounded-lg text-xs hover:bg-zinc-100 transition-colors text-left"
+                  >
+                    <span>{r === 'Super Admin' ? 'Floor Admin' : r}</span>
+                    {role === r && <Check className="h-3.5 w-3.5 text-zinc-900" />}
+                  </button>
+                ))}
+
+                <div className="mt-1.5 pt-1.5 border-t border-zinc-100">
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-rose-600 hover:bg-rose-50 transition-colors"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      </header>
 
-        {/* Mission Brief Pill */}
-        <button 
-          title="View Sprint Objectives"
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#222021]/10 text-xs font-semibold text-[#222021] hover:bg-[#F2F0EF] transition-colors"
+      {/* Minimalist Command Palette (Cmd+K) Modal */}
+      {searchOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-xs z-50 flex items-start justify-center pt-24 px-4"
+          onClick={() => setSearchOpen(false)}
         >
-          <CheckCircle2 className="h-3.5 w-3.5 text-[#ED1C24]" />
-          <span>Mission brief</span>
-        </button>
+          <div
+            className="w-full max-w-lg bg-white rounded-2xl border border-zinc-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Input */}
+            <div className="flex items-center gap-2.5 px-4 border-b border-zinc-200">
+              <Search className="h-4 w-4 text-zinc-400 shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search tools, playbooks, workflows..."
+                className="w-full py-3 text-xs bg-transparent text-zinc-900 focus:outline-none placeholder:text-zinc-400"
+              />
+              <button
+                onClick={() => setSearchOpen(false)}
+                className="text-zinc-400 hover:text-zinc-700 p-1 rounded"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-        {/* User LogOut / Profile */}
-        <button 
-          title="Log out of session"
-          className="p-1.5 rounded-lg text-[#6b6968] hover:text-[#ED1C24] hover:bg-[#ED1C24]/10 transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
-      </div>
-    </header>
+            {/* List */}
+            <div className="max-h-80 overflow-y-auto p-2 space-y-1">
+              {filteredCommands.length === 0 ? (
+                <div className="p-6 text-center text-xs text-zinc-400">
+                  No matching tools found.
+                </div>
+              ) : (
+                filteredCommands.map((cmd) => {
+                  const Icon = cmd.icon;
+                  return (
+                    <button
+                      key={cmd.title}
+                      onClick={() => {
+                        setSearchOpen(false);
+                        router.push(cmd.href);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs hover:bg-zinc-100 transition-colors text-left group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className="h-4 w-4 text-zinc-500 group-hover:text-zinc-900" />
+                        <span className="font-medium text-zinc-800 group-hover:text-zinc-950">
+                          {cmd.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200/60">
+                        {cmd.category}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-2 border-t border-zinc-100 bg-zinc-50/60 flex items-center justify-between text-[11px] text-zinc-400">
+              <span>Navigation Shortcut</span>
+              <span>ESC to close</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

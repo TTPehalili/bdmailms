@@ -134,7 +134,7 @@ export default function UserGuideHub() {
   const currentGuide = guideSteps.find(g => g.step === activeStep) || guideSteps[0];
 
   return (
-    <div className="flex h-screen w-full bg-[#FAF9F5] text-[#222021] overflow-hidden">
+    <div className="flex h-screen w-full bg-zinc-50/70 text-zinc-900 font-sans overflow-hidden">
       {/* Sidebar */}
       <AppSidebar />
 
@@ -144,36 +144,35 @@ export default function UserGuideHub() {
         <GlobalTopHeader />
 
         {/* Scrollable Guide View */}
-        <main className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 space-y-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 space-y-6 max-w-7xl mx-auto w-full">
           
           {/* Header Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#222021]/10 pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-5">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ED1C24]/10 border border-[#ED1C24]/20 text-[#ED1C24] text-[11px] font-mono font-bold mb-2">
-                <span>📘</span>
-                <span>APPOINTMENTLYY SDR &bull; OFFICIAL PLATFORM MANUAL</span>
-              </div>
-              <h1 className="text-3xl font-black text-[#222021] tracking-tight">
-                User Guide & Navigation Manual
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                PLATFORM DOCUMENTATION
+              </span>
+              <h1 className="text-2xl font-bold text-zinc-950 tracking-tight">
+                User Guide & Platform Manual
               </h1>
-              <p className="text-xs text-[#6b6968] mt-1 max-w-2xl leading-relaxed">
-                Step-by-step visual training manual. Follow the sequential workflow below to master front-line calling, AI sparring, supervisor live monitoring, and admin tenant controls.
+              <p className="text-xs text-zinc-500 mt-1 max-w-2xl leading-relaxed">
+                Step-by-step operating workflows. Master front-line calling, AI sparring, supervisor live monitoring, and admin tenant controls.
               </p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               <Link
                 href="/cockpit"
-                className="px-4 py-2 rounded-xl bg-[#ED1C24] hover:bg-[#d0181f] text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                className="px-3.5 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
               >
-                <Swords className="h-4 w-4" />
+                <Swords className="h-3.5 w-3.5" />
                 <span>Open Cockpit</span>
               </Link>
               <Link
                 href="/monitoring"
-                className="px-4 py-2 rounded-xl bg-[#222021] hover:bg-stone-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                className="px-3.5 py-2 rounded-lg bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-800 font-medium text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
               >
-                <Radio className="h-4 w-4 text-emerald-400" />
+                <Radio className="h-3.5 w-3.5 text-zinc-600" />
                 <span>Live Monitoring</span>
               </Link>
             </div>
@@ -187,24 +186,24 @@ export default function UserGuideHub() {
                 <button
                   key={step.step}
                   onClick={() => setActiveStep(step.step)}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                     isCurrent
-                      ? 'bg-white border-[#ED1C24] shadow-md ring-2 ring-[#ED1C24]/15'
-                      : 'bg-white border-[#222021]/10 hover:border-[#222021]/30 shadow-2xs'
+                      ? 'bg-zinc-900 text-white border-zinc-900 shadow-sm'
+                      : 'bg-white border-zinc-200 hover:border-zinc-300 text-zinc-900 shadow-2xs'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                      isCurrent ? 'bg-[#ED1C24] text-white' : 'bg-[#F2F0EF] text-[#6b6968]'
+                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                      isCurrent ? 'bg-zinc-800 text-zinc-200' : 'bg-zinc-100 text-zinc-500'
                     }`}>
-                      STEP 0{step.step}
+                      0{step.step}
                     </span>
-                    <span className="text-[10px] font-mono text-[#6b6968] uppercase truncate ml-1">
+                    <span className="text-[10px] font-mono uppercase truncate ml-1 text-zinc-400">
                       {step.tag}
                     </span>
                   </div>
-                  <h4 className={`text-xs font-bold leading-snug line-clamp-2 ${
-                    isCurrent ? 'text-[#ED1C24]' : 'text-[#222021]'
+                  <h4 className={`text-xs font-semibold leading-snug line-clamp-2 ${
+                    isCurrent ? 'text-white' : 'text-zinc-900'
                   }`}>
                     {step.title}
                   </h4>

@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
+import { useSession } from '@/lib/session';
 import ByokVaultManager from './admin/ByokVaultManager';
 import UniversalCrmStudio from './admin/UniversalCrmStudio';
 import BillingInvoiceManager from './admin/BillingInvoiceManager';
@@ -95,6 +96,7 @@ interface TenantRecord {
 }
 
 export default function AdminControlCentre() {
+  const { role, isAdmin, updateSession } = useSession();
   const [activeTab, setActiveTab] = useState<'tenants' | 'dispositions' | 'byok' | 'crm' | 'invoicing' | 'mcp' | 'people' | 'modules' | 'access' | 'leads' | 'reps' | 'feedback' | 'audit'>('tenants');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -103,6 +105,17 @@ export default function AdminControlCentre() {
 
   // Tenant Access & Provisioning State
   const [impersonatingTenant, setImpersonatingTenant] = useState<TenantRecord | null>(null);
+
+  const handleSelectShadowTenant = (tenant: TenantRecord) => {
+    setImpersonatingTenant(tenant);
+    updateSession({ tenantName: tenant.name, tenantCode: tenant.slug });
+  };
+
+  const handleExitShadow = () => {
+    setImpersonatingTenant(null);
+    updateSession({ tenantName: 'Apex Global BPO', tenantCode: 'APEX-GLOBAL' });
+  };
+
   const [showAddTenantModal, setShowAddTenantModal] = useState(false);
   const [tenantSearchQuery, setTenantSearchQuery] = useState('');
   const [tenantStatusFilter, setTenantStatusFilter] = useState<'all' | 'Active' | 'Trial' | 'Suspended'>('all');
@@ -385,10 +398,48 @@ export default function AdminControlCentre() {
     `${l.name} ${l.company} ${l.title} ${l.email} ${l.techStack}`.toLowerCase().includes(leadSearchTerm.toLowerCase())
   );
 
+  if (!isAdmin) {
+    return (
+      <div className="flex h-screen w-screen overflow-hidden bg-zinc-50 font-sans antialiased text-zinc-900">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <GlobalTopHeader />
+          <main className="flex-1 flex items-center justify-center p-6">
+            <div className="max-w-md w-full bg-white border border-zinc-200 rounded-2xl p-7 shadow-sm text-center space-y-4">
+              <div className="h-12 w-12 rounded-xl bg-zinc-100 text-zinc-700 flex items-center justify-center mx-auto">
+                <Lock className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-zinc-950">Admin Clearance Required</h2>
+                <p className="text-xs text-zinc-500 mt-1">
+                  You are signed in as <strong>{role}</strong>. This console is restricted to BPO Floor Administrators and Sales Managers.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
+                <Link
+                  href="/cockpit"
+                  className="w-full py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs transition-colors"
+                >
+                  Return to Calling Floor
+                </Link>
+                <button
+                  onClick={() => updateSession({ role: 'Super Admin' })}
+                  className="w-full py-2 rounded-lg bg-zinc-100 hover:bg-zinc-200/80 text-zinc-800 font-medium text-xs transition-colors"
+                >
+                  Elevate to Admin (Testing)
+                </button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F2F0EF] font-sans antialiased text-[#222021]">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-50/70 font-sans antialiased text-zinc-900">
       
-      {/* 1. LEFT CHARCOAL SIDEBAR DOCK */}
+      {/* 1. LEFT SIDEBAR */}
       <AppSidebar />
 
       {/* 2. MAIN APP SHELL */}
@@ -397,41 +448,49 @@ export default function AdminControlCentre() {
         {/* Top Global Utility Bar */}
         <GlobalTopHeader />
 
-        {/* Masquerade / Impersonation Alert Banner */}
+        {/* Minimalist Shadow Mode Alert Banner */}
         {impersonatingTenant && (
-          <div className="bg-amber-400 text-stone-950 px-6 py-2.5 font-bold text-xs flex items-center justify-between shrink-0 shadow-sm border-b border-amber-500">
+          <div className="bg-zinc-900 text-white px-6 py-2 text-xs flex items-center justify-between shrink-0 border-b border-zinc-800">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-stone-950 animate-ping inline-block" />
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>
-                ADMIN SHADOW MODE: You are currently viewing workspace <strong>{impersonatingTenant.name}</strong> ({impersonatingTenant.slug}).
+                Shadowing <strong>{impersonatingTenant.name}</strong> ({impersonatingTenant.slug})
               </span>
-              <span className="text-[10px] font-mono bg-stone-950 text-amber-300 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-mono bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded">
                 {impersonatingTenant.plan}
               </span>
             </div>
-            <button
-              onClick={() => setImpersonatingTenant(null)}
-              className="px-3 py-1 rounded-lg bg-stone-950 hover:bg-stone-800 text-white font-mono text-xs transition-colors cursor-pointer"
-            >
-              Exit Shadow Mode
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/cockpit"
+                className="px-2.5 py-1 rounded bg-white text-zinc-950 font-medium text-xs hover:bg-zinc-100 transition-colors"
+              >
+                Launch Cockpit as {impersonatingTenant.name.split(' ')[0]}
+              </Link>
+              <button
+                onClick={handleExitShadow}
+                className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
+              >
+                Exit Shadow
+              </button>
+            </div>
           </div>
         )}
 
         {/* Scrollable Main Area */}
-        <main className="flex-1 overflow-y-auto px-8 py-8 space-y-6">
+        <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-8 space-y-6">
           
           {/* Header Bar */}
           <div className="flex items-start justify-between">
             <div>
-              <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-[#ED1C24] block mb-1">
-                ADMIN CONTROL
+              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-400 block mb-1">
+                SYSTEM ADMINISTRATION
               </span>
-              <h1 className="text-3xl font-black tracking-tight text-[#222021]">
-                Admin Control
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-950">
+                Admin Control Centre
               </h1>
-              <p className="text-xs text-[#6b6968] mt-1">
-                Centralized client tenant access, seat quotas, floor permissions, training curriculum, and B2B leads CRM.
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Multi-tenant access, seat quotas, BYOK vaults, CRM mapper, and team roster.
               </p>
             </div>
 
@@ -692,12 +751,12 @@ export default function AdminControlCentre() {
                         {/* Action Buttons */}
                         <div className="flex items-center gap-2 pt-1 sm:pt-0">
                           <button
-                            onClick={() => setImpersonatingTenant(tenant)}
-                            className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                            onClick={() => handleSelectShadowTenant(tenant)}
+                            className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                             title="Shadow this tenant's workspace"
                           >
                             <Eye className="h-3.5 w-3.5" />
-                            <span>Impersonate</span>
+                            <span>Shadow Workspace</span>
                           </button>
 
                           <button
