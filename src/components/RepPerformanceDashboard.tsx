@@ -27,7 +27,12 @@ import {
   ChevronDown,
   Lock,
   Building2,
-  UserCheck
+  UserCheck,
+  Layers,
+  Award,
+  Zap,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
@@ -1188,6 +1193,11 @@ export default function RepPerformanceDashboard() {
   const [sortField, setSortField] = useState<'appointmentsBooked' | 'callsMade' | 'quotaAttainment' | 'connectRate'>('appointmentsBooked');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
 
+  // Bar Graph Visualization State for Admins, Floor Admins, Managers, Supervisors
+  const [chartMetric, setChartMetric] = useState<'appointments' | 'outreach' | 'connectRate' | 'qaScore'>('appointments');
+  const [viewMode, setViewMode] = useState<'both' | 'graph' | 'table'>('both');
+  const [hoveredRepId, setHoveredRepId] = useState<string | null>(null);
+
   // 1. Get raw period data
   const rawPeriodReps = MASTER_PERFORMANCE_DATA[timePeriod] || MASTER_PERFORMANCE_DATA.weekly;
 
@@ -1254,7 +1264,52 @@ export default function RepPerformanceDashboard() {
     sortAsc
   ]);
 
-  // 5. Aggregated Metrics (Calculated Strictly for Rep or Scoped Organization)
+  // 5. Dynamic Scaling & Benchmarks for the Bar Graph Visualizer
+  const chartData = useMemo(() => {
+    const list = filteredReps;
+    if (list.length === 0) {
+      return {
+        maxBooked: 1,
+        maxOutreach: 1,
+        maxConnect: 100,
+        maxQa: 100,
+        avgConnectTeam: '0.0',
+        avgBookedTeam: '0.0',
+        topPerformer: null
+      };
+    }
+
+    const maxBooked = Math.max(...list.map((r) => Math.max(r.appointmentsBooked, r.quotaTarget)), 1);
+    const maxOutreach = Math.max(...list.map((r) => r.callsMade + r.emailsSent + r.linkedInTouches), 1);
+    const maxConnect = Math.max(...list.map((r) => r.connectRate), 50);
+    const maxQa = 100;
+
+    const avgConnectTeam = (list.reduce((sum, r) => sum + r.connectRate, 0) / list.length).toFixed(1);
+    const avgBookedTeam = (list.reduce((sum, r) => sum + r.appointmentsBooked, 0) / list.length).toFixed(1);
+    
+    let topRep = list[0];
+    if (chartMetric === 'appointments') {
+      topRep = [...list].sort((a, b) => b.appointmentsBooked - a.appointmentsBooked)[0];
+    } else if (chartMetric === 'outreach') {
+      topRep = [...list].sort((a, b) => (b.callsMade + b.emailsSent + b.linkedInTouches) - (a.callsMade + a.emailsSent + a.linkedInTouches))[0];
+    } else if (chartMetric === 'connectRate') {
+      topRep = [...list].sort((a, b) => b.connectRate - a.connectRate)[0];
+    } else if (chartMetric === 'qaScore') {
+      topRep = [...list].sort((a, b) => b.qaSparringScore - a.qaSparringScore)[0];
+    }
+
+    return {
+      maxBooked,
+      maxOutreach,
+      maxConnect,
+      maxQa,
+      avgConnectTeam,
+      avgBookedTeam,
+      topPerformer: topRep
+    };
+  }, [filteredReps, chartMetric]);
+
+  // 6. Aggregated Metrics (Calculated Strictly for Rep or Scoped Organization)
   const aggregateStats = useMemo(() => {
     const list = filteredReps;
     const totalCalls = list.reduce((sum, r) => sum + r.callsMade, 0);
@@ -1639,60 +1694,428 @@ export default function RepPerformanceDashboard() {
             </div>
           </div>
 
-          {/* REPS PERFORMANCE ROSTER TABLE */}
-          <div className="bg-white border border-[#222021]/15 rounded-2xl p-6 shadow-2xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* REPS PERFORMANCE & ACTIVITY VISUALIZER (BAR GRAPH + ROSTER) */}
+          <div className="bg-white border border-[#222021]/15 rounded-2xl p-6 shadow-2xs space-y-5">
+            {/* Header with Title and Mode Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-[#222021]/10">
               <div>
                 <h2 className="text-lg font-black text-[#222021] tracking-tight flex items-center gap-2">
-                  <Users className="h-5 w-5 text-[#ED1C24]" />
+                  <BarChart3 className="h-5 w-5 text-[#ED1C24]" />
                   <span>
                     {isRepMode 
-                      ? 'Your Personal SDR Performance Record' 
-                      : `${tenantName} SDR Reps Activity Breakdown`}
+                      ? 'Your Personal SDR Performance & Quota Attainment' 
+                      : `${tenantName} SDR Reps Performance & Activity Visualizer`}
                   </span>
                 </h2>
                 <p className="text-xs text-[#6b6968] mt-0.5">
                   {isRepMode
-                    ? `Exclusive performance metrics and quality assurance telemetry for ${repName}.`
-                    : `Floor leaderboard and compliance metrics across ${organizationReps.length} reps in ${tenantName}.`}
+                    ? `Personal performance metrics, channel distribution, and quality assurance telemetry for ${repName}.`
+                    : `Comparative bar graph analytics and detailed telemetry breakdown across all reps in ${tenantName}.`}
                 </p>
               </div>
 
-              {/* Sort selector (Shown for Admins or Multi-rep views) */}
-              {!isRepMode && (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-500 font-bold">Sort By:</span>
+              {/* View Mode Controls: Split View / Graph Only / Table Only */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {/* View Mode Switcher */}
+                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (sortField === 'appointmentsBooked') setSortAsc(!sortAsc);
-                      else { setSortField('appointmentsBooked'); setSortAsc(false); }
-                    }}
-                    className={`px-2.5 py-1 rounded-lg border text-xs font-bold cursor-pointer ${
-                      sortField === 'appointmentsBooked' ? 'bg-[#ED1C24] text-white border-[#ED1C24]' : 'bg-slate-50 border-slate-200 text-slate-700'
+                    onClick={() => setViewMode('both')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      viewMode === 'both' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    Bookings {sortField === 'appointmentsBooked' ? (sortAsc ? '↑' : '↓') : ''}
+                    <Layers className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Split View</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (sortField === 'callsMade') setSortAsc(!sortAsc);
-                      else { setSortField('callsMade'); setSortAsc(false); }
-                    }}
-                    className={`px-2.5 py-1 rounded-lg border text-xs font-bold cursor-pointer ${
-                      sortField === 'callsMade' ? 'bg-[#ED1C24] text-white border-[#ED1C24]' : 'bg-slate-50 border-slate-200 text-slate-700'
+                    onClick={() => setViewMode('graph')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      viewMode === 'graph' ? 'bg-[#ED1C24] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    Calls {sortField === 'callsMade' ? (sortAsc ? '↑' : '↓') : ''}
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span>Bar Graph</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('table')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      viewMode === 'table' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <List className="h-3.5 w-3.5" />
+                    <span>Table</span>
                   </button>
                 </div>
-              )}
+
+                {/* Sort selector (Shown when Table is in view) */}
+                {(viewMode === 'both' || viewMode === 'table') && !isRepMode && (
+                  <div className="flex items-center gap-1 pl-2 border-l border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (sortField === 'appointmentsBooked') setSortAsc(!sortAsc);
+                        else { setSortField('appointmentsBooked'); setSortAsc(false); }
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${
+                        sortField === 'appointmentsBooked' ? 'bg-[#ED1C24] text-white border-[#ED1C24]' : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      Bookings {sortField === 'appointmentsBooked' ? (sortAsc ? '↑' : '↓') : ''}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (sortField === 'callsMade') setSortAsc(!sortAsc);
+                        else { setSortField('callsMade'); setSortAsc(false); }
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${
+                        sortField === 'callsMade' ? 'bg-[#ED1C24] text-white border-[#ED1C24]' : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      Calls {sortField === 'callsMade' ? (sortAsc ? '↑' : '↓') : ''}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full text-left text-xs">
+            {/* ========================================================================= */}
+            {/* COMPONENT: INTERACTIVE BAR GRAPH VISUALIZER                                */}
+            {/* ========================================================================= */}
+            {(viewMode === 'both' || viewMode === 'graph') && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200 space-y-4">
+                {/* Metric Switcher Toolbar & Insights Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+                  {/* Metric Switcher Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('appointments')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                        chartMetric === 'appointments'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Appointments vs Quota</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('outreach')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                        chartMetric === 'outreach'
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <PhoneCall className="h-3.5 w-3.5" />
+                      <span>Outreach Volume (Stacked)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('connectRate')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                        chartMetric === 'connectRate'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      <span>Connect Rate %</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('qaScore')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                        chartMetric === 'qaScore'
+                          ? 'bg-purple-700 text-white shadow-xs'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Award className="h-3.5 w-3.5" />
+                      <span>QA Sparring Score</span>
+                    </button>
+                  </div>
+
+                  {/* Floor Intelligence / Benchmark Legend */}
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    {chartData.topPerformer && (
+                      <div className="flex items-center gap-1.5 font-bold text-slate-800 bg-white border border-amber-300 px-2.5 py-1 rounded-lg shadow-2xs">
+                        <span className="text-amber-500">👑 Top:</span>
+                        <span>{chartData.topPerformer.name}</span>
+                        <span className="font-mono text-emerald-700">
+                          {chartMetric === 'appointments' && `${chartData.topPerformer.appointmentsBooked} Booked (${chartData.topPerformer.quotaAttainment}%)`}
+                          {chartMetric === 'outreach' && `${chartData.topPerformer.callsMade + chartData.topPerformer.emailsSent + chartData.topPerformer.linkedInTouches} Outreach`}
+                          {chartMetric === 'connectRate' && `${chartData.topPerformer.connectRate}% Connect`}
+                          {chartMetric === 'qaScore' && `${chartData.topPerformer.qaSparringScore}/100`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Chart Legend */}
+                    <div className="flex items-center gap-2.5 text-[11px] font-mono font-medium text-slate-500">
+                      {chartMetric === 'appointments' && (
+                        <>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded bg-emerald-500" />
+                            <span>Booked</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded bg-slate-200 border border-dashed border-slate-400" />
+                            <span>Target</span>
+                          </span>
+                        </>
+                      )}
+                      {chartMetric === 'outreach' && (
+                        <>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded bg-slate-900" />
+                            <span>Dials</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded bg-emerald-600" />
+                            <span>Emails</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded bg-indigo-600" />
+                            <span>LinkedIn</span>
+                          </span>
+                        </>
+                      )}
+                      {chartMetric === 'connectRate' && (
+                        <span className="flex items-center gap-1 text-blue-700 font-bold">
+                          <span>Team Avg: {chartData.avgConnectTeam}%</span>
+                        </span>
+                      )}
+                      {chartMetric === 'qaScore' && (
+                        <span className="flex items-center gap-1 text-purple-700 font-bold">
+                          <span>Standard Gate: 85/100</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* The Bar Graph Grid */}
+                <div className="relative pt-6 pb-2">
+                  {/* Benchmark Guideline for Connect Rate or QA Score */}
+                  {chartMetric === 'connectRate' && (
+                    <div 
+                      className="absolute w-full border-t-2 border-dashed border-blue-400/70 z-10 pointer-events-none flex items-center justify-end pr-2"
+                      style={{ bottom: `calc(75px + ${(Number(chartData.avgConnectTeam) / chartData.maxConnect) * 190}px)` }}
+                    >
+                      <span className="text-[10px] font-mono font-bold bg-blue-100 text-blue-900 px-1.5 py-0.2 rounded -translate-y-1/2">
+                        Avg: {chartData.avgConnectTeam}%
+                      </span>
+                    </div>
+                  )}
+
+                  {chartMetric === 'qaScore' && (
+                    <div 
+                      className="absolute w-full border-t-2 border-dashed border-purple-400/70 z-10 pointer-events-none flex items-center justify-end pr-2"
+                      style={{ bottom: `calc(75px + ${(85 / 100) * 190}px)` }}
+                    >
+                      <span className="text-[10px] font-mono font-bold bg-purple-100 text-purple-900 px-1.5 py-0.2 rounded -translate-y-1/2">
+                        Passing Gate: 85/100
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Columns Canvas */}
+                  <div className="h-64 flex items-end justify-around gap-2 sm:gap-6 px-2 sm:px-6">
+                    {filteredReps.map((r) => {
+                      const isHovered = hoveredRepId === r.id;
+                      const totalOutreach = r.callsMade + r.emailsSent + r.linkedInTouches;
+
+                      return (
+                        <div
+                          key={r.id}
+                          onMouseEnter={() => setHoveredRepId(r.id)}
+                          onMouseLeave={() => setHoveredRepId(null)}
+                          className={`flex-1 max-w-[140px] flex flex-col items-center justify-end h-full transition-all cursor-pointer group ${
+                            isHovered ? 'scale-105' : ''
+                          }`}
+                        >
+                          {/* Top Value Badges */}
+                          <div className="mb-2 text-center select-none">
+                            {chartMetric === 'appointments' && (
+                              <div className="flex flex-col items-center">
+                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shadow-2xs ${
+                                  r.quotaAttainment >= 90 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {r.quotaAttainment}%
+                                </span>
+                                <span className="text-xs font-black text-slate-900 mt-0.5 font-mono">
+                                  {r.appointmentsBooked}<span className="text-[10px] text-slate-400 font-normal">/{r.quotaTarget}</span>
+                                </span>
+                              </div>
+                            )}
+
+                            {chartMetric === 'outreach' && (
+                              <div className="flex flex-col items-center">
+                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 shadow-2xs">
+                                  {totalOutreach}
+                                </span>
+                              </div>
+                            )}
+
+                            {chartMetric === 'connectRate' && (
+                              <div className="flex flex-col items-center">
+                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 shadow-2xs">
+                                  {r.connectRate}%
+                                </span>
+                              </div>
+                            )}
+
+                            {chartMetric === 'qaScore' && (
+                              <div className="flex flex-col items-center">
+                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shadow-2xs ${
+                                  r.qaSparringScore >= 90 ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-slate-100 text-slate-800'
+                                }`}>
+                                  {r.qaSparringScore}/100
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* The Rendered Bar */}
+                          <div className="w-full h-44 flex items-end justify-center relative">
+                            {/* METRIC 1: Appointments vs Quota Dual Bar */}
+                            {chartMetric === 'appointments' && (
+                              <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                                {/* Booked Appointments Bar */}
+                                <div
+                                  style={{ height: `${Math.max((r.appointmentsBooked / chartData.maxBooked) * 100, 8)}%` }}
+                                  className="w-1/2 max-w-[36px] bg-linear-to-t from-emerald-600 to-emerald-400 rounded-t-lg shadow-sm transition-all duration-300 group-hover:brightness-110 relative"
+                                >
+                                  {r.appointmentsBooked >= r.quotaTarget && (
+                                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px]">
+                                      ⭐
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Target Quota Bar (Ghost Reference) */}
+                                <div
+                                  style={{ height: `${Math.max((r.quotaTarget / chartData.maxBooked) * 100, 8)}%` }}
+                                  className="w-1/2 max-w-[36px] bg-slate-200 border-t-2 border-dashed border-slate-400 rounded-t-lg transition-all duration-300"
+                                  title={`Target: ${r.quotaTarget}`}
+                                />
+                              </div>
+                            )}
+
+                            {/* METRIC 2: Outreach Volume Multi-Channel Stacked Bar */}
+                            {chartMetric === 'outreach' && (
+                              <div
+                                style={{ height: `${Math.max((totalOutreach / chartData.maxOutreach) * 100, 8)}%` }}
+                                className="w-full max-w-[50px] rounded-t-lg overflow-hidden flex flex-col justify-end shadow-sm transition-all duration-300 group-hover:brightness-110"
+                              >
+                                {/* Top: LinkedIn Touches */}
+                                <div
+                                  style={{ height: `${totalOutreach > 0 ? (r.linkedInTouches / totalOutreach) * 100 : 0}%` }}
+                                  className="w-full bg-indigo-600 transition-all"
+                                  title={`LinkedIn: ${r.linkedInTouches}`}
+                                />
+                                {/* Mid: Emails Sent */}
+                                <div
+                                  style={{ height: `${totalOutreach > 0 ? (r.emailsSent / totalOutreach) * 100 : 0}%` }}
+                                  className="w-full bg-emerald-600 transition-all"
+                                  title={`Emails: ${r.emailsSent}`}
+                                />
+                                {/* Base: Phone Dials */}
+                                <div
+                                  style={{ height: `${totalOutreach > 0 ? (r.callsMade / totalOutreach) * 100 : 0}%` }}
+                                  className="w-full bg-slate-900 transition-all"
+                                  title={`Dials: ${r.callsMade}`}
+                                />
+                              </div>
+                            )}
+
+                            {/* METRIC 3: Connect Rate % Bar */}
+                            {chartMetric === 'connectRate' && (
+                              <div
+                                style={{ height: `${Math.max((r.connectRate / chartData.maxConnect) * 100, 8)}%` }}
+                                className="w-full max-w-[50px] bg-linear-to-t from-blue-600 to-cyan-400 rounded-t-lg shadow-sm transition-all duration-300 group-hover:brightness-110"
+                              />
+                            )}
+
+                            {/* METRIC 4: QA Sparring Score Bar */}
+                            {chartMetric === 'qaScore' && (
+                              <div
+                                style={{ height: `${Math.max((r.qaSparringScore / chartData.maxQa) * 100, 8)}%` }}
+                                className="w-full max-w-[50px] bg-linear-to-t from-purple-700 via-purple-600 to-indigo-500 rounded-t-lg shadow-sm transition-all duration-300 group-hover:brightness-110"
+                              />
+                            )}
+                          </div>
+
+                          {/* X-Axis: Rep Profile Capsule */}
+                          <div className="mt-3 pt-2 border-t border-slate-200 w-full flex flex-col items-center text-center">
+                            <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-mono font-bold flex items-center justify-center text-[10px] shadow-2xs">
+                              {r.avatar}
+                            </div>
+                            <span className="font-bold text-xs text-[#222021] mt-1 truncate max-w-[110px]">
+                              {r.name}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-mono truncate max-w-[110px]">
+                              {r.campaign}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Rep Detail Tooltip Bar on Hover */}
+                {hoveredRepId && (
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in duration-100">
+                    {(() => {
+                      const rep = filteredReps.find(r => r.id === hoveredRepId);
+                      if (!rep) return null;
+                      return (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-slate-900 text-white font-mono font-bold flex items-center justify-center text-[9px]">
+                              {rep.avatar}
+                            </div>
+                            <div>
+                              <strong className="text-slate-900">{rep.name}</strong>
+                              <span className="text-slate-400 mx-1.5">•</span>
+                              <span className="text-slate-500 font-mono">{rep.campaign} ({rep.role})</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 font-mono text-[11px]">
+                            <span className="text-slate-700">Dials: <strong>{rep.callsMade}</strong></span>
+                            <span className="text-blue-700">Connect: <strong>{rep.connectRate}%</strong></span>
+                            <span className="text-emerald-700">Emails: <strong>{rep.emailsSent}</strong></span>
+                            <span className="text-indigo-700">LI: <strong>{rep.linkedInTouches}</strong></span>
+                            <span className="text-emerald-900 font-bold bg-emerald-100 px-2 py-0.5 rounded">
+                              Booked: {rep.appointmentsBooked}/{rep.quotaTarget} ({rep.quotaAttainment}%)
+                            </span>
+                            <span className="text-purple-700 font-bold">QA: {rep.qaSparringScore}/100</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* DATA ROSTER TABLE                                                         */}
+            {/* ========================================================================= */}
+            {(viewMode === 'both' || viewMode === 'table') && (
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left text-xs">
                 <thead className="bg-slate-900 text-white font-mono text-[10px] uppercase tracking-wider">
                   <tr>
                     <th className="py-3 px-3.5">Rep Name &amp; Campaign</th>
@@ -1811,6 +2234,7 @@ export default function RepPerformanceDashboard() {
                 </tbody>
               </table>
             </div>
+          )}
           </div>
 
           {/* TWO-COLUMN LOWER SECTION: CADENCE CONVERSION FUNNEL & LIVE ACTIVITY STREAM */}

@@ -327,10 +327,12 @@ CRITICAL EXECUTION REQUIREMENTS FOR THE 3 POSTS:
 4. CTA: Non-salesy, curious, debate-sparking question. Never say "DM me" or "link in bio".
 5. ALGORITHM HASHTAGS: Exactly 4 to 5 hyper-targeted BPO / sales development hashtags (e.g. #BPOOperations #ClientAcquisition #SalesDevelopment #InsideSales #OutboundStrategy).
 6. GEMINI IMAGE GENERATION PROMPT: A rich, creative prompt describing an ultra-clean, minimalist editorial visual or infographic card on dark graphite/zinc background with high contrast typography and clear metric callout.
-7. GEMINI REALISTIC & RELATABLE PHOTO PROMPT (MANDATORY DEMOGRAPHIC & ARCHETYPE RULES):
-   - MANDATE 1 (FILIPINO TALENT MANDATE): All individual SDRs, callers, setters, team leads, QA coaches, and operations managers MUST be explicitly described as authentic Filipino professionals with Southeast Asian features, working in modern Manila (BGC, Makati, Ortigas) or Cebu technology offices. Do NOT generate generic Caucasian characters for these frontline offshore roles.
-   - MANDATE 2 (FOREIGN CLIENT COLLABORATION RESTRICTION): Foreign / Caucasian characters should ONLY be depicted when showing the collaborative peer-to-peer relationship between a foreign enterprise client (US, UK, Europe, Australia) and Filipino offshore talent.
-   - MANDATE 3 (BROKERS & MIDDLEMEN - DEVIL IN DISGUISE): Whenever depicting a lead broker, staffing middleman, or agency margin skimmer taking 35% fees, portray them as an arrogant, manipulative "devil in disguise". Slick dark tailored suit, calculating cynical smirk, steepled hands, predatory posture in a shadowy boardroom with contracts showing 35% margin fees, dramatic chiaroscuro lighting with subtle crimson or amber rim light.
+7. GEMINI REALISTIC & RELATABLE PHOTO PROMPT (STRICT TOPIC & POV ALIGNMENT):
+   - CRITICAL REQUIREMENT: The realistic photo prompt MUST DIRECTLY RESONATE with the post's core message and angle:
+     * EPISODE 1 or Broker/Middleman Posts: Describe an arrogant, manipulative lead broker depicted as a "devil in disguise". Slick dark charcoal tailored suit, crimson silk pocket square, calculating cynical smirk, steepled hands, predatory posture in a shadowy boardroom with contracts showing 35% margin fee skims, dramatic chiaroscuro lighting.
+     * EPISODE 2 or Training/Script/Ramp Posts: Describe an authentic young Filipino male SDR in a modern Manila BGC office with headset, intensely engaged in live consultative calling with dual screens displaying "LIVE OBJECTION TELEPROMPTER CUES" and a paper script discarded into a wastebasket.
+     * EPISODE 3 or Direct Contract/Equity Posts: Describe the respectful, collaborative peer-to-peer partnership between a foreign enterprise client executive and an articulate Filipino female BPO operations director analyzing direct contract equity and margin growth by a glass whiteboard.
+   - DEMOGRAPHIC MANDATE: Frontline SDRs, callers, team leads, and operations managers MUST be explicitly described as authentic Filipino professionals with Southeast Asian features in Manila or Cebu tech offices. Foreign / Caucasian characters should ONLY appear when showing foreign enterprise client collaboration. Never output generic stock photography descriptions.
 8. INJECTED COMMENTS: Exactly 2 pre-drafted comments that the SDR can post as the 1st and 2nd comments to keep conversation active.
    MANDATORY RULE FOR INJECTED COMMENTS:
    - ZERO EM DASHES (no "—", "–", or "--").
@@ -354,7 +356,7 @@ Return strictly a valid JSON object with the following schema:
       "cta": "Engaging closing question",
       "hashtags": ["#BPOOperations", "#SalesDevelopment"],
       "imagePrompt": "Detailed prompt for Gemini / Imagen graphic generation",
-      "realisticPhotoPrompt": "Detailed candid 35mm photo prompt with natural light and relatable human subjects",
+      "realisticPhotoPrompt": "Detailed candid 35mm photo prompt resonating with the specific topic (e.g. predatory broker devil in disguise, scriptless teleprompter SDR, or client equity partnership)",
       "visualCard": {
         "type": "metric_callout",
         "headline": "Short punchy card title",
@@ -405,11 +407,46 @@ Output ONLY valid JSON. No markdown ticks, no preamble.`;
               const cleanComments = (p.injectedComments || []).map((c: string) => sanitizeTextForLinkedIn(c));
               const wordCount = (p.body || '').split(/\s+/).filter(Boolean).length;
               const episodeNum = (idx % 3) + 1;
-              const fallbackRealisticPrompt = idx === 0 
-                ? 'A realistic, relatable, candid 35mm photograph of a young professional Filipino female sales development representative with authentic Southeast Asian features, working at a clean minimalist office desk in Manila BGC. She is focused on dual monitors showing clean data charts, wearing a subtle call center headset, ID lanyard, holding a pen over a notebook with a ceramic coffee mug nearby. Soft natural daylight from high-rise office windows, authentic human expression, natural skin texture, Kodak Portra 400 film aesthetic, shallow depth of field, authentic Filipino BPO workplace.'
-                : idx === 1
-                ? 'A candid, authentic 35mm photograph in a modern Manila BPO office. A smart Filipino male team leader and sales coach with authentic Southeast Asian features is mentoring a young female Filipino SDR over a laptop screen, reviewing an objection playbook. Warm daylight, modern contemporary startup office, natural unposed expressions of focus and camaraderie, call floor softly visible in background, Fujicolor Pro 400H tone, genuine Filipino workplace culture.'
-                : 'A candid 35mm photograph showing the direct relationship between a foreign enterprise client and Filipino offshore talent: A North American executive client in a tailored suit in a high-rise boardroom collaborating with an articulate Filipino female BPO operations director by a glass whiteboard. They are analyzing direct seat economics and margin growth charts. Sunlight streaming into the room, respectful peer-to-peer partnership, Kodak Portra 800 tone.';
+              
+              // Intelligent POV analysis from post content and generated prompt
+              const fullText = `${p.title || ''} ${p.hook || ''} ${p.body || ''} ${p.cta || ''}`.toLowerCase();
+              const promptLower = (p.realisticPhotoPrompt || '').toLowerCase();
+
+              const isBrokerTopic = /broker|middleman|devil|skim|subcontractor|renting|recycled shared|margin drain|commodity|commission/.test(fullText) || /broker|middleman|devil|suit|predatory|boardroom/.test(promptLower);
+              const isScriptTopic = /script|sparring|teleprompt|classroom|ramp|objection|drill|freeze|150ms|180ms|hesitation|rookie/.test(fullText) || /sparring|teleprompter|headset|script|discard/.test(promptLower);
+              const isEquityTopic = /client|equity|valuation|direct contract|enterprise|partnership|retainer|investor|multiple|\$24/.test(fullText) || /client|partnership|director|whiteboard/.test(promptLower);
+
+              let assignedImageUrl = '/images/linkedin/broker-middleman-devil.jpg';
+              let assignedPrompt = p.realisticPhotoPrompt;
+              let alternativeImageUrl = '/images/linkedin/script-discard-sparring.jpg';
+              let alternativeImageLabel = '⚡ Direct Outbound Engine';
+              let alternativeImagePrompt = 'Authentic candid 35mm photojournalism in a high-tech Manila BGC outbound center: An articulate young Filipino male SDR wearing an ergonomic headset, intensely engaged in live consultative calling with real-time teleprompter cues.';
+
+              if (isBrokerTopic || idx === 0) {
+                assignedImageUrl = '/images/linkedin/broker-middleman-devil.jpg';
+                if (!assignedPrompt || (!assignedPrompt.toLowerCase().includes('broker') && !assignedPrompt.toLowerCase().includes('suit'))) {
+                  assignedPrompt = 'A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 35% margin fees. Chiaroscuro dramatic lighting with subtle crimson rim light.';
+                }
+                alternativeImageUrl = '/images/linkedin/script-discard-sparring.jpg';
+                alternativeImageLabel = '⚡ Direct Outbound Engine';
+                alternativeImagePrompt = 'Authentic candid 35mm photojournalism in a high-tech Manila BGC outbound center: An articulate young Filipino male SDR wearing an ergonomic headset, intensely engaged in live consultative calling with real-time teleprompter cues.';
+              } else if (isScriptTopic || idx === 1) {
+                assignedImageUrl = '/images/linkedin/script-discard-sparring.jpg';
+                if (!assignedPrompt || (!assignedPrompt.toLowerCase().includes('script') && !assignedPrompt.toLowerCase().includes('teleprompt') && !assignedPrompt.toLowerCase().includes('headset'))) {
+                  assignedPrompt = 'Authentic candid 35mm photojournalism in a high-tech Manila BGC outbound center: An articulate young Filipino male SDR wearing an ergonomic headset, intensely engaged in live consultative calling. Dual screens display "LIVE OBJECTION TELEPROMPTER CUES - 150ms LATENCY" and real-time prospect telemetry. On the desk next to him, a crumpled static PDF script sits discarded in a recycling bin, symbolizing the transition from rigid scripts to agile voice sparring.';
+                }
+                alternativeImageUrl = '/images/linkedin/broker-middleman-devil.jpg';
+                alternativeImageLabel = '⚠️ The Middleman Trap';
+                alternativeImagePrompt = 'A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 35% margin fees.';
+              } else {
+                assignedImageUrl = '/images/linkedin/direct-partnership-equity.jpg';
+                if (!assignedPrompt || (!assignedPrompt.toLowerCase().includes('client') && !assignedPrompt.toLowerCase().includes('partnership'))) {
+                  assignedPrompt = 'A candid 35mm photograph showing the direct relationship between a foreign enterprise client and Filipino offshore talent: A senior North American client executive in a tailored navy blazer and a distinguished, articulate Filipino female BPO operations director collaborating as equal strategic partners. They stand beside a transparent glass architectural whiteboard displaying "DIRECT SEAT CONTRACT ECONOMICS • 100% EQUITY RETENTION • REVENUE VELOCITY". Authentic warm golden hour sunlight, Kodak Portra 800 tone.';
+                }
+                alternativeImageUrl = '/images/linkedin/broker-middleman-devil.jpg';
+                alternativeImageLabel = '⚠️ The Middleman Trap (Devil in Disguise)';
+                alternativeImagePrompt = 'A cinematic 35mm editorial photograph of a predatory corporate lead broker depicted as a devil in disguise: Arrogant, manipulative man in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom with contracts marked 35% margin fees.';
+              }
 
               return {
                 id: `post-ep${idx + 1}-${Date.now()}`,
@@ -423,11 +460,11 @@ Output ONLY valid JSON. No markdown ticks, no preamble.`;
                 estimatedReadSeconds: Math.ceil((wordCount / 200) * 60),
                 hashtags: Array.isArray(p.hashtags) ? p.hashtags : ['#BPOOperations', '#ClientAcquisition', '#SalesDevelopment'],
                 imagePrompt: p.imagePrompt || 'Minimalist dark graphite BPO metric infographic with Swiss typography',
-                realisticPhotoPrompt: p.realisticPhotoPrompt || fallbackRealisticPrompt,
-                realisticImageUrl: `/images/linkedin/episode-${episodeNum}-realistic.jpg`,
-                alternativeImageUrl: idx === 2 ? '/images/linkedin/broker-middleman-devil.jpg' : undefined,
-                alternativeImageLabel: idx === 2 ? 'The Middleman Trap (Devil in Disguise)' : undefined,
-                alternativeImagePrompt: idx === 2 ? 'A cinematic 35mm editorial photograph of a predatory corporate lead broker depicted as a devil in disguise: Arrogant, manipulative man in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom with an arrogant smirk over contracts marked with 35% margin fees. Chiaroscuro dramatic lighting, subtle devilish amber rim light.' : undefined,
+                realisticPhotoPrompt: assignedPrompt,
+                realisticImageUrl: assignedImageUrl,
+                alternativeImageUrl,
+                alternativeImageLabel,
+                alternativeImagePrompt,
                 visualCard: {
                   type: p.visualCard?.type || 'metric_callout',
                   headline: p.visualCard?.headline || p.title || 'Operational Metric',

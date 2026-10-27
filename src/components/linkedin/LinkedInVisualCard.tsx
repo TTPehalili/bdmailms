@@ -1,20 +1,94 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Sparkles, 
   Copy, 
   Check, 
   Download, 
   ImageIcon, 
-  Camera,
-  Layers,
-  RotateCw,
-  Eye,
+  Camera, 
+  Layers, 
+  RefreshCw, 
   CheckCircle2,
-  RefreshCw
+  Edit3,
+  ShieldCheck
 } from 'lucide-react';
 import { VisualCardConfig } from '@/lib/linkedinStudio';
+
+export interface PovPhotoItem {
+  id: string;
+  url: string;
+  headline: string;
+  subtitle: string;
+  badge: string;
+  badgeType: 'devil' | 'filipino' | 'client' | 'ops';
+  prompt: string;
+  buttonLabel: string;
+}
+
+export const POV_IMAGE_CATALOG: PovPhotoItem[] = [
+  {
+    id: 'broker-devil',
+    url: '/images/linkedin/broker-middleman-devil.jpg',
+    headline: 'THE BROKER TAX: Margin Skim',
+    subtitle: 'Predatory Lead Broker • Devil in Disguise Archetype',
+    badge: '⚠️ Devil in Disguise',
+    badgeType: 'devil',
+    buttonLabel: '⚠️ The Broker Tax',
+    prompt: 'A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, steepled hands, wearing a calculating cynical smirk over contracts stamped with 35% margin fees. Chiaroscuro dramatic lighting with subtle crimson rim light, psychological thriller tone, zero corporate cheer.'
+  },
+  {
+    id: 'script-discard-sparring',
+    url: '/images/linkedin/script-discard-sparring.jpg',
+    headline: 'SCRIPTLESS TELEPROMPTER',
+    subtitle: 'Sub-150ms Live Objection Teleprompting & Discarded Scripts',
+    badge: '🇵🇭 Authentic Filipino Talent',
+    badgeType: 'filipino',
+    buttonLabel: '⚡ Scriptless Teleprompter',
+    prompt: 'Authentic candid 35mm photojournalism in a high-tech Manila BGC outbound center: An articulate young Filipino male SDR wearing an ergonomic headset, intensely engaged in live consultative calling. Dual screens display "LIVE OBJECTION TELEPROMPTER CUES - 150ms LATENCY" and real-time prospect telemetry. On the desk next to him, a crumpled static PDF script sits discarded in a recycling bin, symbolizing the transition from rigid scripts to agile voice sparring. Modern glass architecture, warm natural daylight, Kodak Portra 400 aesthetic, authentic Filipino BPO setting.'
+  },
+  {
+    id: 'direct-partnership-equity',
+    url: '/images/linkedin/direct-partnership-equity.jpg',
+    headline: 'DIRECT CONTRACT EQUITY',
+    subtitle: 'Foreign Client & Filipino BPO Director Strategic Partnership',
+    badge: '🤝 Client & PH Talent',
+    badgeType: 'client',
+    buttonLabel: '🤝 Client & Talent Equity',
+    prompt: 'A candid 35mm photograph showing the direct relationship between a foreign enterprise client and Filipino offshore talent: A senior North American client executive in a tailored navy blazer and a distinguished, articulate Filipino female BPO operations director collaborating as equal strategic partners. They stand beside a transparent glass architectural whiteboard displaying "DIRECT SEAT CONTRACT ECONOMICS • 100% EQUITY RETENTION • REVENUE VELOCITY". Authentic warm golden hour sunlight, Kodak Portra 800 tone, respectful peer-to-peer partnership, zero generic stock poses.'
+  },
+  {
+    id: 'hostile-coaching',
+    url: '/images/linkedin/episode-2-realistic.jpg',
+    headline: 'OBJECTION SPARRING COACH',
+    subtitle: 'Manila BPO Team Leader Mentoring SDR on Objection Playbook',
+    badge: '🇵🇭 Authentic Filipino Talent',
+    badgeType: 'filipino',
+    buttonLabel: '🇵🇭 Coach Mentorship',
+    prompt: 'A candid, authentic 35mm photograph in a modern Manila BPO office: A smart Filipino male team leader and sales coach with authentic Southeast Asian features mentoring a young female Filipino SDR over a laptop screen, reviewing an objection playbook. Warm daylight, modern contemporary startup office, natural unposed expressions of focus and camaraderie, call floor softly visible in background, Fujicolor Pro 400H tone, genuine Filipino workplace culture.'
+  },
+  {
+    id: 'enriched-pipeline',
+    url: '/images/linkedin/episode-1-realistic.jpg',
+    headline: 'ENRICHED PIPELINE RESEARCH',
+    subtitle: 'Focused Manila BGC SDR Analyzing Target Enterprise Accounts',
+    badge: '🇵🇭 Authentic Filipino Talent',
+    badgeType: 'filipino',
+    buttonLabel: '🎯 Pipeline Research Desk',
+    prompt: 'A realistic, relatable, candid 35mm photograph of a young professional Filipino female sales development representative with authentic Southeast Asian features, working at a clean minimalist office desk in Manila BGC. She is focused on dual monitor screens showing clean data charts, wearing a subtle call center headset, ID lanyard, holding a pen over a notebook with a ceramic coffee mug nearby. Soft natural daylight from high-rise office windows, authentic human expression, natural skin texture, Kodak Portra 400 film aesthetic, shallow depth of field, authentic Filipino BPO workplace.'
+  },
+  {
+    id: 'operations-telemetry',
+    url: '/images/linkedin/episode-5-realistic.jpg',
+    headline: 'FLOOR PRODUCTION METRICS',
+    subtitle: 'Filipino Operations Director Reviewing Live Telemetry Metrics',
+    badge: '🇵🇭 Authentic Filipino Talent',
+    badgeType: 'filipino',
+    buttonLabel: '📊 Floor Ops Director',
+    prompt: 'A documentary 35mm photograph of an experienced Filipino operations manager with authentic Southeast Asian features, collaborating inside a modern Manila tech office in BGC. Standing beside a digital dashboard showing outbound retention rates and live dial telemetry, reviewing real-time rep performance with clear authority. Natural office ambient lighting, unposed documentary photography, Kodachrome tones, authentic Filipino leadership.'
+  }
+];
 
 interface LinkedInVisualCardProps {
   visualConfig: VisualCardConfig;
@@ -25,6 +99,9 @@ interface LinkedInVisualCardProps {
   alternativeImageLabel?: string;
   alternativeImagePrompt?: string;
   episodeNumber: number;
+  postTitle?: string;
+  postHook?: string;
+  postBody?: string;
 }
 
 export default function LinkedInVisualCard({
@@ -35,83 +112,76 @@ export default function LinkedInVisualCard({
   alternativeImageUrl,
   alternativeImageLabel = 'The Middleman Trap (Devil in Disguise)',
   alternativeImagePrompt,
-  episodeNumber
+  episodeNumber,
+  postTitle,
+  postHook,
+  postBody
 }: LinkedInVisualCardProps) {
-  // Mode: 'photo' (Realistic & Relatable) vs 'graphic' (Minimalist Executive Graphic)
+  // Visual Mode: 'photo' (Realistic & Relatable) vs 'graphic' (Minimalist Executive Graphic)
   const [visualMode, setVisualMode] = useState<'photo' | 'graphic'>('photo');
 
-  // Visual Photo Variant (Primary vs Alternative e.g. Broker Devil)
+  // Variant switcher: 'primary' vs 'alternative'
   const [activeVariant, setActiveVariant] = useState<'primary' | 'alternative'>('primary');
 
-  // Curated Library of 100% Local High-Resolution 35mm Photos (0ms latency, zero rate limits)
-  const LOCAL_AUTHENTIC_PHOTOS = [
-    {
-      url: '/images/linkedin/episode-1-realistic.jpg',
-      label: 'Manila BGC SDR Desk (Dual Monitors)',
-      badge: '🇵🇭 Filipino Talent'
-    },
-    {
-      url: '/images/linkedin/episode-2-realistic.jpg',
-      label: 'Manila BPO Team Leader & Rep Mentorship',
-      badge: '🇵🇭 Filipino Talent'
-    },
-    {
-      url: '/images/linkedin/episode-3-realistic.jpg',
-      label: 'Foreign Client & Filipino Ops Director Boardroom',
-      badge: '🤝 Client & PH Talent'
-    },
-    {
-      url: '/images/linkedin/episode-4-realistic.jpg',
-      label: 'Filipino Male SDR on BGC Outbound Floor',
-      badge: '🇵🇭 Filipino Talent'
-    },
-    {
-      url: '/images/linkedin/episode-5-realistic.jpg',
-      label: 'Filipino Operations Director Training Workshop',
-      badge: '🇵🇭 Filipino Talent'
-    },
-    {
-      url: '/images/linkedin/episode-6-realistic.jpg',
-      label: 'Foreign Client & Barong Tagalog BPO Founder Retainer',
-      badge: '🤝 Client & PH Talent'
-    }
-  ];
+  // Find initial catalog index matching realisticImageUrl or fallback
+  const getCatalogIndex = (url?: string): number => {
+    if (!url) return (episodeNumber - 1) % POV_IMAGE_CATALOG.length;
+    const foundIdx = POV_IMAGE_CATALOG.findIndex(item => item.url === url);
+    return foundIdx >= 0 ? foundIdx : (episodeNumber - 1) % POV_IMAGE_CATALOG.length;
+  };
 
-  // Default realistic photo URL calculated from local pool
-  const defaultPhotoIndex = ((episodeNumber - 1) % LOCAL_AUTHENTIC_PHOTOS.length);
-  const defaultPhotoUrl = realisticImageUrl || LOCAL_AUTHENTIC_PHOTOS[defaultPhotoIndex].url;
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(defaultPhotoIndex);
-  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>(defaultPhotoUrl);
+  const initialCatalogIndex = getCatalogIndex(realisticImageUrl);
+  const [currentCatalogIndex, setCurrentCatalogIndex] = useState<number>(initialCatalogIndex);
+  const [customPrimaryPrompt, setCustomPrimaryPrompt] = useState<string>(
+    realisticPhotoPrompt || POV_IMAGE_CATALOG[initialCatalogIndex].prompt
+  );
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Safety: auto-sanitize away any third-party rate-limited URLs
-  React.useEffect(() => {
-    if (currentPhotoUrl && currentPhotoUrl.includes('pollinations.ai')) {
-      setCurrentPhotoUrl(defaultPhotoUrl);
-    }
-  }, [currentPhotoUrl, defaultPhotoUrl]);
+  // Synchronize when parent props change
+  useEffect(() => {
+    const nextIdx = getCatalogIndex(realisticImageUrl);
+    setCurrentCatalogIndex(nextIdx);
+    setCustomPrimaryPrompt(realisticPhotoPrompt || POV_IMAGE_CATALOG[nextIdx].prompt);
+  }, [realisticImageUrl, realisticPhotoPrompt]);
 
-  const cardRef = useRef<HTMLDivElement | null>(null);
+  const activeCatalogItem = POV_IMAGE_CATALOG[currentCatalogIndex];
 
-  const primaryPhotoPrompt = realisticPhotoPrompt || (
-    episodeNumber === 1
-      ? `A realistic, relatable, candid 35mm photograph of a young professional Filipino female sales development representative with authentic Southeast Asian features, working at a clean minimalist office desk in Manila BGC. Dual monitors showing clean data charts, subtle call center headset, ID lanyard, notebook and coffee mug nearby. Soft natural window daylight, authentic human expression, natural skin texture, Kodak Portra 400 aesthetic, shallow depth of field, authentic Filipino BPO workplace.`
-      : episodeNumber === 2
-      ? `A candid, authentic 35mm photograph in a modern Manila BPO office. A smart Filipino male team leader and sales coach with authentic Southeast Asian features is mentoring a young female Filipino SDR over a laptop screen, reviewing an objection playbook. Warm daylight, modern contemporary startup office, natural unposed expressions of focus and camaraderie, call floor softly visible in background, Fujicolor Pro 400H tone, genuine Filipino workplace culture.`
-      : `A candid 35mm photograph showing the direct relationship between a foreign enterprise client and Filipino offshore talent: A North American executive client in a tailored suit in a high-rise boardroom collaborating with an articulate Filipino female BPO operations director by a glass whiteboard. They are analyzing direct seat economics and margin growth charts. Sunlight streaming into the room, respectful peer-to-peer partnership, Kodak Portra 800 tone.`
-  );
+  // Resolve alternative item details if alternativeImageUrl exists
+  const altCatalogItem = alternativeImageUrl 
+    ? POV_IMAGE_CATALOG.find(item => item.url === alternativeImageUrl)
+    : null;
 
-  const defaultAlternativePrompt = alternativeImagePrompt || `A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, wearing a calculating, cynical smirk over contracts marked with 35% margin fees. Dramatic chiaroscuro lighting, subtle devilish amber and crimson rim light, psychological thriller tone.`;
+  // Active photo URL
+  const displayedPhotoUrl = activeVariant === 'alternative' && alternativeImageUrl
+    ? alternativeImageUrl
+    : activeCatalogItem.url;
 
-  const activePhotoPrompt = activeVariant === 'alternative' && alternativeImageUrl 
-    ? defaultAlternativePrompt 
-    : primaryPhotoPrompt;
+  // Active prompt: strictly in sync with the displayed photo!
+  const displayedPhotoPrompt = activeVariant === 'alternative' && alternativeImageUrl
+    ? (alternativeImagePrompt || altCatalogItem?.prompt || POV_IMAGE_CATALOG[0].prompt)
+    : customPrimaryPrompt;
 
-  // Sync photo URL when variant changes
-  const displayedPhotoUrl = activeVariant === 'alternative' && alternativeImageUrl 
-    ? alternativeImageUrl 
-    : currentPhotoUrl;
+  // Active headline and subtitle overlay
+  const displayedHeadline = activeVariant === 'alternative'
+    ? (altCatalogItem?.headline || 'THE BROKER TAX: Margin Skim')
+    : activeCatalogItem.headline;
+
+  const displayedSubtitle = activeVariant === 'alternative'
+    ? (altCatalogItem?.subtitle || 'Predatory Lead Broker • Devil in Disguise Archetype')
+    : activeCatalogItem.subtitle;
+
+  // Active cultural badge
+  const displayedBadge = activeVariant === 'alternative'
+    ? (altCatalogItem?.badge || '⚠️ Devil in Disguise')
+    : activeCatalogItem.badge;
+
+  const displayedBadgeType = activeVariant === 'alternative'
+    ? (altCatalogItem?.badgeType || 'devil')
+    : activeCatalogItem.badgeType;
+
+  const primaryButtonLabel = activeCatalogItem.buttonLabel || '📸 Primary Photo';
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -119,17 +189,19 @@ export default function LinkedInVisualCard({
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Cycle to next authentic photo in the curated local pool
+  // Cycle to next authentic photo in curated catalog
   const handleCycleAuthenticPhoto = () => {
-    const nextIndex = (currentPhotoIndex + 1) % LOCAL_AUTHENTIC_PHOTOS.length;
-    setCurrentPhotoIndex(nextIndex);
-    setCurrentPhotoUrl(LOCAL_AUTHENTIC_PHOTOS[nextIndex].url);
+    const nextIndex = (currentCatalogIndex + 1) % POV_IMAGE_CATALOG.length;
+    setCurrentCatalogIndex(nextIndex);
+    setCustomPrimaryPrompt(POV_IMAGE_CATALOG[nextIndex].prompt);
+    setActiveVariant('primary');
   };
 
-  // Reset to default photo
+  // Reset to default photo & prompt
   const handleResetDefaultPhoto = () => {
-    setCurrentPhotoIndex(defaultPhotoIndex);
-    setCurrentPhotoUrl(defaultPhotoUrl);
+    setCurrentCatalogIndex(initialCatalogIndex);
+    setCustomPrimaryPrompt(realisticPhotoPrompt || POV_IMAGE_CATALOG[initialCatalogIndex].prompt);
+    setActiveVariant('primary');
   };
 
   // Download the realistic JPG photo directly
@@ -137,8 +209,8 @@ export default function LinkedInVisualCard({
     setDownloading(true);
     const photoToDownload = displayedPhotoUrl;
     const downloadFilename = activeVariant === 'alternative' 
-      ? `linkedin-ep${episodeNumber}-broker-devil-in-disguise.jpg` 
-      : `linkedin-ep${episodeNumber}-realistic-photo.jpg`;
+      ? `linkedin-ep${episodeNumber}-alternative-visual.jpg` 
+      : `linkedin-ep${episodeNumber}-${activeCatalogItem.id}.jpg`;
 
     try {
       const response = await fetch(photoToDownload);
@@ -153,7 +225,6 @@ export default function LinkedInVisualCard({
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('Failed to download photo:', err);
-      // Fallback direct link trigger
       const link = document.createElement('a');
       link.href = photoToDownload;
       link.download = downloadFilename;
@@ -247,15 +318,20 @@ export default function LinkedInVisualCard({
         <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-900">
           <ImageIcon className="h-3.5 w-3.5 text-zinc-600" />
           <span>Post Visual Pairing</span>
+          <span className="flex items-center gap-0.5 text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+            <ShieldCheck className="h-2.5 w-2.5 text-emerald-600" />
+            POV Aligned
+          </span>
         </div>
 
         {/* Visual Mode Selector Tabs */}
         <div className="flex items-center gap-1 bg-zinc-100 p-0.5 rounded-lg border border-zinc-200 text-[10px] font-semibold">
           <button
+            type="button"
             onClick={() => setVisualMode('photo')}
             className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors ${
               visualMode === 'photo'
-                ? 'bg-white text-zinc-900 shadow-2xs'
+                ? 'bg-white text-zinc-900 shadow-2xs font-bold'
                 : 'text-zinc-500 hover:text-zinc-800'
             }`}
           >
@@ -264,10 +340,11 @@ export default function LinkedInVisualCard({
           </button>
 
           <button
+            type="button"
             onClick={() => setVisualMode('graphic')}
             className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors ${
               visualMode === 'graphic'
-                ? 'bg-white text-zinc-900 shadow-2xs'
+                ? 'bg-white text-zinc-900 shadow-2xs font-bold'
                 : 'text-zinc-500 hover:text-zinc-800'
             }`}
           >
@@ -282,30 +359,29 @@ export default function LinkedInVisualCard({
       {/* =================================================================== */}
       {visualMode === 'photo' ? (
         <div className="space-y-2.5">
-          {/* Dual Visual Variant Switcher (e.g. Collaboration vs Broker Devil) */}
+          {/* Dual Visual Variant Switcher (e.g. Primary vs Alternative Devil) */}
           {alternativeImageUrl && (
             <div className="flex items-center justify-center gap-1 p-1 bg-zinc-100 rounded-lg text-[10px] font-semibold border border-zinc-200">
               <button
                 type="button"
                 onClick={() => setActiveVariant('primary')}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
+                className={`px-2.5 py-1 rounded-md transition-all ${
                   activeVariant === 'primary' 
-                    ? 'bg-white text-zinc-900 shadow-2xs font-bold' 
-                    : 'text-zinc-500 hover:text-zinc-800'
+                    ? 'bg-white text-zinc-900 shadow-2xs font-bold ring-1 ring-zinc-300' 
+                    : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
-                🤝 Client & Talent
+                {primaryButtonLabel}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveVariant('alternative')}
-                className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
                   activeVariant === 'alternative' 
-                    ? 'bg-rose-950 text-rose-200 shadow-2xs font-bold' 
-                    : 'text-zinc-500 hover:text-rose-700'
+                    ? 'bg-rose-950 text-rose-100 shadow-2xs font-bold ring-1 ring-rose-700' 
+                    : 'text-zinc-600 hover:text-rose-800'
                 }`}
               >
-                <span>⚠️</span>
                 <span>{alternativeImageLabel}</span>
               </button>
             </div>
@@ -326,76 +402,102 @@ export default function LinkedInVisualCard({
               </span>
 
               {/* Cultural Demographics Indicator */}
-              {activeVariant === 'alternative' ? (
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-950/85 text-rose-300 border border-rose-500/30">
-                  Devil in Disguise
+              {displayedBadgeType === 'devil' ? (
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-950/90 text-rose-300 border border-rose-500/40">
+                  {displayedBadge}
                 </span>
-              ) : episodeNumber === 3 ? (
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-blue-950/85 text-blue-300 border border-blue-500/30">
-                  Client & PH Talent
+              ) : displayedBadgeType === 'client' ? (
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-blue-950/90 text-blue-300 border border-blue-500/40">
+                  {displayedBadge}
                 </span>
               ) : (
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-950/85 text-emerald-300 border border-emerald-500/30">
-                  🇵🇭 Filipino Talent
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-950/90 text-emerald-300 border border-emerald-500/40">
+                  {displayedBadge}
                 </span>
               )}
             </div>
 
-            <div className="absolute bottom-2 left-2 right-2 z-10 p-2 rounded-lg bg-black/75 backdrop-blur-xs border border-white/10 text-white text-left">
-              <div className="text-[10px] font-bold truncate">
-                {activeVariant === 'alternative' ? 'The Arrogant Middleman & 35% Fee Skim' : visualConfig.headline}
+            {/* Headline and Narrative Subtitle Overlay */}
+            <div className="absolute bottom-2 left-2 right-2 z-10 p-2 rounded-lg bg-black/80 backdrop-blur-xs border border-white/10 text-white text-left">
+              <div className="text-[10px] font-bold tracking-tight truncate text-zinc-100">
+                {displayedHeadline}
               </div>
-              <div className="text-[8px] text-zinc-300 font-mono">
-                {activeVariant === 'alternative' 
-                  ? 'Predatory Broker / Devil in Disguise Archetype' 
-                  : episodeNumber === 3 
-                  ? 'Foreign Client & Filipino Offshore Talent Partnership' 
-                  : 'Authentic Filipino BPO Operations Atmosphere'}
+              <div className="text-[8px] text-zinc-300 font-mono line-clamp-1">
+                {displayedSubtitle}
               </div>
             </div>
           </div>
 
-          {/* Gemini Realistic Photography Prompt Box */}
-          <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-2 space-y-1 text-left">
+          {/* Gemini Realistic Photography Prompt Box - 100% Synchronized */}
+          <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-2 space-y-1.5 text-left">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-zinc-700 flex items-center gap-1 uppercase tracking-wider">
                 <Sparkles className="h-3 w-3 text-amber-500" />
                 Gemini Photographic Prompt
+                <span className="text-[8px] font-normal text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded font-sans">
+                  In Sync
+                </span>
               </span>
-              <button
-                onClick={() => copyToClipboard(activePhotoPrompt, `prompt-photo-${episodeNumber}`)}
-                className="flex items-center gap-1 text-[10px] font-medium text-zinc-700 hover:text-zinc-950 bg-white border border-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-100 transition-colors"
-              >
-                {copiedKey === `prompt-photo-${episodeNumber}` ? (
-                  <>
-                    <Check className="h-2.5 w-2.5 text-emerald-600" />
-                    <span className="text-emerald-600 font-semibold">Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-2.5 w-2.5" />
-                    <span>Copy Prompt</span>
-                  </>
-                )}
-              </button>
+              
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPrompt(!isEditingPrompt)}
+                  className="flex items-center gap-0.5 text-[10px] font-medium text-zinc-600 hover:text-zinc-950 bg-white border border-zinc-200 px-1.5 py-0.5 rounded hover:bg-zinc-100 transition-colors"
+                  title="Customize photographic prompt"
+                >
+                  <Edit3 className="h-2.5 w-2.5 text-zinc-500" />
+                  <span>{isEditingPrompt ? 'Close' : 'Edit'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(displayedPhotoPrompt, `prompt-photo-${episodeNumber}`)}
+                  className="flex items-center gap-1 text-[10px] font-semibold text-zinc-700 hover:text-zinc-950 bg-white border border-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-100 transition-colors shadow-2xs"
+                >
+                  {copiedKey === `prompt-photo-${episodeNumber}` ? (
+                    <>
+                      <Check className="h-2.5 w-2.5 text-emerald-600" />
+                      <span className="text-emerald-600">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-2.5 w-2.5" />
+                      <span>Copy Prompt</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-            <p className="text-[10px] text-zinc-600 leading-snug line-clamp-3 font-mono bg-white p-1.5 rounded border border-zinc-200/80">
-              {activePhotoPrompt}
-            </p>
+
+            {isEditingPrompt ? (
+              <textarea
+                value={displayedPhotoPrompt}
+                onChange={(e) => setCustomPrimaryPrompt(e.target.value)}
+                rows={3}
+                className="w-full text-[10px] font-mono p-1.5 rounded border border-zinc-300 bg-white focus:outline-hidden focus:ring-1 focus:ring-zinc-800 text-zinc-800"
+              />
+            ) : (
+              <p className="text-[10px] text-zinc-700 leading-relaxed font-mono bg-white p-2 rounded border border-zinc-200/90 line-clamp-3">
+                {displayedPhotoPrompt}
+              </p>
+            )}
           </div>
 
-          {/* Action Buttons: Download Photo & Cycle Curated Photos */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          {/* Action Buttons: Switch Photo & Download Photo */}
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
             <button
+              type="button"
               onClick={handleCycleAuthenticPhoto}
-              className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300 transition-colors"
-              title="Cycle through curated authentic 35mm photos"
+              className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300 transition-colors"
+              title="Cycle through curated authentic 35mm photos with synchronized prompts"
             >
               <RefreshCw className="h-3 w-3 text-zinc-600" />
               <span>Switch Photo</span>
             </button>
 
             <button
+              type="button"
               onClick={handleDownloadPhoto}
               disabled={downloading}
               className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-[11px] font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
@@ -405,9 +507,10 @@ export default function LinkedInVisualCard({
             </button>
           </div>
 
-          {currentPhotoIndex !== defaultPhotoIndex && (
+          {currentCatalogIndex !== initialCatalogIndex && (
             <div className="text-center pt-0.5">
               <button
+                type="button"
                 onClick={handleResetDefaultPhoto}
                 className="text-[10px] text-zinc-400 hover:text-zinc-700 underline transition-colors"
               >
@@ -422,7 +525,6 @@ export default function LinkedInVisualCard({
         /* =================================================================== */
         <div className="space-y-2.5">
           <div 
-            ref={cardRef}
             className="relative w-full aspect-square max-w-[280px] mx-auto rounded-xl bg-zinc-950 p-4 border border-zinc-800 text-white flex flex-col justify-between overflow-hidden shadow-md select-none group"
           >
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#27272a_1px,transparent_1px),linear-gradient(to_bottom,#27272a_1px,transparent_1px)] bg-[size:16px_16px] opacity-20 pointer-events-none" />
@@ -463,6 +565,7 @@ export default function LinkedInVisualCard({
                 Graphic Design Prompt
               </span>
               <button
+                type="button"
                 onClick={() => copyToClipboard(imagePrompt, `prompt-graphic-${episodeNumber}`)}
                 className="flex items-center gap-1 text-[10px] font-medium text-zinc-700 hover:text-zinc-950 bg-white border border-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-100 transition-colors"
               >
@@ -485,6 +588,7 @@ export default function LinkedInVisualCard({
           </div>
 
           <button
+            type="button"
             onClick={handleDownloadSvg}
             disabled={downloading}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-[11px] font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"

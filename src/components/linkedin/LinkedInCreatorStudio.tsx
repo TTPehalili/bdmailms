@@ -824,6 +824,9 @@ export default function LinkedInCreatorStudio() {
                         alternativeImageLabel={post.alternativeImageLabel}
                         alternativeImagePrompt={post.alternativeImagePrompt}
                         episodeNumber={post.episodeNumber}
+                        postTitle={post.title}
+                        postHook={post.hook}
+                        postBody={post.body}
                       />
                     </div>
 
