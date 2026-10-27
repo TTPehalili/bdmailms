@@ -58,6 +58,8 @@ export default function LinkedInCreatorStudio() {
     getDeterministicLinkedInSeries(summarizeCsvLeads(DEMO_CADENCE_LEADS), 'contrarian-truth', 'broker-margin-continuity')
   );
 
+  const currentPreset = CONTINUITY_SERIES_PRESETS.find(p => p.id === selectedPresetId) || CONTINUITY_SERIES_PRESETS[0];
+
   // Viral Post Comment State
   const [viralPostInput, setViralPostInput] = useState<string>(
     `Unpopular opinion: Cold outreach is dying. Buyers are overwhelmed with automated AI sequences and template spam. If your BDRs are still sending 100 emails and dials a day, you are burning your brand reputation for a 0.2% reply rate. In 2025, inbound content and peer referrals are the only channels that convert enterprise deals.`
@@ -104,8 +106,20 @@ export default function LinkedInCreatorStudio() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  // Switch Week / Continuity Arc instantly
+  const handleSelectWeekPreset = (presetId: string) => {
+    setSelectedPresetId(presetId);
+    // Instant update with rich sequential posts so the user sees the continuation immediately
+    const updated = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, presetId);
+    setSeriesData(updated);
+  };
+
   // Generate 3-Post Series via Gemini
-  const handleGenerateSeries = async () => {
+  const handleGenerateSeries = async (presetOverride?: string) => {
+    const presetIdToUse = presetOverride || selectedPresetId;
+    if (presetOverride) {
+      setSelectedPresetId(presetOverride);
+    }
     setIsGeneratingSeries(true);
     try {
       const res = await fetch('/api/ai/linkedin-studio', {
@@ -116,7 +130,7 @@ export default function LinkedInCreatorStudio() {
           leads,
           csvSummary,
           frameworkId: selectedFrameworkId,
-          presetId: selectedPresetId,
+          presetId: presetIdToUse,
           customTopicInstruction: customTopic
         })
       });
@@ -125,15 +139,14 @@ export default function LinkedInCreatorStudio() {
         const data = await res.json();
         if (data.series) {
           setSeriesData(data.series);
+          return;
         }
-      } else {
-        console.warn('Series generation fallback used');
-        const fallback = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, selectedPresetId);
-        setSeriesData(fallback);
       }
+      const fallback = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, presetIdToUse);
+      setSeriesData(fallback);
     } catch (err) {
       console.error('Error generating series:', err);
-      const fallback = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, selectedPresetId);
+      const fallback = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, presetIdToUse);
       setSeriesData(fallback);
     } finally {
       setIsGeneratingSeries(false);
@@ -376,7 +389,7 @@ export default function LinkedInCreatorStudio() {
               </div>
 
               <button
-                onClick={handleGenerateSeries}
+                onClick={() => handleGenerateSeries()}
                 disabled={isGeneratingSeries}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 transition-colors shadow-2xs"
               >
@@ -395,21 +408,119 @@ export default function LinkedInCreatorStudio() {
             </div>
           </div>
 
+          {/* ========================================================================= */}
+          {/* MULTI-WEEK CONTINUITY CALENDAR NAVIGATOR (WEEKS 1 - 4)                    */}
+          {/* ========================================================================= */}
+          <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded bg-zinc-900 text-white text-xs font-bold">📅</span>
+                <div>
+                  <h3 className="text-xs font-bold text-zinc-900 flex items-center gap-2">
+                    <span>Multi-Week Series Continuity Calendar</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold border border-amber-200">
+                      Week {currentPreset.weekNumber} of 4 • {currentPreset.episodesRange} Active
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-zinc-500">
+                    4-week sequential arcs tied to each other so your audience anticipates every post
+                  </p>
+                </div>
+              </div>
+
+              {/* Advance to Next Week Button */}
+              {currentPreset.nextPresetId && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId!)}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 text-black" />
+                  <span>Advance to Week {((currentPreset.weekNumber) % 4) + 1} ➔</span>
+                </button>
+              )}
+            </div>
+
+            {/* 4 Interactive Week Tabs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {CONTINUITY_SERIES_PRESETS.map((p) => {
+                const isSelected = selectedPresetId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleSelectWeekPreset(p.id)}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative ${
+                      isSelected
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-md ring-2 ring-amber-400/80'
+                        : 'bg-zinc-50 hover:bg-white border-zinc-200 text-zinc-800 hover:border-zinc-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                        isSelected ? 'bg-amber-400 text-black' : 'bg-white text-zinc-700 border border-zinc-200'
+                      }`}>
+                        Week {p.weekNumber}
+                      </span>
+                      <span className={`text-[10px] font-mono ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        {p.episodesRange}
+                      </span>
+                    </div>
+
+                    <div className="text-xs font-bold leading-tight line-clamp-1">
+                      {p.title.replace(/^Week \d+:\s*/, '')}
+                    </div>
+
+                    <div className={`text-[10px] mt-1 line-clamp-1 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                      {p.theme}
+                    </div>
+
+                    {isSelected && (
+                      <div className="mt-2 pt-1 border-t border-zinc-800 text-[10px] font-mono text-amber-300 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-amber-400" />
+                        <span>Active Drop Loaded</span>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Series Metadata Header */}
           <div className="p-4 rounded-xl bg-zinc-900 text-white shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-rose-400 bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-700">
-                Episodic LinkedIn Series
-              </span>
-              <span className="text-xs font-mono text-zinc-400">
-                Cadence: Tuesday • Thursday • Friday
-              </span>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-rose-400 bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-700">
+                  Episodic LinkedIn Series • Week {currentPreset.weekNumber} of 4
+                </span>
+                <span className="text-[10px] font-mono text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded border border-zinc-700">
+                  {currentPreset.episodesRange}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-zinc-400 hidden sm:inline">
+                  Cadence: Tuesday • Thursday • Friday
+                </span>
+                {currentPreset.nextPresetId && (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId!)}
+                    className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Next Week Arc ➔</span>
+                  </button>
+                )}
+              </div>
             </div>
+
             <h2 className="text-base font-bold tracking-tight text-white">
               {seriesData.seriesTitle}
             </h2>
             <div className="text-xs text-zinc-300 leading-relaxed bg-zinc-800/60 p-2.5 rounded-lg border border-zinc-700/60">
-              <span className="font-semibold text-zinc-200">Last Week Continuity Bridge: </span>
+              <span className="font-semibold text-zinc-200">Continuity Bridge from Previous Drop: </span>
               "{seriesData.seriesHookRecap}"
             </div>
           </div>
@@ -568,6 +679,32 @@ export default function LinkedInCreatorStudio() {
                         </div>
                       ))}
                     </div>
+
+                    {/* Cliffhanger Bridge Box on Final Post of the Week */}
+                    {post.episodeNumber % 3 === 0 && (
+                      <div className="mx-0 mt-3 p-3 rounded-xl bg-amber-50/90 border border-amber-200/90 text-left space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-amber-900 uppercase font-mono flex items-center gap-1">
+                            <span>⚡</span>
+                            <span>Series Cliffhanger & Bridge</span>
+                          </span>
+                          <span className="text-[9px] font-mono font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.2 rounded">
+                            Teases Next Week
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-900 leading-snug">
+                          This Friday post sets up next week's discussion. Click below to view the continuation posts:
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId || 'broker-margin-continuity')}
+                          className="w-full py-1.5 px-2 rounded-lg bg-zinc-900 hover:bg-black text-amber-300 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <Zap className="w-3 h-3 text-amber-400" />
+                          <span>Advance to Week {((currentPreset.weekNumber) % 4) + 1} ({currentPreset.nextWeekTitle?.split('(')[1]?.replace(')', '') || 'Next Episodes'}) ➔</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Bottom: Copy Full Post */}
@@ -592,6 +729,46 @@ export default function LinkedInCreatorStudio() {
                 </div>
               );
             })}
+          </div>
+
+          {/* ========================================================================= */}
+          {/* MULTI-WEEK CONTINUATION CTA BANNER                                        */}
+          {/* ========================================================================= */}
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white border border-amber-500/30 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="space-y-1 text-left">
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded bg-amber-500 text-black font-black text-xs">🚀</span>
+                <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
+                  How To Continue The Series For Upcoming Weeks
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                  Week {currentPreset.weekNumber} of 4 • {currentPreset.episodesRange} Active
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white">
+                Looking for the continuation of the series?
+              </h3>
+              <p className="text-xs text-zinc-400 max-w-xl">
+                {currentPreset.nextWeekTitle 
+                  ? `Advance to ${currentPreset.nextWeekTitle} to maintain audience momentum and build your weekly LinkedIn pipeline without starting from scratch.`
+                  : 'Cycle through the 4-week thematic arcs to keep your profile consistently publishing high-conversion thought leadership.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId || 'broker-margin-continuity')}
+                className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md cursor-pointer"
+              >
+                <Zap className="w-4 h-4 text-black" />
+                <span>
+                  {currentPreset.nextPresetId 
+                    ? `Advance to Week ${((currentPreset.weekNumber) % 4) + 1} (${currentPreset.nextWeekTitle?.split('(')[1]?.replace(')', '') || 'Next Episodes'}) ➔` 
+                    : 'Cycle Back to Week 1 ➔'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

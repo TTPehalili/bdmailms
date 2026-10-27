@@ -17,7 +17,8 @@ import {
   BarChart3,
   Bot,
   Building2,
-  Lock
+  Lock,
+  Mail
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
@@ -47,6 +48,7 @@ export default function AppSidebar() {
     { label: 'Calling Floor', href: '/cockpit', icon: Swords },
     { label: 'Sparring Arena', href: '/sparring', icon: Headphones },
     { label: 'LinkedIn Studio', href: '/linkedin', icon: LinkedinIcon },
+    { label: 'Cold Email Studio', href: '/email', icon: Mail },
     { label: 'Mission Overview', href: '/', icon: Target },
     { label: 'Performance', href: '/analytics', icon: BarChart3 },
     { label: 'Playbooks & Guide', href: '/guide', icon: BookOpen },

@@ -142,24 +142,57 @@ export const LINKEDIN_FRAMEWORKS: LinkedInFramework[] = [
   }
 ];
 
-export const CONTINUITY_SERIES_PRESETS = [
+export interface ContinuityPreset {
+  id: string;
+  weekNumber: number;
+  title: string;
+  episodesRange: string;
+  recapHook: string;
+  theme: string;
+  nextPresetId?: string;
+  nextWeekTitle?: string;
+}
+
+export const CONTINUITY_SERIES_PRESETS: ContinuityPreset[] = [
   {
     id: 'broker-margin-continuity',
+    weekNumber: 1,
     title: 'Broker Margin & Shared List Elimination Arc',
+    episodesRange: 'Episodes 1 - 3',
     recapHook: 'Last week we broke down why paying brokers 35% margin skims for recycled leads destroys BPO profitability. This week, we go deeper into building direct-to-contract pipelines.',
-    theme: 'Direct Enterprise Contracts vs Commodity Broker Dependency'
+    theme: 'Direct Enterprise Contracts vs Commodity Broker Dependency',
+    nextPresetId: 'ramp-time-continuity',
+    nextWeekTitle: 'Week 2: 72-Hour Rep Ramp & Voice Sparring Arc (Episodes 4-6)'
   },
   {
     id: 'ramp-time-continuity',
-    title: '72-Hour Rep Ramp & Sparring Arc',
-    recapHook: 'Following up on last week\'s discussion about the "rookie tax" of reps burning 500 client leads during onboarding. This week: the 3-day transition to production.',
-    theme: 'Eliminating the 3-Week Classroom Onboarding Tax'
+    weekNumber: 2,
+    title: '72-Hour Rep Ramp & Voice Sparring Arc',
+    episodesRange: 'Episodes 4 - 6',
+    recapHook: 'Following up on last week\'s discussion about broker margins and lead fatigue: why do floors still let new reps burn 500 client accounts during 3 weeks of classroom onboarding?',
+    theme: 'Eliminating the 3-Week Classroom Onboarding Tax',
+    nextPresetId: 'objection-stumble-continuity',
+    nextWeekTitle: 'Week 3: Sub-180ms Objection Handling Arc (Episodes 7-9)'
   },
   {
     id: 'objection-stumble-continuity',
+    weekNumber: 3,
     title: 'Sub-180ms Objection Handling Arc',
-    recapHook: 'Building on last Friday\'s debate on why script-reading telemarketers fail with North American buyers. This week: consultative peer-to-peer dialogue frameworks.',
-    theme: 'Transforming Telemarketers into Trusted BPO Consultants'
+    episodesRange: 'Episodes 7 - 9',
+    recapHook: 'Building on last Friday\'s 72-hour onboarding benchmark: why do telemarketers reading rigid scripts freeze within 15 seconds against North American buyers?',
+    theme: 'Transforming Telemarketers into Trusted BPO Consultants',
+    nextPresetId: 'pricing-retainer-continuity',
+    nextWeekTitle: 'Week 4: Enterprise Retainers & $24/hr Seats Arc (Episodes 10-12)'
+  },
+  {
+    id: 'pricing-retainer-continuity',
+    weekNumber: 4,
+    title: 'Enterprise Retainers & $24/hr Seats Arc',
+    episodesRange: 'Episodes 10 - 12',
+    recapHook: 'Last week we mastered live objection recovery and consultative questioning. This week: the CRO\'s ultimate lever of breaking away from $8/hr rate wars into direct $24/hr retainers.',
+    theme: 'Direct Enterprise Pricing & 500-Seat Floor Flywheel',
+    nextPresetId: 'broker-margin-continuity',
+    nextWeekTitle: 'Week 1: Cycle back to List Enriched Pipeline'
   }
 ];
 
@@ -271,10 +304,298 @@ export function getDeterministicLinkedInSeries(
 ): LinkedInSeries {
   const preset = CONTINUITY_SERIES_PRESETS.find(p => p.id === presetId) || CONTINUITY_SERIES_PRESETS[0];
   const primaryPain = summary.topPainPoints[0] || 'shared lead list fatigue and margin skims';
-  const competitor = summary.topCompetitors[0] || 'commodity outsourcers';
 
+  // WEEK 2: 72-Hour Rep Ramp & Voice Sparring Arc (Episodes 4 - 6)
+  if (preset.id === 'ramp-time-continuity') {
+    return {
+      seriesTitle: `The Autonomous BPO Outbound Series: Week 2 (Episodes 4-6)`,
+      seriesHookRecap: preset.recapHook,
+      targetBottleneckSummary: `Grounded in ${summary.totalLeads} accounts: Eliminating the 3-week classroom onboarding tax on ${summary.dominantHeadcount} floors.`,
+      targetAudience: `BPO Operations Leaders, Training Directors & Head of Floor Production`,
+      posts: [
+        {
+          id: 'post-ep4',
+          episodeNumber: 4,
+          dayLabel: 'Tuesday • Episode 4',
+          title: 'The Classroom Trap: Why 3 Weeks of PDF Scripts Kills Sales Hunger',
+          hook: `The single biggest hidden expense in outbound is not dialer software.\nIt is paying junior reps for 3 weeks to read static PDF scripts without touching live dials.`,
+          body: `By the time new hires finish classroom theory, their natural enthusiasm is replaced by script anxiety.\n\nOn modern floors, reps run sub-180ms voice AI sparring on Day 1. By Day 3, they handle hostile buyer objections with complete composure.\n\nYou do not build muscle reading exercise books. You build it on the floor.`,
+          cta: `Curious: what is your current floor benchmark for an SDR to book their first verified client sit?`,
+          wordCount: 72,
+          estimatedReadSeconds: 19,
+          hashtags: ['#SalesEnablement', '#SDRTraining', '#BPOLeadership', '#ContactCenter', '#OutboundSales'],
+          imagePrompt: `Minimalist split comparison diagram on dark zinc backdrop: Left side labeled "3 Weeks Classroom Theory (500 Leads Burned)", Right side labeled "72-Hour Voice AI Sparring (Production Ready Day 3)". Clean Swiss typography.`,
+          realisticPhotoPrompt: `A candid 35mm photograph of a young Filipino male representative in a modern Manila BGC office, wearing a headset, intensely focused on a sparring simulation drill on his laptop. Natural office sunlight, authentic concentration, Kodak Portra 400 aesthetic, authentic Filipino BPO setting.`,
+          realisticImageUrl: '/images/linkedin/episode-1-realistic.jpg',
+          visualCard: {
+            type: 'process_flow',
+            headline: 'Classroom Theory vs 72-Hour Voice Sparring',
+            subheadline: 'Eliminating the 3-week rookie tax before live dials',
+            metric: '72 hrs',
+            metricLabel: 'Ramp time to live production',
+            tag: 'EPISODE 04 • THE ONBOARDING TRAP'
+          },
+          injectedComments: [
+            'We audited SDR attrition across mid-market contact centers and found that 40 percent of reps who quit do so because of classroom roleplay anxiety.',
+            'Would love to hear how operations teams currently evaluate when an agent is genuinely ready for live client leads.'
+          ]
+        },
+        {
+          id: 'post-ep5',
+          episodeNumber: 5,
+          dayLabel: 'Thursday • Episode 5',
+          title: '40 Hostile Objection Drills Before Lunch',
+          hook: `Confidence isn't an innate personality trait in sales.\nIt is the repetition of surviving hostile brush-offs until fear disappears.`,
+          body: `Before our reps touch a single live enterprise account, they complete 40 AI sparring drills simulating cynical CFOs, gatekeepers, and price objections.\n\nWhen live prospects say "we already have an outsourcer," our reps do not stumble. They consultatively disarm the objection in under 150 milliseconds.\n\nRepetition creates composure.`,
+          cta: `Does your team conduct daily objection sparring, or do reps practice on your active paying clients?`,
+          wordCount: 68,
+          estimatedReadSeconds: 18,
+          hashtags: ['#SalesCoaching', '#InsideSales', '#SDRLife', '#BPOOperations', '#SalesManagement'],
+          imagePrompt: `Editorial data card on dark charcoal background showing a live repetition counter: 40 AI drills completed, 150ms response latency, 94% objection composure score. Minimalist high-tech aesthetic.`,
+          realisticPhotoPrompt: `A candid, authentic 35mm photograph in a modern Manila BPO office: A smart Filipino male team leader and sales coach with authentic Southeast Asian features mentoring a young female Filipino SDR over a laptop screen, reviewing an objection playbook. Warm daylight, modern contemporary startup office, natural unposed expressions.`,
+          realisticImageUrl: '/images/linkedin/episode-2-realistic.jpg',
+          visualCard: {
+            type: 'metric_callout',
+            headline: 'Hostile Repetition Sparring Protocol',
+            subheadline: 'Simulating 40 hostile calls before touching live client leads',
+            metric: '40x',
+            metricLabel: 'Simulated objection reps on Day 1',
+            tag: 'EPISODE 05 • THE PROTOCOL'
+          },
+          injectedComments: [
+            'Our data shows that reps who complete 40 objection drills prior to live dials retain 3x more prospects in the first 20 seconds.',
+            'Curious what the hardest objection for your callers to disarm is right now.'
+          ]
+        },
+        {
+          id: 'post-ep6',
+          episodeNumber: 6,
+          dayLabel: 'Friday • Episode 6',
+          title: 'The 72-Hour Production Metric & Series Bridge',
+          hook: `Next Tuesday we dive into sub-180ms live call teleprompting.\nBefore we do, here is the metric that separates elite BPOs from commodity call centers:`,
+          body: `If your new hire onboarding takes longer than 72 hours to reach production readiness, you are subsidizing rep hesitation.\n\nLive AI teleprompters remove the memorization hurdle. Reps focus 100% of their mental bandwidth on listening, tone, and pacing.\n\nSpeed to production is your strongest competitive moat.`,
+          cta: `What would happen to your seat gross margins if ramp time dropped from 21 days to 3 days?`,
+          wordCount: 71,
+          estimatedReadSeconds: 19,
+          hashtags: ['#BPOStrategy', '#RevenueOperations', '#SalesLeadership', '#ContactCenter', '#OutboundStrategy'],
+          imagePrompt: `High-resolution comparison chart comparing 21-day traditional ramp cost curve against 3-day AI-assisted ramp revenue curve on graphite backdrop.`,
+          realisticPhotoPrompt: `A candid 35mm photograph showing the direct relationship between a foreign enterprise client and Filipino offshore talent: A North American executive client in a tailored suit in a high-rise boardroom collaborating with an articulate Filipino female BPO operations director by a glass whiteboard. Sunlight streaming into the room, respectful peer-to-peer partnership.`,
+          realisticImageUrl: '/images/linkedin/episode-3-realistic.jpg',
+          alternativeImageUrl: '/images/linkedin/broker-middleman-devil.jpg',
+          alternativeImageLabel: 'The Middleman Trap (Devil in Disguise)',
+          alternativeImagePrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker and middleman depicted as a devil in disguise: An arrogant, manipulative man in his late 40s in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom, wearing a calculating, cynical smirk over contracts marked with 35% margin fees.`,
+          visualCard: {
+            type: 'comparison_grid',
+            headline: '21-Day Classroom Ramp vs 72-Hour AI Sparring',
+            subheadline: 'Measuring lead burn reduction and revenue velocity',
+            metric: '85%',
+            metricLabel: 'Reduction in onboarding lead burn',
+            tag: 'EPISODE 06 • THE BENCHMARK'
+          },
+          injectedComments: [
+            'Next week we will break down the exact sub-180ms conversational frameworks top reps use to disarm price pushback in real time.',
+            'To clarify, speed to production does not mean rushing agents; it means replacing passive lectures with active sparring.'
+          ]
+        }
+      ]
+    };
+  }
+
+  // WEEK 3: Sub-180ms Objection Handling Arc (Episodes 7 - 9)
+  if (preset.id === 'objection-stumble-continuity') {
+    return {
+      seriesTitle: `The Autonomous BPO Outbound Series: Week 3 (Episodes 7-9)`,
+      seriesHookRecap: preset.recapHook,
+      targetBottleneckSummary: `Grounded in ${summary.totalLeads} accounts: Eliminating caller freeze and disarming gatekeepers across ${summary.dominantHeadcount} floors.`,
+      targetAudience: `BPO Operations Leaders, Quality Assurance Managers & Sales Directors`,
+      posts: [
+        {
+          id: 'post-ep7',
+          episodeNumber: 7,
+          dayLabel: 'Tuesday • Episode 7',
+          title: 'The 150-Millisecond Freeze: Why Scripts Cause Hang-Ups',
+          hook: `98% of lost sales calls fail in the first 40 seconds.\nAnd 90% of those failures happen because the rep froze for 2 seconds.`,
+          body: `When a prospect says "we already have a vendor," junior reps hesitate. That silence screams "telemarketer reading a script."\n\nWhen consultative rebuttals pop onto the screen in 150 milliseconds, the hesitation vanishes. The caller responds like an operational peer.\n\nPacing dictates respect.`,
+          cta: `How do your team leads monitor rep hesitation during the crucial first 30 seconds of a call?`,
+          wordCount: 65,
+          estimatedReadSeconds: 17,
+          hashtags: ['#SalesDevelopment', '#ObjectionHandling', '#BPOOperations', '#ColdCalling', '#InsideSales'],
+          imagePrompt: `Minimalist acoustic waveform visual comparing a 2-second awkward hesitation pause versus a crisp 150ms consultative response on sleek dark graphite card.`,
+          realisticPhotoPrompt: `A realistic 35mm photograph of a focused Filipino female sales representative with authentic Southeast Asian features, speaking into a headset with a poised, calm expression while looking at clean telemetry on screen in a Manila BGC tech office.`,
+          realisticImageUrl: '/images/linkedin/episode-1-realistic.jpg',
+          visualCard: {
+            type: 'metric_callout',
+            headline: 'The 150ms Objection Recovery Threshold',
+            subheadline: 'Eliminating dead air that triggers prospect hang-ups',
+            metric: '150 ms',
+            metricLabel: 'Target consultative rebuttal latency',
+            tag: 'EPISODE 07 • LATENCY'
+          },
+          injectedComments: [
+            'Auditing 100k call recordings proved that any hesitation over 1.2 seconds triggers an immediate defensive response from enterprise buyers.',
+            'Curious if other operations teams coach micro-pacing in their QA scorecards.'
+          ]
+        },
+        {
+          id: 'post-ep8',
+          episodeNumber: 8,
+          dayLabel: 'Thursday • Episode 8',
+          title: 'Dissecting the Permission Opener: Zero Pushiness',
+          hook: `The worst way to open a cold call is asking "How are you doing today?"\nThe prospect knows you do not care, and their guard instantly shoots up.`,
+          body: `We tested 12 distinct opener styles across 100k dials.\n\nThe highest-converting opener was direct and disarming: "Julian, you were not expecting my call. Can I tell you why I reached out in 20 seconds, and you decide if we hang up?"\n\nRespecting prospect autonomy removes 90% of initial hostility.`,
+          cta: `What is your floor's current go-to opening line for cold outbound dials?`,
+          wordCount: 67,
+          estimatedReadSeconds: 18,
+          hashtags: ['#ColdCalling', '#SalesSkills', '#BPOLeadership', '#OutboundStrategy', '#SalesEnablement'],
+          imagePrompt: `Clean editorial breakdown of the 20-Second Permission Opener framework with visual callout brackets on dark zinc backdrop.`,
+          realisticPhotoPrompt: `A candid 35mm photograph in a Manila BPO office: A smart Filipino male team leader explaining the permission opener on a glass whiteboard to two junior callers who are nodding in agreement.`,
+          realisticImageUrl: '/images/linkedin/episode-2-realistic.jpg',
+          visualCard: {
+            type: 'process_flow',
+            headline: 'The 20-Second Permission Opener',
+            subheadline: 'Eliminating defensiveness by granting prospect permission to hang up',
+            metric: '90%',
+            metricLabel: 'Reduction in instant hostile hang-ups',
+            tag: 'EPISODE 08 • THE OPENER'
+          },
+          injectedComments: [
+            'Granting the buyer permission to hang up is the single fastest way to disarm sales defensiveness we have ever tested.',
+            'Would love to hear how fellow outbound leaders coach reps on handling impatient prospects.'
+          ]
+        },
+        {
+          id: 'post-ep9',
+          episodeNumber: 9,
+          dayLabel: 'Friday • Episode 9',
+          title: 'Direct Contracts vs Broker Lists & Series Bridge',
+          hook: `Next week we break down direct enterprise seat pricing retainers.\nHere is why you will never command $24/hr using third-party broker lists:`,
+          body: `Brokers sell the identical lead list to five competing agencies. By dial three, the prospect is exhausted and hostile.\n\nWhen you build your own private enriched pipeline, your reps are the only voice reaching that decision-maker that month.\n\nExclusivity creates enterprise pricing power.`,
+          cta: `Are your reps dialing exclusive enriched datasets right now, or shared vendor databases?`,
+          wordCount: 69,
+          estimatedReadSeconds: 18,
+          hashtags: ['#BPOStrategy', '#DealEconomics', '#RevenueGrowth', '#OutsourcingLeadership', '#ClientAcquisition'],
+          imagePrompt: `High-resolution executive card comparing Commodity Shared Directory versus Private Enriched Pipeline on dark charcoal background.`,
+          realisticPhotoPrompt: `A candid 35mm photograph showing the direct relationship between a foreign enterprise client and Filipino offshore talent: A North American executive client in a tailored suit in a high-rise boardroom collaborating with an articulate Filipino female BPO operations director by a glass whiteboard.`,
+          realisticImageUrl: '/images/linkedin/episode-3-realistic.jpg',
+          alternativeImageUrl: '/images/linkedin/broker-middleman-devil.jpg',
+          alternativeImageLabel: 'The Middleman Trap (Devil in Disguise)',
+          alternativeImagePrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker depicted as a devil in disguise: Arrogant, manipulative man in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom with contracts marked 35% margin fees.`,
+          visualCard: {
+            type: 'comparison_grid',
+            headline: 'Shared Directory Fatigue vs Exclusive Pipeline',
+            subheadline: 'Why proprietary data enables premium billable rates',
+            metric: '$24/hr',
+            metricLabel: 'Enterprise billable rate on exclusive pipeline',
+            tag: 'EPISODE 09 • THE BRIDGE'
+          },
+          injectedComments: [
+            'Next Tuesday we break down how top Philippine operations scale from $8/hr rate wars into direct $24/hr multi-seat retainers.',
+            'Brokers will always push volume over exclusivity because that is how their commission model survives.'
+          ]
+        }
+      ]
+    };
+  }
+
+  // WEEK 4: Enterprise Retainers & $24/hr Pricing Arc (Episodes 10 - 12)
+  if (preset.id === 'pricing-retainer-continuity') {
+    return {
+      seriesTitle: `The Autonomous BPO Outbound Series: Week 4 (Episodes 10-12)`,
+      seriesHookRecap: preset.recapHook,
+      targetBottleneckSummary: `Grounded in ${summary.totalLeads} accounts: Breaking free from $8/hr rate wars into direct $24/hr enterprise retainers.`,
+      targetAudience: `BPO Founders, Managing Directors, CROs & Outbound Operations Leaders`,
+      posts: [
+        {
+          id: 'post-ep10',
+          episodeNumber: 10,
+          dayLabel: 'Tuesday • Episode 10',
+          title: 'The $8/Hour Commodity Trap: Escaping Margin Compression',
+          hook: `Competing on low hourly rates is a race to the bottom that you win by losing.\nHere is what happens when you sell seats at $8/hour:`,
+          body: `You are forced to hire unvetted reps, pay minimum wages, and tolerate 60% quarterly agent churn.\n\nWhen BPOs build an autonomous internal acquisition engine, they bypass middleman brokers and sign direct US clients at $22 to $25 per billable hour.\n\nPrice is not determined by geography. It is determined by pipeline control.`,
+          cta: `Are your managing directors defending $8/hr bids today, or commanding $22+/hr on direct contracts?`,
+          wordCount: 73,
+          estimatedReadSeconds: 20,
+          hashtags: ['#BPOOperations', '#ExecutiveLeadership', '#DealEconomics', '#RevenueGrowth', '#OutboundSales'],
+          imagePrompt: `Minimalist margin comparison infographic comparing $8/hr commodity seat margins with 60% churn versus $24/hr direct retainers with 12-month retention.`,
+          realisticPhotoPrompt: `A realistic, relatable 35mm photograph of a confident young Filipino female operations manager in a high-rise Manila office reviewing client contract terms on a tablet.`,
+          realisticImageUrl: '/images/linkedin/episode-1-realistic.jpg',
+          visualCard: {
+            type: 'metric_callout',
+            headline: 'The Commodity Rate Trap vs Direct Retainers',
+            subheadline: 'Escaping margin compression by owning your acquisition engine',
+            metric: '$24/hr',
+            metricLabel: 'Direct enterprise contract rate',
+            tag: 'EPISODE 10 • THE MARGIN TRAP'
+          },
+          injectedComments: [
+            'Floors that command $24/hr retain their top 10% of reps 4x longer than commodity floors competing for $8/hr contracts.',
+            'Curious what percentage of your floor revenue currently comes from direct contracts versus sub-contracted agency work.'
+          ]
+        },
+        {
+          id: 'post-ep11',
+          episodeNumber: 11,
+          dayLabel: 'Thursday • Episode 11',
+          title: 'Building a Direct Client Acquisition Engine in Manila',
+          hook: `Why do world-class delivery floors in Manila still rely on US brokers for deals?\nBecause they never built their own outbound muscle.`,
+          body: `The BPOs scaling to 500+ seats in 2026 do not wait for broker RFP crumbs.\n\nThey run dedicated internal pods using private enriched ICP lists, 150ms objection cockpits, and multi-touch cadences. They book their own qualified enterprise sits.\n\nWhen you control acquisition, you control your valuation.`,
+          cta: `What is stopping your floor from running a dedicated 2-rep internal acquisition pod this quarter?`,
+          wordCount: 71,
+          estimatedReadSeconds: 19,
+          hashtags: ['#BPOStrategy', '#BusinessDevelopment', '#InsideSales', '#SalesLeadership', '#ManilaBusiness'],
+          imagePrompt: `Editorial diagram showing the Autonomous BDM Pod flywheel: Private ICP -> Voice Sparring -> 150ms Live Teleprompter -> Direct Client Contracts.`,
+          realisticPhotoPrompt: `A candid 35mm photograph in a vibrant Manila tech hub office showing a Filipino sales coaching session with modern glass partitions and laptop analytics.`,
+          realisticImageUrl: '/images/linkedin/episode-2-realistic.jpg',
+          visualCard: {
+            type: 'process_flow',
+            headline: 'The Autonomous Internal Acquisition Pod',
+            subheadline: 'Deploying 2 dedicated reps to generate direct enterprise contracts',
+            metric: '500 seats',
+            metricLabel: 'Scale milestone achieved without middlemen',
+            tag: 'EPISODE 11 • THE POD MODEL'
+          },
+          injectedComments: [
+            'A 2-rep internal acquisition pod generates on average 12 direct enterprise sits per month when using exclusive enriched lists.',
+            'Would love to hear how fellow BPO founders structure incentives for internal BDMs.'
+          ]
+        },
+        {
+          id: 'post-ep12',
+          episodeNumber: 12,
+          dayLabel: 'Friday • Episode 12',
+          title: 'The 500-Seat Floor Valuation Shift: Scaling Without Middlemen',
+          hook: `Brokered seats are temporary revenue.\nDirect enterprise contracts are enterprise equity value.`,
+          body: `Private equity and enterprise buyers discount BPOs that depend on broker lead feeds by 40% because contracts can vanish overnight.\n\nWhen you own direct client relationships backed by verified SDR production metrics, your multiple doubles.\n\nThe ultimate goal of outbound is not just filling seats next week. It is building an unassailable BPO business.`,
+          cta: `Would you rather hold 50 brokered seats at high churn, or 30 direct client seats with 2-year retainers?`,
+          wordCount: 73,
+          estimatedReadSeconds: 20,
+          hashtags: ['#BPOValuation', '#PrivateEquity', '#MergersAndAcquisitions', '#OutsourcingLeadership', '#ScaleStrategy'],
+          imagePrompt: `Executive valuation multiple chart on dark charcoal background: Brokered Floor (3x multiple) vs Direct Pipeline Floor (7x multiple).`,
+          realisticPhotoPrompt: `A candid 35mm photograph showing the direct relationship between a foreign enterprise client and Filipino offshore talent: A North American executive client in a tailored suit in a high-rise boardroom collaborating with an articulate Filipino female BPO operations director by a glass whiteboard reviewing outbound seat economics.`,
+          realisticImageUrl: '/images/linkedin/episode-3-realistic.jpg',
+          alternativeImageUrl: '/images/linkedin/broker-middleman-devil.jpg',
+          alternativeImageLabel: 'The Middleman Trap (Devil in Disguise)',
+          alternativeImagePrompt: `A cinematic 35mm editorial photograph of a predatory corporate lead broker depicted as a devil in disguise: Arrogant, manipulative man in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom.`,
+          visualCard: {
+            type: 'comparison_grid',
+            headline: 'Brokered Floor Revenue vs Direct Contract Equity',
+            subheadline: 'How direct pipeline ownership doubles BPO enterprise multiple',
+            metric: '2.5x',
+            metricLabel: 'Enterprise valuation multiple expansion',
+            tag: 'EPISODE 12 • THE VALUATION SHIFT'
+          },
+          injectedComments: [
+            'Next month we will begin a brand-new 4-week series on AI-Assisted QA scorecards and floor retention strategies.',
+            'Direct contracts give BPO operators the pricing stability needed to invest heavily in agent retention and training.'
+          ]
+        }
+      ]
+    };
+  }
+
+  // DEFAULT: WEEK 1: Broker Margins & Shared List Elimination Arc (Episodes 1 - 3)
   return {
-    seriesTitle: `The Autonomous BPO Outbound Series: Part 1-3`,
+    seriesTitle: `The Autonomous BPO Outbound Series: Week 1 (Episodes 1-3)`,
     seriesHookRecap: preset.recapHook,
     targetBottleneckSummary: `Grounded in ${summary.totalLeads} accounts: Tackling ${primaryPain} across ${summary.dominantHeadcount} floors.`,
     targetAudience: `BPO Founders, Managing Directors, CROs & Outbound Operations Leaders`,
