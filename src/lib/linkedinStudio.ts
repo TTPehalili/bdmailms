@@ -385,8 +385,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 04 • THE ONBOARDING TRAP'
           },
           injectedComments: [
-            'Paying junior reps for 3 weeks of classroom roleplay is pure executive cowardice. It is subsidizing hesitation while fresh leads rot.',
-            'If your SDRs cannot handle live buyer hostility after 3 days of voice sparring, no 60-page PDF script is going to save them.'
+            'Paying junior reps for 3 weeks of classroom roleplay is pure executive cowardice. You are not training them. You are subsidizing caller anxiety while burning payroll. Agree or disagree?',
+            'If an SDR cannot survive hostile objection drills after 72 hours of voice sparring, a 60-page PDF script will not save them. Why do BPO managers still cling to obsolete classroom theory?',
+            'Controversial take: 80% of sales trainers in BPO are teaching 2012 script techniques that buyers hang up on in 4 seconds. How old is the cold calling guide your floor uses today?'
           ]
         },
         {
@@ -415,8 +416,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 05 • THE PROTOCOL'
           },
           injectedComments: [
-            'Reps do not burn out from dialing. They burn out from freezing on live objections because management never forced them to spar before touching live leads.',
-            'Practicing sales pitches on live paying clients should be considered operational malpractice. Spar with hostile AI first.'
+            'Reps do not burn out from dialing volume. They burn out from humiliating objection freezes because management refused to spar them first. The blame belongs on leadership, not the rep.',
+            'Allowing rookie SDRs to practice on live client leads should be considered operational malpractice. Why are BPO clients paying retainers for your floor to make rookie mistakes?',
+            'How many live sales opportunities did your team burn this week because a caller stammered on "send me an email"? Let us hear the honest numbers from floor managers.'
           ]
         },
         {
@@ -445,8 +447,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 06 • THE BENCHMARK'
           },
           injectedComments: [
-            'A 21-day onboarding ramp is a tax on incompetence. In 2026, any floor taking longer than 72 hours to get an SDR production-ready is bleeding capital.',
-            'How much money is your agency secretly losing every month paying reps who are terrified of picking up the phone?'
+            'A 21-day onboarding ramp is nothing more than a tax on management incompetence. Any floor taking over 72 hours to get an SDR production-ready is burning capital. Who disagrees?',
+            'How much payroll is your agency secretly burning each month on reps who are terrified of picking up the phone? Why does leadership tolerate this silent margin killer?',
+            'Real talk: Fast ramp time is the only moat left in outsourcing. If your competitors train reps in 3 days while you take a month, your floor is already obsolete. Thoughts?'
           ]
         }
       ]
@@ -487,8 +490,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 07 • LATENCY'
           },
           injectedComments: [
-            'That two-second silence when a buyer objects is where deals go to die. It instantly screams scripted telemarketer to any intelligent executive.',
-            'Static scripts belong in a museum. If your reps do not have real-time objection cues in under 180ms, you are setting them up for failure.'
+            'That two-second silence when a buyer objects is where deals go to die. It instantly screams scripted telemarketer to any intelligent executive. Agree or disagree?',
+            'Static scripts belong in a museum. If your reps do not have real-time objection cues in under 180ms, you are setting them up for failure. Why does management still print binders?',
+            'Be honest: How many times has your QA lead docked points from a rep for going off-script when the rep actually had a real human conversation? QA is killing your conversion.'
           ]
         },
         {
@@ -517,8 +521,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 08 • THE OPENER'
           },
           injectedComments: [
-            'Opening a cold dial with "How are you today?" is an insult to the prospect intelligence. Everyone knows you do not care.',
-            'Giving a prospect full permission to hang up in the first 20 seconds separates sovereign consultants from desperate callers. Why are most floors terrified to do it?'
+            'Opening a cold dial with "How are you today?" is an insult to the prospect intelligence. Everyone knows you do not care. Stop doing it.',
+            'Giving a prospect full permission to hang up in the first 20 seconds separates sovereign consultants from desperate callers. Why are most floor managers terrified to mandate this?',
+            'If your SDRs sound like telemarketers, it is because your opening script sounds like a hostage negotiation. Who has the courage to rewrite their openers this week?'
           ]
         },
         {
@@ -547,8 +552,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 09 • THE BRIDGE'
           },
           injectedComments: [
-            'Brokers resell the exact same exhausted Apollo list to five competing agencies. You are literally paying to have your reps abused on the phone.',
-            'Exclusivity is the only reason direct enterprise clients pay $24/hr. Why keep dialing shared lists that destroy your brand?'
+            'Brokers resell the exact same exhausted Apollo list to five competing agencies. You are literally paying to have your reps abused on the phone by angry gatekeepers. Agree or disagree?',
+            'Exclusivity is the only reason direct enterprise clients pay $24/hr. If you are dialing recycled broker data, you deserve commodity margins. Drop your thoughts below.',
+            'Question for sales leaders: When was the last time a broker gave you a lead list that had not already been called by 10 other offshore agencies that same month?'
           ]
         }
       ]
@@ -589,8 +595,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 10 • THE MARGIN TRAP'
           },
           injectedComments: [
-            'Selling seats at $8/hr is a race to the bottom that you win by going bankrupt. You cannot retain tier-one talent on broker commodity crumbs.',
-            'If your floor has a 60% quarterly rep turnover, stop blaming the recruiters. Your rock-bottom billable rates are the disease.'
+            'Selling seats at $8/hr is a race to the bottom that you win by going bankrupt. You cannot retain tier-one talent on broker commodity crumbs. Who is ready to stop competing on price?',
+            'If your floor has a 60% quarterly rep turnover, stop blaming the recruiters. Your rock-bottom billable rates are the disease. Thoughts on this?',
+            'The moment an agency accepts an $8/hr rate from a broker, they become an accessory to wage compression. When will BPO owners demand direct enterprise value?'
           ]
         },
         {
@@ -619,8 +626,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 11 • THE POD MODEL'
           },
           injectedComments: [
-            'Philippine delivery floors are world-class, yet founders still beg US middlemen for deals. Build a two-rep internal acquisition pod and take your sovereignty back.',
-            'Why let an American broker charge the client $35/hr and pay you $12? Cut them out and negotiate direct.'
+            'Philippine delivery floors are world-class, yet founders still beg US middlemen for deals. Build a two-rep internal acquisition pod and take your sovereignty back. Agree or disagree?',
+            'Why let an American broker charge the client $35/hr and pay you $12? Cut them out and negotiate direct. What is actually stopping your agency?',
+            'If two internal SDRs can generate $50k in monthly pipeline for clients, why are you not using them to generate pipeline for your own BPO? Answer that honestly.'
           ]
         },
         {
@@ -649,8 +657,9 @@ export function getDeterministicLinkedInSeries(
             tag: 'EPISODE 12 • THE VALUATION SHIFT'
           },
           injectedComments: [
-            'Brokered revenue is worthless to private equity investors. If middlemen can cancel your campaigns tomorrow, your BPO has zero enterprise multiple.',
-            'A 50-seat floor on direct client contracts is worth triple a 200-seat floor surviving on broker subcontract crumbs. Change my mind.'
+            'Brokered revenue is worthless to private equity investors. If middlemen can cancel your campaigns tomorrow, your BPO has zero enterprise multiple. Agree or disagree?',
+            'A 50-seat floor on direct client contracts is worth triple a 200-seat floor surviving on broker subcontract crumbs. Change my mind in the comments.',
+            'To every BPO founder reading this: If your agency cannot acquire its own clients, you do not own an enterprise. You own a temp agency with computers. Let us hear your pushback.'
           ]
         }
       ]
@@ -690,8 +699,9 @@ export function getDeterministicLinkedInSeries(
           tag: 'EPISODE 01 • THE 60% SKIM'
         },
         injectedComments: [
-          'Unpopular truth: If your BPO relies on broker pay-per-performance deals to survive, you do not own an agency. You own a rented floor subsidizing someone else margin.',
-          'Brokers pocket 60% while you pay the electric bill, workstations, and HMOs. Why do BPO owners accept being treated like disposable commodity labor?'
+          'Unpopular truth: If your BPO relies on broker pay-per-performance deals, you do not own a real business. You own a rented boiler room subsidizing a middleman margin. Agree or disagree?',
+          'Brokers take home 60% while you carry 100% of the rent, workstations, and HMOs. At what point does accepting pay-per-performance become self-inflicted exploitation? Drop your thoughts below.',
+          'I already hear brokers screaming: "we absorb the sales risk." Really? When campaigns fail, who pays the agent severance and lease penalties? You or the BPO? Let us hear the defense.'
         ]
       },
       {
@@ -720,8 +730,9 @@ export function getDeterministicLinkedInSeries(
           tag: 'EPISODE 02 • THE CONTROL TRAP'
         },
         injectedComments: [
-          'Pay-per-performance is the biggest scam in outsourcing. It forces the BPO to carry 100% of the operational risk while the middleman collects risk-free profit.',
-          'The moment a broker dictates your team KPIs while paying cheap lead rates, they stole your operations. When will BPO founders learn to say no?'
+          'Pay-per-performance is the biggest legal scam in outsourcing. It forces the BPO to carry 100% of the operational overhead while the middleman collects risk-free cash. Prove me wrong.',
+          'The moment a broker dictates your floor KPIs while refusing to introduce you to the actual client, they stole your company sovereignty. Why do so many agency owners tolerate this?',
+          'Hard question for BPO founders: If your primary broker walked away tomorrow, would your floor survive 60 days? If the answer is no, you are a subcontractor, not an agency owner.'
         ]
       },
       {
@@ -750,8 +761,9 @@ export function getDeterministicLinkedInSeries(
           tag: 'EPISODE 03 • THE BRIDGE'
         },
         injectedComments: [
-          'Hard take: Most BPO founders complain about low margins but refuse to hire even one internal SDR to hunt direct clients. The broker dependency is self-inflicted.',
-          'Would love someone to justify this: why surrender 60% of your revenue to a broker when two internal SDRs can land direct $24/hr retainers?'
+          'Unfiltered reality: BPO owners love to complain about low margins and predatory brokers, yet refuse to invest in a 2-person internal SDR pod. The broker dependency is 100% self-inflicted.',
+          'Would love an honest answer from agency leaders: Why surrender 60% of your deal equity to a middleman when two trained Filipino callers can land direct $24/hr retainers? What holds you back?',
+          'Brokers want BPOs to believe direct enterprise acquisition is impossible for offshore teams. They preach this myth to protect their skim. Who on your leadership team still buys into this lie?'
         ]
       }
     ]

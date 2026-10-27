@@ -751,24 +751,24 @@ export default function LinkedInCreatorStudio() {
                             />
                           </div>
 
-                          {/* Injected Comments Editing */}
-                          <div className="space-y-2 pt-2 border-t border-amber-200">
+                          {/* Injected Comments Editing (3 Bold & Controversial Injections) */}
+                          <div className="space-y-2.5 pt-2 border-t border-amber-200">
                             <div className="flex items-center justify-between">
                               <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1">
                                 <Flame className="h-3 w-3 text-rose-500" />
-                                <span>Injected Comments (Bold &amp; Controversial)</span>
+                                <span>Injected Comments (3 Bold &amp; Controversial Triggers)</span>
                               </label>
                               <span className="text-[9px] font-mono text-zinc-500">Stoke Reader Discussion</span>
                             </div>
                             <div>
                               <span className="text-[9px] font-mono font-semibold text-zinc-600 block mb-0.5">
-                                Comment 1 (Bold Provocative Truth Bomb):
+                                Comment 1 (The Sacred Cow Sledgehammer / Bold Truth Bomb):
                               </span>
                               <textarea
                                 rows={2}
                                 value={post.injectedComments[0] || ''}
                                 onChange={(e) => {
-                                  const updated = [e.target.value, post.injectedComments[1] || ''];
+                                  const updated = [e.target.value, post.injectedComments[1] || '', post.injectedComments[2] || ''];
                                   handleUpdatePostField(post.id, 'injectedComments', updated);
                                 }}
                                 className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 text-[11px] focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
@@ -776,13 +776,27 @@ export default function LinkedInCreatorStudio() {
                             </div>
                             <div>
                               <span className="text-[9px] font-mono font-semibold text-zinc-600 block mb-0.5">
-                                Comment 2 (Controversial Debate Flame):
+                                Comment 2 (Executive Debate Flame / Direct Call-Out):
                               </span>
                               <textarea
                                 rows={2}
                                 value={post.injectedComments[1] || ''}
                                 onChange={(e) => {
-                                  const updated = [post.injectedComments[0] || '', e.target.value];
+                                  const updated = [post.injectedComments[0] || '', e.target.value, post.injectedComments[2] || ''];
+                                  handleUpdatePostField(post.id, 'injectedComments', updated);
+                                }}
+                                className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 text-[11px] focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-mono font-semibold text-zinc-600 block mb-0.5">
+                                Comment 3 (Devil's Advocate / Excuse-Shredder):
+                              </span>
+                              <textarea
+                                rows={2}
+                                value={post.injectedComments[2] || ''}
+                                onChange={(e) => {
+                                  const updated = [post.injectedComments[0] || '', post.injectedComments[1] || '', e.target.value];
                                   handleUpdatePostField(post.id, 'injectedComments', updated);
                                 }}
                                 className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 text-[11px] focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
@@ -890,9 +904,10 @@ export default function LinkedInCreatorStudio() {
                           0 Emojis • 0 Em Dashes
                         </span>
                       </div>
-                      <p className="text-[10px] text-zinc-500 leading-tight">
-                        Post these follow-up comments right after publishing to provoke strong reactions and compel founders, CROs, and operators to debate in the thread.
-                      </p>
+                      <div className="p-2 rounded-lg bg-amber-50/90 border border-amber-200/80 text-[10px] text-amber-950 leading-relaxed flex items-start gap-1.5">
+                        <span className="font-bold text-amber-800 shrink-0">⚡ Engagement Injection:</span>
+                        <span>Post these follow-up comments right after publishing to provoke debate, challenge sacred cows, and compel readers (BPO founders, CROs, brokers) to comment their thoughts.</span>
+                      </div>
 
                       {post.injectedComments.map((comment, cIdx) => (
                         <div
@@ -902,7 +917,13 @@ export default function LinkedInCreatorStudio() {
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-mono font-bold text-rose-800 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded flex items-center gap-1">
                               <Flame className="h-2.5 w-2.5 text-rose-600" />
-                              {cIdx === 0 ? 'Comment 1 (Bold Truth Bomb)' : 'Comment 2 (Controversial Debate Flame)'}
+                              {cIdx === 0 
+                                ? 'Comment 1 (The Sacred Cow Sledgehammer)' 
+                                : cIdx === 1 
+                                ? 'Comment 2 (Executive Debate Flame)' 
+                                : cIdx === 2
+                                ? "Comment 3 (Devil's Advocate / Excuse-Shredder)"
+                                : `Comment ${cIdx + 1} (Engagement Trigger)`}
                             </span>
                             <button
                               onClick={() => copyToClipboard(comment, `post-${post.id}-cmt-${cIdx}`)}

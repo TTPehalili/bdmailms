@@ -371,12 +371,13 @@ MANDATORY RULES:
 2. ZERO EMOJIS: Do NOT use a single emoji anywhere in the post body, hooks, CTAs, or comments.
 3. BODY LENGTH: Strictly under 90 words per post body.
 4. INJECTED DISCUSSION COMMENTS (MUST BE BOLD, CONTROVERSIAL & ENGAGEMENT-IGNITING):
-   The primary purpose of injected comments is to provide the creator with spicy, high-leverage follow-up comments to post beneath their own post immediately after publishing. This continues the engagement, provokes strong emotional reactions, and compels readers (BPO founders, CROs, brokers, and floor directors) to comment their thoughts.
+   The primary purpose of injected comments is to provide the creator with follow-up comment injections to post directly beneath their own post immediately after publishing. This continues the engagement, provokes strong reactions, and compels readers (BPO founders, CROs, brokers, and floor directors) to comment their thoughts.
    - THEY MUST BE BOLD, CONTROVERSIAL, AND UNAPOLOGETIC.
    - Strictly NO polite, bland corporate PR platitudes or timid questions.
-   - DIRECTLY POKE THE SACRED COWS OF THE INDUSTRY:
-     * Comment 1 (Bold Truth Bomb / Hard Operational Take): An unapologetic stance that exposes an uncomfortable truth about broker exploitation, OPEX subsidization, or operational delusions. (e.g. "Unpopular truth: If your BPO relies on broker pay-per-performance deals to survive, you do not own an agency. You own a rented floor subsidizing someone else's margin.")
-     * Comment 2 (Controversial Debate Flame / Direct Call-Out): A spicy challenge or polarizing question that forces founders, brokers, and ops leaders to defend their position or confess their frustration in the comments. (e.g. "Brokers pocket 60% while you carry 100% of the rent and payroll. At what point does accepting pay-per-performance become self-inflicted exploitation?")
+   - MUST GENERATE EXACTLY 3 DISTINCT ENGAGEMENT-IGNITING COMMENTS:
+     * Comment 1 (The Sacred Cow Sledgehammer / Bold Truth Bomb): An unapologetic stance that exposes an uncomfortable truth about broker exploitation, OPEX subsidization, or operational delusions. End with a provocative challenge like "Agree or disagree?" or "Prove me wrong." (e.g. "Unpopular truth: If your BPO relies on broker pay-per-performance deals, you do not own a real business. You own a rented boiler room subsidizing a middleman margin. Agree or disagree?")
+     * Comment 2 (The Direct Executive Call-Out / Controversial Debate Flame): A spicy challenge or polarizing question that forces founders, brokers, and ops leaders to defend their position, reveal their floor realities, or confess their frustration in the comments. (e.g. "Brokers take home 60% while you carry 100% of the rent, workstations, and HMOs. At what point does accepting pay-per-performance become self-inflicted exploitation? Drop your thoughts below.")
+     * Comment 3 (The Devil's Advocate / Excuse-Shredder): Anticipates the typical defensive excuse (e.g. "brokers absorb the sales risk" or "classroom training builds culture") and dismantles it aggressively, daring commenters to push back or defend the broker model. (e.g. "I already hear brokers screaming: 'we absorb the sales risk.' Really? When campaigns fail, who pays the agent severance and lease penalties? You or the BPO? Let us hear the defense.")
    - MANDATORY RESTRICTIONS:
      * Strictly ZERO EM DASHES (no "—", "–", or "--").
      * Strictly ZERO EMOJIS (no icons or smileys).
@@ -416,8 +417,9 @@ Return strictly a valid JSON object with the following schema:
         "tag": "EPISODE 01 • THE BOTTLENECK"
       },
       "injectedComments": [
-        "Comment 1 under 35 words: bold provocative truth bomb without em dashes and without emojis",
-        "Comment 2 under 35 words: controversial debate flame without em dashes and without emojis"
+        "Comment 1 under 35 words: bold provocative truth bomb ending in a challenge, no em dashes, no emojis",
+        "Comment 2 under 35 words: controversial executive call-out compelling readers to comment thoughts, no em dashes, no emojis",
+        "Comment 3 under 35 words: spicy devil advocate shredding common excuses and daring pushback, no em dashes, no emojis"
       ]
     }
   ]
@@ -523,9 +525,10 @@ Output ONLY valid JSON. No markdown ticks, no preamble.`;
                   metricLabel: p.visualCard?.metricLabel || 'Broker margin skim vs BPO OPEX burden',
                   tag: p.visualCard?.tag || `EPISODE 0${idx + 1}`
                 },
-                injectedComments: cleanComments.length > 0 ? cleanComments : [
-                  'Unpopular truth: If your BPO relies on broker pay-per-performance deals to survive, you do not own an agency. You own a rented floor subsidizing someone else margin.',
-                  'Brokers pocket 60% while you carry 100% of the OPEX burden. Why accept being treated like disposable commodity labor?'
+                injectedComments: cleanComments.length >= 2 ? cleanComments : [
+                  'Unpopular truth: If your BPO relies on broker pay-per-performance deals, you do not own a real business. You own a rented boiler room subsidizing a middleman margin. Agree or disagree?',
+                  'Brokers take home 60% while you carry 100% of the rent, workstations, and HMOs. At what point does accepting pay-per-performance become self-inflicted exploitation? Drop your thoughts below.',
+                  'I already hear brokers screaming: "we absorb the sales risk." Really? When campaigns fail, who pays the agent severance and lease penalties? You or the BPO? Let us hear the defense.'
                 ]
               };
             });
