@@ -362,7 +362,7 @@ If this earned 10 seconds of your attention, would you be open to a 2-minute loo
     const { cleanText, emDashesCount, emojisCount } = sanitizeColdEmail(rawBody);
 
     return {
-      id: `draft-rt-${Date.now()}`,
+      id: 'draft-rt-default',
       subjectLines: [
         { label: 'Radical Transparency', text: '10 seconds transparency', angle: 'Disarming pattern interrupt' },
         { label: 'Direct Operational', text: `${company.toLowerCase()} rep conversion`, angle: 'Executive curiosity' },
@@ -406,7 +406,7 @@ Worth a 2-minute look at how we fix that live, or bad timing?`;
     const { cleanText, emDashesCount, emojisCount } = sanitizeColdEmail(rawBody);
 
     return {
-      id: `draft-allred-${Date.now()}`,
+      id: 'draft-allred-default',
       subjectLines: [
         { label: 'Lavender 2-Word', text: 'quick question', angle: 'Frictionless lowercase' },
         { label: 'Specific Target', text: `${company.toLowerCase()} callers`, angle: 'Direct observation' },
@@ -448,7 +448,7 @@ Curious if you have completely given up on stopping reps from getting shopped on
     const { cleanText, emDashesCount, emojisCount } = sanitizeColdEmail(rawBody);
 
     return {
-      id: `draft-voss-${Date.now()}`,
+      id: 'draft-voss-default',
       subjectLines: [
         { label: 'No-Oriented', text: 'bad timing?', angle: 'Negative constraint psychology' },
         { label: 'Protection', text: `${company.toLowerCase()} seat margins`, angle: 'Peer diagnostic' },
@@ -494,7 +494,7 @@ Open to a 2-minute video showing how we insulate margins, or totally off base?`;
   const { cleanText, emDashesCount, emojisCount } = sanitizeColdEmail(rawBody);
 
   return {
-    id: `draft-braun-${Date.now()}`,
+    id: 'draft-braun-default',
     subjectLines: [
       { label: 'Friction Hook', text: `${company.toLowerCase()} lead burn`, angle: 'Uncovers hidden leak' },
       { label: 'Low Friction', text: 'quick question', angle: 'Under 3 words lowercase' },
