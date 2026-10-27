@@ -22,6 +22,8 @@ export interface LinkedInPost {
   estimatedReadSeconds: number;
   hashtags: string[];
   imagePrompt: string; // Rich prompt for Gemini Imagen / Midjourney / Canva
+  realisticPhotoPrompt?: string; // Gemini's ultra-realistic and relatable photography prompt
+  realisticImageUrl?: string; // High-res photographic image URL
   visualCard: VisualCardConfig;
   injectedComments: string[]; // 2-3 comments for rep to post, strictly NO em dashes, NO emojis
 }
@@ -271,6 +273,8 @@ export function getDeterministicLinkedInSeries(
         estimatedReadSeconds: 18,
         hashtags: ['#BPOOperations', '#ClientAcquisition', '#SalesDevelopment', '#OutboundStrategy', '#InsideSales'],
         imagePrompt: `Minimalist high-contrast dark graphite infographic showing a 2-way split diagram: Left side labeled "The Shared Lead Trap" with red downward margin curve, Right side labeled "Proprietary Enriched Pipeline" with steady emerald growth line. Clean Swiss typography, zero clutter, 4k editorial graphic.`,
+        realisticPhotoPrompt: `A realistic, relatable, candid 35mm photograph of a modern B2B sales development representative or operations lead sitting at a clean minimalist office desk. They are focused on dual monitor screens showing clean data charts, wearing a subtle headset, holding a pen over a notebook with a ceramic coffee mug nearby. Soft natural daylight from an office window, authentic human expression, natural skin texture, Kodak Portra 400 film aesthetic, shallow depth of field, zero cartoon, zero cheesy corporate stock photography, relatable and grounded.`,
+        realisticImageUrl: '/images/linkedin/episode-1-realistic.jpg',
         visualCard: {
           type: 'metric_callout',
           headline: 'The Shared Lead Trap vs Proprietary Pipeline',
@@ -296,6 +300,8 @@ export function getDeterministicLinkedInSeries(
         estimatedReadSeconds: 19,
         hashtags: ['#SalesEnablement', '#SDRTraining', '#BPOLeadership', '#ContactCenter', '#OutboundSales'],
         imagePrompt: `Clean modern editorial diagram on dark zinc backdrop showing a 3-day timeline: Day 1 (AI Voice Sparring 40+ drills), Day 2 (Live Teleprompter Context), Day 3 (Production Dials). Modern tech aesthetic, sleek data points, 8k resolution.`,
+        realisticPhotoPrompt: `A candid, authentic 35mm photograph of two professionals in a modern glass office discussing strategy. An energetic sales coach or operations leader is pointing to a laptop screen while explaining a conversation tactic, and a colleague with a notepad is smiling thoughtfully and nodding. Warm daylight, modern contemporary startup office, natural unposed expressions, authentic depth of field, Fujicolor Pro 400H tone, zero corporate stock cliché, genuine human connection.`,
+        realisticImageUrl: '/images/linkedin/episode-2-realistic.jpg',
         visualCard: {
           type: 'process_flow',
           headline: 'The 72-Hour Production Ramp Framework',
@@ -321,6 +327,8 @@ export function getDeterministicLinkedInSeries(
         estimatedReadSeconds: 20,
         hashtags: ['#BPOStrategy', '#BusinessDevelopment', '#RevenueGrowth', '#OutsourcingLeadership', '#DealEconomics'],
         imagePrompt: `High-resolution executive comparison card comparing two margin models on dark charcoal background: Model A (Broker Skim) vs Model B (Direct Contract Margin). Clean geometric design, crisp white and gold typography.`,
+        realisticPhotoPrompt: `A candid, relatable 35mm photograph of a confident professional standing by a glass whiteboard with handwritten outbound performance metrics and a seat economics diagram. Holding a dry erase marker, turning with a thoughtful, engaging expression towards a client or team member. Sunlight filtering into a modern high-rise office, natural depth of field, authentic photojournalism style, Kodak Portra 800 tone, completely realistic, non-staged, relatable B2B thought leadership style.`,
+        realisticImageUrl: '/images/linkedin/episode-3-realistic.jpg',
         visualCard: {
           type: 'comparison_grid',
           headline: 'Broker Dependency vs Direct Pipeline Ownership',

@@ -327,7 +327,8 @@ CRITICAL EXECUTION REQUIREMENTS FOR THE 3 POSTS:
 4. CTA: Non-salesy, curious, debate-sparking question. Never say "DM me" or "link in bio".
 5. ALGORITHM HASHTAGS: Exactly 4 to 5 hyper-targeted BPO / sales development hashtags (e.g. #BPOOperations #ClientAcquisition #SalesDevelopment #InsideSales #OutboundStrategy).
 6. GEMINI IMAGE GENERATION PROMPT: A rich, creative prompt describing an ultra-clean, minimalist editorial visual or infographic card on dark graphite/zinc background with high contrast typography and clear metric callout.
-7. INJECTED COMMENTS: Exactly 2 pre-drafted comments that the SDR can post as the 1st and 2nd comments to keep conversation active.
+7. GEMINI REALISTIC & RELATABLE PHOTO PROMPT: An ultra-realistic, relatable, candid 35mm photograph prompt tailored specifically to this episode's topic. Specify authentic modern office setting, real human expressions and natural skin textures, candid posture, natural daylight, Kodak Portra 400 or Fujicolor Pro aesthetic, shallow depth of field, zero artificial gloss, zero cheesy corporate stock photography.
+8. INJECTED COMMENTS: Exactly 2 pre-drafted comments that the SDR can post as the 1st and 2nd comments to keep conversation active.
    MANDATORY RULE FOR INJECTED COMMENTS:
    - ZERO EM DASHES (no "—", "–", or "--").
    - ZERO EMOJIS (no icons or smileys).
@@ -350,6 +351,7 @@ Return strictly a valid JSON object with the following schema:
       "cta": "Engaging closing question",
       "hashtags": ["#BPOOperations", "#SalesDevelopment"],
       "imagePrompt": "Detailed prompt for Gemini / Imagen graphic generation",
+      "realisticPhotoPrompt": "Detailed candid 35mm photo prompt with natural light and relatable human subjects",
       "visualCard": {
         "type": "metric_callout",
         "headline": "Short punchy card title",
@@ -399,6 +401,13 @@ Output ONLY valid JSON. No markdown ticks, no preamble.`;
             const sanitizedPosts = parsed.posts.map((p: any, idx: number) => {
               const cleanComments = (p.injectedComments || []).map((c: string) => sanitizeTextForLinkedIn(c));
               const wordCount = (p.body || '').split(/\s+/).filter(Boolean).length;
+              const episodeNum = (idx % 3) + 1;
+              const fallbackRealisticPrompt = idx === 0 
+                ? 'A realistic, relatable, candid 35mm photograph of a modern B2B sales development representative or operations lead sitting at a clean minimalist office desk, focused on dual monitors showing clean data charts with a coffee mug and notebook nearby. Natural daylight, Kodak Portra 400 film aesthetic.'
+                : idx === 1
+                ? 'A candid, authentic 35mm photograph of two professionals in a modern glass office discussing strategy, with a sales coach pointing to a laptop screen while explaining a conversation tactic, natural unposed expressions, Fujicolor Pro 400H tone.'
+                : 'A candid, relatable 35mm photograph of a confident professional standing by a glass whiteboard with handwritten outbound performance metrics and a seat economics diagram, natural high-rise office sunlight, Kodak Portra 800 tone.';
+
               return {
                 id: `post-ep${idx + 1}-${Date.now()}`,
                 episodeNumber: p.episodeNumber || (idx + 1),
@@ -411,6 +420,8 @@ Output ONLY valid JSON. No markdown ticks, no preamble.`;
                 estimatedReadSeconds: Math.ceil((wordCount / 200) * 60),
                 hashtags: Array.isArray(p.hashtags) ? p.hashtags : ['#BPOOperations', '#ClientAcquisition', '#SalesDevelopment'],
                 imagePrompt: p.imagePrompt || 'Minimalist dark graphite BPO metric infographic with Swiss typography',
+                realisticPhotoPrompt: p.realisticPhotoPrompt || fallbackRealisticPrompt,
+                realisticImageUrl: `/images/linkedin/episode-${episodeNum}-realistic.jpg`,
                 visualCard: {
                   type: p.visualCard?.type || 'metric_callout',
                   headline: p.visualCard?.headline || p.title || 'Operational Metric',

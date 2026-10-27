@@ -492,6 +492,8 @@ export default function LinkedInCreatorStudio() {
                       <LinkedInVisualCard
                         visualConfig={post.visualCard}
                         imagePrompt={post.imagePrompt}
+                        realisticPhotoPrompt={post.realisticPhotoPrompt}
+                        realisticImageUrl={post.realisticImageUrl}
                         episodeNumber={post.episodeNumber}
                       />
                     </div>

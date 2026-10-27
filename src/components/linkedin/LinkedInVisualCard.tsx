@@ -7,33 +7,110 @@ import {
   Check, 
   Download, 
   ImageIcon, 
-  ExternalLink,
+  Camera,
   Layers,
-  BarChart2
+  RotateCw,
+  Eye,
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { VisualCardConfig } from '@/lib/linkedinStudio';
 
 interface LinkedInVisualCardProps {
   visualConfig: VisualCardConfig;
   imagePrompt: string;
+  realisticPhotoPrompt?: string;
+  realisticImageUrl?: string;
   episodeNumber: number;
 }
 
 export default function LinkedInVisualCard({
   visualConfig,
   imagePrompt,
+  realisticPhotoPrompt,
+  realisticImageUrl,
   episodeNumber
 }: LinkedInVisualCardProps) {
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  // Mode: 'photo' (Realistic & Relatable) vs 'graphic' (Minimalist Executive Graphic)
+  const [visualMode, setVisualMode] = useState<'photo' | 'graphic'>('photo');
+
+  // Fallback realistic photo URL
+  const defaultPhotoUrl = realisticImageUrl || `/images/linkedin/episode-${((episodeNumber - 1) % 3) + 1}-realistic.jpg`;
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>(defaultPhotoUrl);
+  const [isGeneratingFreshPhoto, setIsGeneratingFreshPhoto] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
   const cardRef = useRef<HTMLDivElement | null>(null);
 
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(imagePrompt);
-    setCopiedPrompt(true);
-    setTimeout(() => setCopiedPrompt(false), 2000);
+  const activePhotoPrompt = realisticPhotoPrompt || `A realistic, relatable, candid 35mm photograph of a modern B2B sales development representative or operations lead sitting at a clean minimalist office desk. They are focused on dual monitor screens showing clean data charts, wearing a subtle headset, holding a pen over a notebook with a ceramic coffee mug nearby. Soft natural daylight from an office window, authentic human expression, natural skin texture, Kodak Portra 400 film aesthetic, shallow depth of field, zero cartoon, zero cheesy corporate stock photography, relatable and grounded.`;
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  // Download the realistic JPG photo directly
+  const handleDownloadPhoto = async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch(currentPhotoUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `linkedin-ep${episodeNumber}-realistic-photo.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Failed to download photo:', err);
+      // Fallback direct link trigger
+      const link = document.createElement('a');
+      link.href = currentPhotoUrl;
+      link.download = `linkedin-ep${episodeNumber}-realistic-photo.jpg`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // Generate a fresh realistic photographic image using the Gemini prompt
+  const handleGenerateFreshPhoto = async () => {
+    setIsGeneratingFreshPhoto(true);
+    try {
+      // Clean and encode the prompt for FLUX photorealistic engine
+      const cleaned = encodeURIComponent(
+        activePhotoPrompt
+          .replace(/[\n\r]+/g, ' ')
+          .slice(0, 300)
+      );
+      const seed = Math.floor(Math.random() * 100000);
+      const freshUrl = `https://image.pollinations.ai/prompt/${cleaned}?width=1080&height=1080&nologo=true&seed=${seed}&model=flux`;
+      
+      // Preload image
+      const img = new Image();
+      img.onload = () => {
+        setCurrentPhotoUrl(freshUrl);
+        setIsGeneratingFreshPhoto(false);
+      };
+      img.onerror = () => {
+        console.warn('Fresh photo generation fallback to default');
+        setIsGeneratingFreshPhoto(false);
+      };
+      img.src = freshUrl;
+    } catch (err) {
+      console.error('Failed to generate fresh photo:', err);
+      setIsGeneratingFreshPhoto(false);
+    }
+  };
+
+  // Download SVG Graphic
   const handleDownloadSvg = () => {
     setDownloading(true);
     try {
@@ -50,28 +127,20 @@ export default function LinkedInVisualCard({
     </pattern>
   </defs>
   
-  <!-- Background -->
   <rect width="1080" height="1080" fill="url(#bgGrad)"/>
   <rect width="1080" height="1080" fill="url(#grid)"/>
-  
-  <!-- Subtle Glow -->
   <circle cx="540" cy="400" r="320" fill="#3f3f46" opacity="0.1" filter="blur(80px)"/>
-  
-  <!-- Border Inset -->
   <rect x="40" y="40" width="1000" height="1000" rx="28" fill="none" stroke="#27272a" stroke-width="2"/>
   
-  <!-- Top Tag Capsule -->
   <rect x="90" y="100" width="280" height="48" rx="24" fill="#27272a"/>
   <text x="230" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#f43f5e" letter-spacing="2" text-anchor="middle">
     ${(visualConfig.tag || `EPISODE 0${episodeNumber}`).toUpperCase()}
   </text>
   
-  <!-- Watermark Brand -->
   <text x="990" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="600" fill="#71717a" text-anchor="end">
     APPOINTMENTLYY INTELLIGENCE
   </text>
   
-  <!-- Giant Metric -->
   <text x="90" y="380" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="130" font-weight="900" fill="#ffffff" letter-spacing="-3">
     ${visualConfig.metric || '82%'}
   </text>
@@ -80,20 +149,16 @@ export default function LinkedInVisualCard({
     ${visualConfig.metricLabel || 'Operational Benchmark'}
   </text>
   
-  <!-- Divider -->
   <line x1="90" y1="490" x2="990" y2="490" stroke="#3f3f46" stroke-width="2"/>
   
-  <!-- Headline -->
   <text x="90" y="600" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="800" fill="#f4f4f5">
     ${visualConfig.headline.length > 36 ? visualConfig.headline.slice(0, 36) + '...' : visualConfig.headline}
   </text>
   
-  <!-- Subheadline -->
   <text x="90" y="670" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="26" font-weight="400" fill="#a1a1aa">
     ${visualConfig.subheadline || 'Key operational takeaway for BPO and outbound leaders'}
   </text>
   
-  <!-- Bottom Footer -->
   <rect x="90" y="900" width="900" height="80" rx="16" fill="#18181b" stroke="#27272a" stroke-width="1"/>
   <text x="130" y="948" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="600" fill="#e4e4e7">
     BPO Client Acquisition &amp; High-Retention Seat Architecture
@@ -101,20 +166,19 @@ export default function LinkedInVisualCard({
   <text x="950" y="948" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" fill="#10b981" text-anchor="end">
     VERIFIED BENCHMARK
   </text>
-</svg>
-      `;
+</svg>`;
 
       const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `linkedin-ep${episodeNumber}-visual.svg`;
+      link.download = `linkedin-ep${episodeNumber}-graphic.svg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Failed to download visual card:', err);
+      console.error('Failed to download SVG:', err);
     } finally {
       setDownloading(false);
     }
@@ -122,93 +186,208 @@ export default function LinkedInVisualCard({
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3 space-y-3">
+      {/* Visual Header & Mode Toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-900">
           <ImageIcon className="h-3.5 w-3.5 text-zinc-600" />
-          <span>Gemini Creative Visual Pairing</span>
-        </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">
-          1080 × 1080 Square
-        </span>
-      </div>
-
-      {/* Visual Graphic Card Preview */}
-      <div 
-        ref={cardRef}
-        className="relative w-full aspect-square max-w-[280px] mx-auto rounded-xl bg-zinc-950 p-4 border border-zinc-800 text-white flex flex-col justify-between overflow-hidden shadow-md select-none group"
-      >
-        {/* Subtle grid pattern background */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#27272a_1px,transparent_1px),linear-gradient(to_bottom,#27272a_1px,transparent_1px)] bg-[size:16px_16px] opacity-20 pointer-events-none" />
-        
-        {/* Top Header */}
-        <div className="relative z-10 flex items-center justify-between">
-          <span className="text-[9px] font-mono uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-rose-400 border border-zinc-700">
-            {visualConfig.tag || `EPISODE 0${episodeNumber}`}
-          </span>
-          <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-tight">
-            Appointmentlyy
-          </span>
+          <span>Post Visual Pairing</span>
         </div>
 
-        {/* Central Metric */}
-        <div className="relative z-10 my-auto text-center space-y-1">
-          <div className="text-4xl font-extrabold tracking-tight text-white font-mono">
-            {visualConfig.metric || '82%'}
-          </div>
-          <div className="text-[10px] text-zinc-400 font-medium px-2 leading-tight">
-            {visualConfig.metricLabel || 'Operational Metric'}
-          </div>
-        </div>
-
-        {/* Bottom Headline & Subtext */}
-        <div className="relative z-10 pt-2 border-t border-zinc-800/80 space-y-0.5">
-          <div className="text-[11px] font-bold text-zinc-100 line-clamp-2 leading-tight">
-            {visualConfig.headline}
-          </div>
-          <div className="text-[9px] text-zinc-400 line-clamp-1">
-            {visualConfig.subheadline || 'Key takeaway for BPO and outbound leaders'}
-          </div>
-        </div>
-      </div>
-
-      {/* Gemini Image Generation Prompt Accordion / Box */}
-      <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-2.5 space-y-1.5 text-left">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold text-zinc-700 flex items-center gap-1 uppercase tracking-wider">
-            <Sparkles className="h-3 w-3 text-amber-500" />
-            Gemini / Imagen Prompt
-          </span>
+        {/* Visual Mode Selector Tabs */}
+        <div className="flex items-center gap-1 bg-zinc-100 p-0.5 rounded-lg border border-zinc-200 text-[10px] font-semibold">
           <button
-            onClick={handleCopyPrompt}
-            className="flex items-center gap-1 text-[10px] font-medium text-zinc-700 hover:text-zinc-950 bg-white border border-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-100 transition-colors"
+            onClick={() => setVisualMode('photo')}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors ${
+              visualMode === 'photo'
+                ? 'bg-white text-zinc-900 shadow-2xs'
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
           >
-            {copiedPrompt ? (
-              <>
-                <Check className="h-2.5 w-2.5 text-emerald-600" />
-                <span className="text-emerald-600 font-semibold">Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="h-2.5 w-2.5" />
-                <span>Copy Prompt</span>
-              </>
-            )}
+            <Camera className="h-2.5 w-2.5" />
+            <span>Relatable Photo</span>
+          </button>
+
+          <button
+            onClick={() => setVisualMode('graphic')}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors ${
+              visualMode === 'graphic'
+                ? 'bg-white text-zinc-900 shadow-2xs'
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            <Layers className="h-2.5 w-2.5" />
+            <span>Graphic</span>
           </button>
         </div>
-        <p className="text-[11px] text-zinc-600 leading-snug line-clamp-3 font-mono bg-white p-2 rounded border border-zinc-200/80">
-          {imagePrompt}
-        </p>
       </div>
 
-      {/* Download Action */}
-      <button
-        onClick={handleDownloadSvg}
-        disabled={downloading}
-        className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
-      >
-        <Download className="h-3.5 w-3.5" />
-        <span>{downloading ? 'Downloading...' : 'Download Visual Card (SVG)'}</span>
-      </button>
+      {/* =================================================================== */}
+      {/* MODE 1: REALISTIC & RELATABLE PHOTOGRAPHY PREVIEW                   */}
+      {/* =================================================================== */}
+      {visualMode === 'photo' ? (
+        <div className="space-y-2.5">
+          {/* Photo Display Card */}
+          <div className="relative w-full aspect-square max-w-[280px] mx-auto rounded-xl overflow-hidden border border-zinc-200 bg-zinc-900 shadow-sm group">
+            <img 
+              src={currentPhotoUrl} 
+              alt={`LinkedIn Episode ${episodeNumber} Visual`} 
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+
+            {/* Loading Overlay */}
+            {isGeneratingFreshPhoto && (
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs gap-2 z-20">
+                <RotateCw className="h-5 w-5 animate-spin text-emerald-400" />
+                <span className="font-semibold text-[11px]">Generating Realistic Photo...</span>
+              </div>
+            )}
+
+            {/* Episode & Aesthetic Badge */}
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-black/75 text-emerald-300 backdrop-blur-xs border border-white/10">
+                Candid 35mm
+              </span>
+            </div>
+
+            <div className="absolute bottom-2 left-2 right-2 z-10 p-2 rounded-lg bg-black/75 backdrop-blur-xs border border-white/10 text-white text-left">
+              <div className="text-[10px] font-bold truncate">
+                {visualConfig.headline}
+              </div>
+              <div className="text-[8px] text-zinc-300 font-mono">
+                Authentic BPO Operations Atmosphere
+              </div>
+            </div>
+          </div>
+
+          {/* Gemini Realistic Photography Prompt Box */}
+          <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-2 space-y-1 text-left">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-zinc-700 flex items-center gap-1 uppercase tracking-wider">
+                <Sparkles className="h-3 w-3 text-amber-500" />
+                Gemini Photographic Prompt
+              </span>
+              <button
+                onClick={() => copyToClipboard(activePhotoPrompt, `prompt-photo-${episodeNumber}`)}
+                className="flex items-center gap-1 text-[10px] font-medium text-zinc-700 hover:text-zinc-950 bg-white border border-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-100 transition-colors"
+              >
+                {copiedKey === `prompt-photo-${episodeNumber}` ? (
+                  <>
+                    <Check className="h-2.5 w-2.5 text-emerald-600" />
+                    <span className="text-emerald-600 font-semibold">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-2.5 w-2.5" />
+                    <span>Copy Prompt</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="text-[10px] text-zinc-600 leading-snug line-clamp-3 font-mono bg-white p-1.5 rounded border border-zinc-200/80">
+              {activePhotoPrompt}
+            </p>
+          </div>
+
+          {/* Action Buttons: Download Photo & Generate Fresh Photo */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              onClick={handleGenerateFreshPhoto}
+              disabled={isGeneratingFreshPhoto}
+              className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300 transition-colors"
+              title="Generate fresh realistic photo variation"
+            >
+              <RefreshCw className={`h-3 w-3 ${isGeneratingFreshPhoto ? 'animate-spin' : ''}`} />
+              <span>Regenerate</span>
+            </button>
+
+            <button
+              onClick={handleDownloadPhoto}
+              disabled={downloading}
+              className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-[11px] font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>{downloading ? 'Saving...' : 'Download JPG'}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* =================================================================== */
+        /* MODE 2: MINIMALIST EXECUTIVE GRAPHIC PREVIEW                        */
+        /* =================================================================== */
+        <div className="space-y-2.5">
+          <div 
+            ref={cardRef}
+            className="relative w-full aspect-square max-w-[280px] mx-auto rounded-xl bg-zinc-950 p-4 border border-zinc-800 text-white flex flex-col justify-between overflow-hidden shadow-md select-none group"
+          >
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#27272a_1px,transparent_1px),linear-gradient(to_bottom,#27272a_1px,transparent_1px)] bg-[size:16px_16px] opacity-20 pointer-events-none" />
+            
+            <div className="relative z-10 flex items-center justify-between">
+              <span className="text-[9px] font-mono uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-rose-400 border border-zinc-700">
+                {visualConfig.tag || `EPISODE 0${episodeNumber}`}
+              </span>
+              <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-tight">
+                Appointmentlyy
+              </span>
+            </div>
+
+            <div className="relative z-10 my-auto text-center space-y-1">
+              <div className="text-4xl font-extrabold tracking-tight text-white font-mono">
+                {visualConfig.metric || '82%'}
+              </div>
+              <div className="text-[10px] text-zinc-400 font-medium px-2 leading-tight">
+                {visualConfig.metricLabel || 'Operational Metric'}
+              </div>
+            </div>
+
+            <div className="relative z-10 pt-2 border-t border-zinc-800/80 space-y-0.5 text-left">
+              <div className="text-[11px] font-bold text-zinc-100 line-clamp-2 leading-tight">
+                {visualConfig.headline}
+              </div>
+              <div className="text-[9px] text-zinc-400 line-clamp-1">
+                {visualConfig.subheadline || 'Key takeaway for BPO and outbound leaders'}
+              </div>
+            </div>
+          </div>
+
+          {/* Graphic Design Prompt */}
+          <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-2 space-y-1 text-left">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-zinc-700 flex items-center gap-1 uppercase tracking-wider">
+                <Sparkles className="h-3 w-3 text-amber-500" />
+                Graphic Design Prompt
+              </span>
+              <button
+                onClick={() => copyToClipboard(imagePrompt, `prompt-graphic-${episodeNumber}`)}
+                className="flex items-center gap-1 text-[10px] font-medium text-zinc-700 hover:text-zinc-950 bg-white border border-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-100 transition-colors"
+              >
+                {copiedKey === `prompt-graphic-${episodeNumber}` ? (
+                  <>
+                    <Check className="h-2.5 w-2.5 text-emerald-600" />
+                    <span className="text-emerald-600 font-semibold">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-2.5 w-2.5" />
+                    <span>Copy Prompt</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="text-[10px] text-zinc-600 leading-snug line-clamp-3 font-mono bg-white p-1.5 rounded border border-zinc-200/80">
+              {imagePrompt}
+            </p>
+          </div>
+
+          <button
+            onClick={handleDownloadSvg}
+            disabled={downloading}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-[11px] font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>{downloading ? 'Downloading...' : 'Download Graphic (SVG)'}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
