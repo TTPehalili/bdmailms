@@ -32,10 +32,65 @@ export interface AntiSalesCta {
   label: string;
   ctaText: string;
   channel: OutboundChannel | 'Both' | 'All';
-  psychologyAngle: 'Permission-Based' | 'No-Oriented' | 'Disarming Disqualification' | 'Curiosity / Video' | 'Soft Conversational' | 'Pattern Interrupt' | 'Consultative Diagnostic';
+  psychologyAngle: 'Permission-Based' | 'No-Oriented' | 'Disarming Disqualification' | 'Curiosity / Video' | 'Soft Conversational' | 'Pattern Interrupt' | 'Consultative Diagnostic' | 'Meta-Proof / Power-Punch';
 }
 
+export interface QualifyingQuestion {
+  id: string;
+  category: 'Lead Burn' | 'Competitor Friction' | 'Seat Margins' | 'Objection Drop-Off';
+  question: string;
+  diagnosticRationale: string;
+}
+
+export const QUALIFYING_QUESTIONS: QualifyingQuestion[] = [
+  {
+    id: 'qual_lead_burn',
+    category: 'Lead Burn',
+    question: 'When you bring on new setters, how many paid client leads do they typically burn through in their first 2 weeks before they can handle hostile objections without freezing?',
+    diagnosticRationale: 'Uncovers the hidden "rookie tax" of classroom onboarding.'
+  },
+  {
+    id: 'qual_competitor_price',
+    category: 'Competitor Friction',
+    question: 'When your callers reach prospects who already buy from Outsource Accelerator or an incumbent BPO, what percentage of those dials die in the first 20 seconds on price?',
+    diagnosticRationale: 'Exposes caller helplessness against commodity competitors.'
+  },
+  {
+    id: 'qual_broker_margins',
+    category: 'Seat Margins',
+    question: 'Are you having to surrender 30% to 35% of your contract margins to middlemen brokers just to keep your seats filled, or do you have a direct pipeline you control?',
+    diagnosticRationale: 'Attacks broker dependency directly.'
+  },
+  {
+    id: 'qual_objection_speed',
+    category: 'Objection Drop-Off',
+    question: 'If your callers had instant, sub-180ms consultative rebuttals on screen during live calls, what would that do to your qualified sit rate this month?',
+    diagnosticRationale: 'Makes the prospect calculate the ROI of Appointmentlyy SDR in their own head.'
+  }
+];
+
 export const DEFAULT_ANTI_SALES_CTAS: AntiSalesCta[] = [
+  {
+    id: 'cta_meta_proof_12min',
+    label: '12-min Live ICP Build & Sparring (Power-Punch)',
+    ctaText: "Let me do this: give me 12 minutes on Thursday. I'll share my screen, build your private verified list live, and show you the exact cockpit. If you don't see how it books you 5 more sits a week, tell me to get lost and I'll never call back. Fair?",
+    channel: 'All',
+    psychologyAngle: 'Meta-Proof / Power-Punch'
+  },
+  {
+    id: 'cta_pilot_2_reps',
+    label: '7-Day 2-Rep Pilot Challenge (Zero Risk)',
+    ctaText: 'We don\'t need to touch your whole floor. Let me pilot this with your 2 newest reps for 7 days. If their sit rate doesn\'t jump by 25%, you owe us nothing. Are you opposed to testing that?',
+    channel: 'All',
+    psychologyAngle: 'Meta-Proof / Power-Punch'
+  },
+  {
+    id: 'cta_meta_proof_email',
+    label: 'Meta-Proof 12-min Screen Share (Email)',
+    ctaText: 'Open to a 12-minute screen share where I build your private enriched list live, or totally off base?',
+    channel: 'Email',
+    psychologyAngle: 'Meta-Proof / Power-Punch'
+  },
   {
     id: 'cta_consultative_benchmark',
     label: 'Consultative Diagnostic (Phone/Email)',

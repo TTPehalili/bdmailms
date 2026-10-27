@@ -424,67 +424,90 @@ export default function LinkedInCreatorStudio() {
                   className="rounded-2xl border border-zinc-200 bg-white shadow-2xs flex flex-col justify-between overflow-hidden"
                 >
                   {/* Card Header */}
-                  <div className="p-4 border-b border-zinc-100 bg-zinc-50/60 flex items-center justify-between">
-                    <div>
+                  <div className="p-4 border-b border-zinc-100 bg-zinc-50/60 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
                         {post.dayLabel}
                       </span>
-                      <h3 className="text-xs font-bold text-zinc-900 line-clamp-1">
+                      <h3 className="text-xs font-bold text-zinc-900 truncate">
                         {post.title}
                       </h3>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-200/80 text-zinc-700 font-semibold">
-                        {post.wordCount} words
-                      </span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">
-                        {post.estimatedReadSeconds}s read
-                      </span>
+                      <button
+                        onClick={() => copyToClipboard(fullPostText, `header-post-${post.id}`)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
+                        title="Copy entire post formatted for LinkedIn"
+                      >
+                        {copiedKey === `header-post-${post.id}` ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            <span>Copy Full Post</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
 
                   {/* Post Content Body */}
                   <div className="p-4 space-y-3 text-left">
-                    {/* Scroll-stopping Hook Box */}
-                    <div className="p-2.5 rounded-lg bg-zinc-50 border border-zinc-200/80 space-y-1">
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-rose-600 block">
-                        Scroll-Stopping Hook (Pre-Fold)
-                      </span>
-                      <p className="text-xs font-semibold text-zinc-900 whitespace-pre-line leading-snug">
-                        {post.hook}
-                      </p>
-                    </div>
-
-                    {/* Content Body */}
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block">
-                        Body Content (&lt;90 Words Technique)
-                      </span>
-                      <p className="text-xs text-zinc-700 whitespace-pre-line leading-relaxed font-sans">
-                        {post.body}
-                      </p>
-                    </div>
-
-                    {/* High Engagement CTA */}
-                    <div className="p-2 rounded-lg bg-emerald-50/50 border border-emerald-200/60 space-y-0.5">
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-700 block">
-                        High-Engagement CTA (Non-Salesy)
-                      </span>
-                      <p className="text-xs font-medium text-emerald-950 leading-snug">
-                        {post.cta}
-                      </p>
-                    </div>
-
-                    {/* Hashtags */}
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {post.hashtags.map((tag, i) => (
-                        <span
-                          key={i}
-                          className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600"
-                        >
-                          {tag}
+                    {/* Unified Clean LinkedIn Post Block (Ready to Copy & Select) */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                          <CheckCircle className="h-3 w-3 text-emerald-600" />
+                          <span>Ready-to-Paste LinkedIn Post (Whole Block)</span>
                         </span>
-                      ))}
+                        <span className="text-[10px] font-mono text-zinc-500">
+                          {post.wordCount} words • {post.estimatedReadSeconds}s read
+                        </span>
+                      </div>
+
+                      <div className="relative group">
+                        <div 
+                          onClick={() => copyToClipboard(fullPostText, `block-post-${post.id}`)}
+                          className="p-3.5 rounded-xl bg-zinc-50 hover:bg-zinc-100/60 border-2 border-zinc-200 hover:border-zinc-300 text-zinc-900 font-sans text-xs leading-relaxed whitespace-pre-line select-text cursor-pointer transition-all space-y-2 shadow-2xs"
+                        >
+                          <div className="font-bold text-zinc-950 pb-1 border-b border-zinc-200/70">
+                            {post.hook}
+                          </div>
+                          <div className="text-zinc-800">
+                            {post.body}
+                          </div>
+                          <div className="text-emerald-900 font-semibold pt-1 border-t border-zinc-200/70">
+                            {post.cta}
+                          </div>
+                          <div className="text-[11px] font-mono text-zinc-500 pt-1">
+                            {post.hashtags.join(' ')}
+                          </div>
+                        </div>
+
+                        {/* Floating Action Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(fullPostText, `block-post-${post.id}`);
+                          }}
+                          className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
+                        >
+                          {copiedKey === `block-post-${post.id}` ? (
+                            <>
+                              <Check className="h-4 w-4 text-emerald-400" />
+                              <span className="text-emerald-400 font-bold">Entire Post Copied (Ready for LinkedIn)!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-4 w-4" />
+                              <span>Copy Whole Block for LinkedIn</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Visual Graphic Pairing */}
@@ -494,6 +517,9 @@ export default function LinkedInCreatorStudio() {
                         imagePrompt={post.imagePrompt}
                         realisticPhotoPrompt={post.realisticPhotoPrompt}
                         realisticImageUrl={post.realisticImageUrl}
+                        alternativeImageUrl={post.alternativeImageUrl}
+                        alternativeImageLabel={post.alternativeImageLabel}
+                        alternativeImagePrompt={post.alternativeImagePrompt}
                         episodeNumber={post.episodeNumber}
                       />
                     </div>

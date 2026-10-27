@@ -327,7 +327,10 @@ CRITICAL EXECUTION REQUIREMENTS FOR THE 3 POSTS:
 4. CTA: Non-salesy, curious, debate-sparking question. Never say "DM me" or "link in bio".
 5. ALGORITHM HASHTAGS: Exactly 4 to 5 hyper-targeted BPO / sales development hashtags (e.g. #BPOOperations #ClientAcquisition #SalesDevelopment #InsideSales #OutboundStrategy).
 6. GEMINI IMAGE GENERATION PROMPT: A rich, creative prompt describing an ultra-clean, minimalist editorial visual or infographic card on dark graphite/zinc background with high contrast typography and clear metric callout.
-7. GEMINI REALISTIC & RELATABLE PHOTO PROMPT: An ultra-realistic, relatable, candid 35mm photograph prompt tailored specifically to this episode's topic. Specify authentic modern office setting, real human expressions and natural skin textures, candid posture, natural daylight, Kodak Portra 400 or Fujicolor Pro aesthetic, shallow depth of field, zero artificial gloss, zero cheesy corporate stock photography.
+7. GEMINI REALISTIC & RELATABLE PHOTO PROMPT (MANDATORY DEMOGRAPHIC & ARCHETYPE RULES):
+   - MANDATE 1 (FILIPINO TALENT MANDATE): All individual SDRs, callers, setters, team leads, QA coaches, and operations managers MUST be explicitly described as authentic Filipino professionals with Southeast Asian features, working in modern Manila (BGC, Makati, Ortigas) or Cebu technology offices. Do NOT generate generic Caucasian characters for these frontline offshore roles.
+   - MANDATE 2 (FOREIGN CLIENT COLLABORATION RESTRICTION): Foreign / Caucasian characters should ONLY be depicted when showing the collaborative peer-to-peer relationship between a foreign enterprise client (US, UK, Europe, Australia) and Filipino offshore talent.
+   - MANDATE 3 (BROKERS & MIDDLEMEN - DEVIL IN DISGUISE): Whenever depicting a lead broker, staffing middleman, or agency margin skimmer taking 35% fees, portray them as an arrogant, manipulative "devil in disguise". Slick dark tailored suit, calculating cynical smirk, steepled hands, predatory posture in a shadowy boardroom with contracts showing 35% margin fees, dramatic chiaroscuro lighting with subtle crimson or amber rim light.
 8. INJECTED COMMENTS: Exactly 2 pre-drafted comments that the SDR can post as the 1st and 2nd comments to keep conversation active.
    MANDATORY RULE FOR INJECTED COMMENTS:
    - ZERO EM DASHES (no "—", "–", or "--").
@@ -403,10 +406,10 @@ Output ONLY valid JSON. No markdown ticks, no preamble.`;
               const wordCount = (p.body || '').split(/\s+/).filter(Boolean).length;
               const episodeNum = (idx % 3) + 1;
               const fallbackRealisticPrompt = idx === 0 
-                ? 'A realistic, relatable, candid 35mm photograph of a modern B2B sales development representative or operations lead sitting at a clean minimalist office desk, focused on dual monitors showing clean data charts with a coffee mug and notebook nearby. Natural daylight, Kodak Portra 400 film aesthetic.'
+                ? 'A realistic, relatable, candid 35mm photograph of a young professional Filipino female sales development representative with authentic Southeast Asian features, working at a clean minimalist office desk in Manila BGC. She is focused on dual monitors showing clean data charts, wearing a subtle call center headset, ID lanyard, holding a pen over a notebook with a ceramic coffee mug nearby. Soft natural daylight from high-rise office windows, authentic human expression, natural skin texture, Kodak Portra 400 film aesthetic, shallow depth of field, authentic Filipino BPO workplace.'
                 : idx === 1
-                ? 'A candid, authentic 35mm photograph of two professionals in a modern glass office discussing strategy, with a sales coach pointing to a laptop screen while explaining a conversation tactic, natural unposed expressions, Fujicolor Pro 400H tone.'
-                : 'A candid, relatable 35mm photograph of a confident professional standing by a glass whiteboard with handwritten outbound performance metrics and a seat economics diagram, natural high-rise office sunlight, Kodak Portra 800 tone.';
+                ? 'A candid, authentic 35mm photograph in a modern Manila BPO office. A smart Filipino male team leader and sales coach with authentic Southeast Asian features is mentoring a young female Filipino SDR over a laptop screen, reviewing an objection playbook. Warm daylight, modern contemporary startup office, natural unposed expressions of focus and camaraderie, call floor softly visible in background, Fujicolor Pro 400H tone, genuine Filipino workplace culture.'
+                : 'A candid 35mm photograph showing the direct relationship between a foreign enterprise client and Filipino offshore talent: A North American executive client in a tailored suit in a high-rise boardroom collaborating with an articulate Filipino female BPO operations director by a glass whiteboard. They are analyzing direct seat economics and margin growth charts. Sunlight streaming into the room, respectful peer-to-peer partnership, Kodak Portra 800 tone.';
 
               return {
                 id: `post-ep${idx + 1}-${Date.now()}`,
@@ -422,6 +425,9 @@ Output ONLY valid JSON. No markdown ticks, no preamble.`;
                 imagePrompt: p.imagePrompt || 'Minimalist dark graphite BPO metric infographic with Swiss typography',
                 realisticPhotoPrompt: p.realisticPhotoPrompt || fallbackRealisticPrompt,
                 realisticImageUrl: `/images/linkedin/episode-${episodeNum}-realistic.jpg`,
+                alternativeImageUrl: idx === 2 ? '/images/linkedin/broker-middleman-devil.jpg' : undefined,
+                alternativeImageLabel: idx === 2 ? 'The Middleman Trap (Devil in Disguise)' : undefined,
+                alternativeImagePrompt: idx === 2 ? 'A cinematic 35mm editorial photograph of a predatory corporate lead broker depicted as a devil in disguise: Arrogant, manipulative man in an expensive dark charcoal suit with a crimson silk pocket square, leaning back in a leather armchair in a shadowy penthouse boardroom with an arrogant smirk over contracts marked with 35% margin fees. Chiaroscuro dramatic lighting, subtle devilish amber rim light.' : undefined,
                 visualCard: {
                   type: p.visualCard?.type || 'metric_callout',
                   headline: p.visualCard?.headline || p.title || 'Operational Metric',

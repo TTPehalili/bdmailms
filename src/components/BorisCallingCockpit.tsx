@@ -69,6 +69,7 @@ import {
 } from '@/lib/dispositionStore';
 import { useSession } from '@/lib/session';
 import AiOutboundCopilot from '@/components/cockpit/AiOutboundCopilot';
+import { QUALIFYING_QUESTIONS, QualifyingQuestion, DEFAULT_ANTI_SALES_CTAS } from '@/lib/outboundFrameworks';
 
 interface ARMRebuttal {
   id: string;
@@ -125,6 +126,8 @@ export default function BorisCallingCockpit() {
   const [approvedEmailSubject, setApprovedEmailSubject] = useState<string | null>(null);
   const [approvedEmailBody, setApprovedEmailBody] = useState<string | null>(null);
   const [approvedLinkedInBody, setApprovedLinkedInBody] = useState<string | null>(null);
+  const [customVerificationText, setCustomVerificationText] = useState<string | null>(null);
+  const [showMetaProofSection, setShowMetaProofSection] = useState<boolean>(true);
 
   // Screen 2: Directory & Shared Lead Trap
   const [recognizedOA, setRecognizedOA] = useState<boolean | null>(null);
@@ -376,7 +379,7 @@ export default function BorisCallingCockpit() {
 
   // Injected Spoken Opener (Interpolates lead variables into the exact email-context script)
   const getInjectedOpenerText = () => replaceLeadVariables(currentPhoneConfig.spokenOpenerEmailInjected);
-  const getInjectedVerificationText = () => replaceLeadVariables(currentPhoneConfig.spokenVerification);
+  const getInjectedVerificationText = () => customVerificationText || replaceLeadVariables(currentPhoneConfig.spokenVerification);
   const getInjectedVoicemailText = () => replaceLeadVariables(currentPhoneConfig.voicemailScript || '');
 
   // Interpolated Cadence Email Text
@@ -2247,6 +2250,234 @@ export default function BorisCallingCockpit() {
                           }}
                         />
 
+                        {/* =================================================================== */}
+                        {/* FOUNDER OUTBOUND WEAPON: RADICAL TRANSPARENCY & META-PROOF PIVOT     */}
+                        {/* =================================================================== */}
+                        {(() => {
+                          const metaProofTrack = `${customerName}, can I be completely transparent with you for 10 seconds? The reason our conversation felt different from the last five vendor calls you received today is because I'm not reading a script. I am using Appointmentlyy SDR right now on this call.\n\nThe objection you just gave me about shared lists? Our system fed me the consultative rebuttal in 150 milliseconds from our live cockpit. If this is how effectively we just acquired your attention, imagine what happens when your own ${headcount ? headcount.split(' ')[0] : '65'} reps use this on your clients' campaigns.`;
+                          const isLoadedInOpener = approvedColdCallOpener === metaProofTrack;
+
+                          const powerPunchCtas = [
+                            {
+                              id: 'cta-12min',
+                              label: '12-min Live ICP Build',
+                              text: `Let me do this: give me 12 minutes on Thursday. I'll share my screen, build ${partnerName}'s private verified list live, and show you the exact cockpit. If you don't see how it books you 5 more sits a week, tell me to get lost and I'll never call back. Fair?`
+                            },
+                            {
+                              id: 'cta-pilot',
+                              label: '7-Day 2-Rep Pilot Challenge',
+                              text: `We don't need to touch your whole floor. Let me pilot this with your 2 newest reps for 7 days. If their sit rate doesn't jump by 25%, you owe us nothing. Are you opposed to testing that?`
+                            },
+                            {
+                              id: 'cta-no-oriented',
+                              label: 'No-Oriented 150ms Challenge',
+                              text: `Would you be opposed to a quick 12-minute screen share where I show you how our cockpit feeds live 150ms rebuttals to your floor, or totally off base?`
+                            }
+                          ];
+
+                          return (
+                            <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white p-4 shadow-lg space-y-3.5">
+                              {/* Header */}
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-md bg-amber-500 text-black font-black text-xs">
+                                    ⚡
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold text-amber-400 tracking-wide">
+                                        RADICAL TRANSPARENCY & META-PROOF PIVOT
+                                      </span>
+                                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
+                                        Founder Dialing Mode
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-zinc-400">
+                                      Admit you are using Appointmentlyy right now on this live call to acquire them
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                  {isLoadedInOpener ? (
+                                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                      Active in Teleprompter
+                                    </span>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowMetaProofSection(!showMetaProofSection)}
+                                    className="text-[10px] font-mono text-zinc-400 hover:text-white px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700 cursor-pointer"
+                                  >
+                                    {showMetaProofSection ? 'Minimize' : 'Expand Kit'}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {showMetaProofSection && (
+                                <div className="space-y-3 pt-1">
+                                  {/* The Spoken Meta-Proof Script */}
+                                  <div className="p-3 rounded-lg bg-black/60 border border-amber-500/20 font-mono text-xs leading-relaxed text-zinc-200">
+                                    {metaProofTrack}
+                                  </div>
+
+                                  {/* Quick Actions */}
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (isLoadedInOpener) {
+                                          setApprovedColdCallOpener(null);
+                                        } else {
+                                          setApprovedColdCallOpener(metaProofTrack);
+                                        }
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                        isLoadedInOpener
+                                          ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
+                                          : 'bg-amber-400 hover:bg-amber-300 text-black shadow-md'
+                                      }`}
+                                    >
+                                      <Zap className="w-3.5 h-3.5" />
+                                      <span>{isLoadedInOpener ? 'Reset to Cadence Opener' : '⚡ Load into Live Teleprompter'}</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => playSpeech(metaProofTrack, 'meta_proof_track')}
+                                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 transition-colors cursor-pointer"
+                                    >
+                                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                                      <span>Hear Track</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => copyText(metaProofTrack, 'meta_proof_copy')}
+                                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 transition-colors cursor-pointer"
+                                    >
+                                      {copiedKey === 'meta_proof_copy' ? (
+                                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                      ) : (
+                                        <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                                      )}
+                                      <span>Copy Track</span>
+                                    </button>
+                                  </div>
+
+                                  {/* 4 Smooth Qualifying Questions */}
+                                  <div className="pt-2 border-t border-zinc-800/80 space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1">
+                                        <span>🎯</span>
+                                        <span>Smooth Diagnostic Qualifying Questions:</span>
+                                      </span>
+                                      <span className="text-[9px] font-mono text-zinc-500">
+                                        Click to load directly into Step 1B
+                                      </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {QUALIFYING_QUESTIONS.map((q) => {
+                                        const isQActive = customVerificationText === q.question;
+                                        return (
+                                          <div 
+                                            key={q.id}
+                                            className={`p-2.5 rounded-lg border text-left space-y-1.5 transition-all ${
+                                              isQActive 
+                                                ? 'bg-amber-950/40 border-amber-500/50 text-white' 
+                                                : 'bg-zinc-900/90 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                                            }`}
+                                          >
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-zinc-800 text-amber-300">
+                                                {q.category}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => copyText(q.question, `cp_${q.id}`)}
+                                                className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+                                                title="Copy Question"
+                                              >
+                                                {copiedKey === `cp_${q.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                              </button>
+                                            </div>
+                                            <p className="text-[11px] leading-snug font-medium text-zinc-200">
+                                              "{q.question}"
+                                            </p>
+                                            <div className="flex items-center justify-between pt-1">
+                                              <span className="text-[9px] text-zinc-500 truncate max-w-[140px]">
+                                                {q.diagnosticRationale}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  if (isQActive) {
+                                                    setCustomVerificationText(null);
+                                                  } else {
+                                                    setCustomVerificationText(q.question);
+                                                  }
+                                                }}
+                                                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                                                  isQActive
+                                                    ? 'bg-emerald-500 text-black'
+                                                    : 'bg-zinc-800 hover:bg-zinc-700 text-amber-300'
+                                                }`}
+                                              >
+                                                {isQActive ? '✓ Active in 1B' : 'Load in 1B'}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* 3 Power-Punch CTAs */}
+                                  <div className="pt-2 border-t border-zinc-800/80 space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold flex items-center gap-1">
+                                        <span>🥊</span>
+                                        <span>Power-Punch Closing CTAs:</span>
+                                      </span>
+                                      <span className="text-[9px] font-mono text-zinc-500">
+                                        Disarming & High-Conversion
+                                      </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                      {powerPunchCtas.map((cta) => (
+                                        <div 
+                                          key={cta.id}
+                                          className="p-2.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-left space-y-1.5"
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-[9px] font-mono font-bold text-rose-300">
+                                              {cta.label}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => copyText(cta.text, `cta_${cta.id}`)}
+                                              className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+                                              title="Copy CTA"
+                                            >
+                                              {copiedKey === `cta_${cta.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                            </button>
+                                          </div>
+                                          <p className="text-[10px] text-zinc-300 leading-snug font-mono">
+                                            "{cta.text}"
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                         {/* Spoken Line 1: Email-Injected Opener */}
                         <div className="p-4 rounded-xl bg-slate-50 border-2 border-slate-300/80 shadow-xs space-y-2">
                           <div className="flex items-center justify-between">
@@ -2285,9 +2516,27 @@ export default function BorisCallingCockpit() {
 
                         {/* Spoken Line 2: Role & Department Verification Bridge */}
                         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600 block">
-                            STEP 1B: ROLE VERIFICATION & CONVERSATION BRIDGE:
-                          </span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600 block">
+                              STEP 1B: ROLE VERIFICATION & CONVERSATION BRIDGE:
+                            </span>
+                            {customVerificationText && (
+                              <button 
+                                type="button" 
+                                onClick={() => setCustomVerificationText(null)}
+                                className="text-[10px] font-mono font-semibold text-amber-700 hover:text-amber-900 underline cursor-pointer"
+                              >
+                                Reset to Default Verification
+                              </button>
+                            )}
+                          </div>
+
+                          {customVerificationText && (
+                            <div className="p-1.5 rounded bg-amber-50 border border-amber-200 text-[10px] text-amber-900 font-semibold flex items-center gap-1">
+                              <span>🎯 Injected Diagnostic Question</span>
+                            </div>
+                          )}
+
                           <p className={`font-semibold text-zinc-900 leading-relaxed ${
                             textSize === 'huge' ? 'text-2xl' : textSize === 'large' ? 'text-xl' : 'text-base'
                           }`}>
