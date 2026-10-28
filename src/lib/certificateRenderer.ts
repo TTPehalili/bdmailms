@@ -48,7 +48,7 @@ export class CertificateRenderer {
 
     return {
       certificateId: certId,
-      repName: repName || 'Alex Mercer',
+      repName: repName || 'Emil Halili',
       campaignName,
       trackName: 'ARM (Acknowledge, Respond, Move) Conversational Objection Interception',
       score,

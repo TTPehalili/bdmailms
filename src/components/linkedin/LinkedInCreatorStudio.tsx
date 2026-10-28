@@ -450,16 +450,16 @@ export default function LinkedInCreatorStudio() {
               <div className="px-4 pb-4 relative pt-0">
                 <div className="h-14 w-14 rounded-full border-2 border-white bg-zinc-900 text-white -mt-7 flex items-center justify-center font-bold text-sm shadow-xs overflow-hidden">
                   <span className="bg-gradient-to-br from-[#0a66c2] to-zinc-950 w-full h-full flex items-center justify-center text-white font-bold">
-                    EV
+                    EH
                   </span>
                 </div>
                 <div className="mt-2">
                   <h3 className="text-sm font-bold text-[#191919] flex items-center gap-1">
-                    <span>Emil Vance</span>
+                    <span>Emil Halili</span>
                     <span className="text-[10px] text-[#666666] font-normal">• 1st</span>
                   </h3>
                   <p className="text-[11px] text-[#666666] leading-tight mt-0.5">
-                    Head of Outbound Operations &amp; BPO Partnerships | 17-Year BDM
+                    CEO &amp; Founder at Appointmentlyy | AI Outbound &amp; BPO Systems
                   </p>
                 </div>
                 <div className="mt-3 pt-3 border-t border-[#e8e8e8] text-[11px] text-[#666666] space-y-1">
@@ -681,12 +681,12 @@ export default function LinkedInCreatorStudio() {
                   <div>
                     <div className="flex items-center gap-1 leading-tight">
                       <span className="font-bold text-sm text-[#191919] hover:text-[#0a66c2] hover:underline cursor-pointer">
-                        Emil Vance
+                        Emil Halili
                       </span>
                       <span className="text-xs text-[#666666] font-normal">• 1st</span>
                     </div>
                     <p className="text-xs text-[#666666] leading-snug line-clamp-1">
-                      Head of Outbound Operations &amp; BPO Partnerships | 17-Year BDM
+                      CEO &amp; Founder at Appointmentlyy | AI Outbound &amp; BPO Systems
                     </p>
                     <div className="flex items-center gap-1 text-[11px] text-[#666666] mt-0.5">
                       <span>1d • Edited</span>
@@ -892,12 +892,12 @@ export default function LinkedInCreatorStudio() {
                     {activePost.injectedComments.map((comment, cIdx) => (
                       <div key={cIdx} className="flex items-start gap-2.5">
                         <div className="h-8 w-8 rounded-full bg-[#0a66c2] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                          EV
+                          EH
                         </div>
                         <div className="flex-1 bg-[#f2f2f2] hover:bg-[#e8e8e8]/70 transition-colors p-3 rounded-2xl rounded-tl-xs space-y-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-[#191919]">Emil Vance</span>
+                              <span className="text-xs font-bold text-[#191919]">Emil Halili</span>
                               <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#ebf4fd] text-[#0a66c2] font-bold">
                                 Author
                               </span>

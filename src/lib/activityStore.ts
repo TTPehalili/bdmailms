@@ -39,7 +39,7 @@ export const INITIAL_DEMO_ACTIVITIES: CadenceActivityRecord[] = [
     id: 'act_demo_1',
     timestamp: '10:42 AM',
     isoDate: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    repName: 'Alex Mercer',
+    repName: 'Emil Halili',
     prospectName: 'Julian Vance',
     companyName: 'Apex Global BPO',
     channel: 'Phone',
@@ -56,7 +56,7 @@ export const INITIAL_DEMO_ACTIVITIES: CadenceActivityRecord[] = [
     id: 'act_demo_2',
     timestamp: '10:15 AM',
     isoDate: new Date(Date.now() - 1000 * 60 * 50).toISOString(),
-    repName: 'Alex Mercer',
+    repName: 'Emil Halili',
     prospectName: 'Marcus Brody',
     companyName: 'Nexus Call Solutions',
     channel: 'Email',
@@ -73,7 +73,7 @@ export const INITIAL_DEMO_ACTIVITIES: CadenceActivityRecord[] = [
     id: 'act_demo_3',
     timestamp: '09:40 AM',
     isoDate: new Date(Date.now() - 1000 * 60 * 85).toISOString(),
-    repName: 'Alex Mercer',
+    repName: 'Emil Halili',
     prospectName: 'Sarah Lin',
     companyName: 'ClearDial Telephony',
     channel: 'LinkedIn',
@@ -101,7 +101,18 @@ export function getStoredActivities(): CadenceActivityRecord[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      let changed = false;
+      const migrated = parsed.map(a => {
+        if (a.repName === 'Alex Mercer') {
+          changed = true;
+          return { ...a, repName: 'Emil Halili' };
+        }
+        return a;
+      });
+      if (changed) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      }
+      return migrated;
     }
     return INITIAL_DEMO_ACTIVITIES;
   } catch (err) {
@@ -156,7 +167,7 @@ export function logCadenceActivity(
 
 export const INITIAL_DAILY_SUMMARY: DailyActivitySummary = {
   date: 'Today',
-  repName: 'Alex Mercer',
+  repName: 'Emil Halili',
   totalActivities: 0,
   callsMade: 0,
   emailsSent: 0,
@@ -208,7 +219,7 @@ export function getDailyActivitySummary(repName?: string): DailyActivitySummary 
 
   return {
     date: new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
-    repName: repName || 'Alex Mercer',
+    repName: repName || 'Emil Halili',
     totalActivities: todayActivities.length,
     callsMade,
     emailsSent,

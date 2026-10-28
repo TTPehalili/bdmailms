@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const repId: string = body.repId || '00000000-0000-0000-0000-000000000000';
-    const repName: string = body.repName || 'Alex Mercer';
+    const repName: string = body.repName || 'Emil Halili';
     const campaignId: string = body.campaignId || '00000000-0000-0000-0000-000000000001';
     const score: number = Number(body.score || 88);
     const notes: string = body.notes || 'Completed live Boris certification simulation';

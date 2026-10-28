@@ -29,7 +29,7 @@ export const INITIAL_SEED_EMAILS: EmailMessage[] = [
     id: 'msg_seed_001',
     threadId: 'thread_julian_vance',
     direction: 'outbound',
-    from: 'Emil Vance <emil@appointmentlyy.com>',
+    from: 'Emil Halili <emil@appointmentlyy.com>',
     to: 'julian@apexglobalbpo.com',
     subject: 'apex lead burn',
     body: `Hi Julian, Saw Apex Global BPO is scaling outbound seats to 65. Typically when BPO leaders scale outbound, the hidden leak is not lead volume, it is callers getting chopped on price by commodity competitors. Traditional coaching fails when reps freeze in the first 20 seconds. We feed consultative rebuttals in 150 milliseconds live on the dial. Open to a 2-minute video showing how we insulate margins, or totally off base?`,
@@ -47,7 +47,7 @@ export const INITIAL_SEED_EMAILS: EmailMessage[] = [
     threadId: 'thread_julian_vance',
     direction: 'inbound',
     from: 'Julian Vance <julian@apexglobalbpo.com>',
-    to: 'Emil Vance <emil@appointmentlyy.com>',
+    to: 'Emil Halili <emil@appointmentlyy.com>',
     subject: 'Re: apex lead burn',
     body: `Hey Emil,
 
@@ -72,7 +72,7 @@ Apex Global BPO`,
     id: 'msg_seed_003',
     threadId: 'thread_marcus_brody',
     direction: 'outbound',
-    from: 'Emil Vance <emil@appointmentlyy.com>',
+    from: 'Emil Halili <emil@appointmentlyy.com>',
     to: 'mbrody@nexuscall.com',
     subject: 'quick question on ramp time',
     body: `Hi Marcus,
@@ -96,7 +96,7 @@ Emil`,
     threadId: 'thread_marcus_brody',
     direction: 'inbound',
     from: 'Marcus Brody <mbrody@nexuscall.com>',
-    to: 'Emil Vance <emil@appointmentlyy.com>',
+    to: 'Emil Halili <emil@appointmentlyy.com>',
     subject: 'Re: quick question on ramp time',
     body: `Emil,
 
@@ -116,7 +116,7 @@ Marcus`,
     id: 'msg_seed_005',
     threadId: 'thread_sarah_jenkins',
     direction: 'outbound',
-    from: 'Emil Vance <emil@appointmentlyy.com>',
+    from: 'Emil Halili <emil@appointmentlyy.com>',
     to: 'sjenkins@cloudstaffbpo.com',
     subject: 'broker margin leak',
     body: `Hi Sarah, Notice CloudStaff is adding 30 outbound appointment setters. Typically when agencies take on broker campaigns, the middleman pockets 60% of the contract while you carry 100% of the OPEX risk. Would it be a terrible idea to compare notes for 2 minutes on how to take internal client acquisition back in-house?`,
@@ -139,7 +139,28 @@ export function getStoredEmails(): EmailMessage[] {
       return INITIAL_SEED_EMAILS;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_SEED_EMAILS;
+    if (!Array.isArray(parsed)) return INITIAL_SEED_EMAILS;
+
+    // Migrate any legacy 'Emil Vance' or 'Alex Mercer' references in stored emails
+    let hasChanges = false;
+    const migrated = parsed.map((m: EmailMessage) => {
+      let updatedFrom = m.from;
+      let updatedTo = m.to;
+      if (m.from && (m.from.includes('Emil Vance') || m.from.includes('Alex Mercer'))) {
+        updatedFrom = m.from.replace('Emil Vance', 'Emil Halili').replace('Alex Mercer', 'Emil Halili');
+        hasChanges = true;
+      }
+      if (m.to && (m.to.includes('Emil Vance') || m.to.includes('Alex Mercer'))) {
+        updatedTo = m.to.replace('Emil Vance', 'Emil Halili').replace('Alex Mercer', 'Emil Halili');
+        hasChanges = true;
+      }
+      return { ...m, from: updatedFrom, to: updatedTo };
+    });
+
+    if (hasChanges) {
+      localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify(migrated));
+    }
+    return migrated;
   } catch (e) {
     console.warn('Could not read stored emails:', e);
     return INITIAL_SEED_EMAILS;

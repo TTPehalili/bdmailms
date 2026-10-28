@@ -7,8 +7,9 @@ import { ArrowRight, Lock, Mail, Building2, Shield, User, CheckCircle2 } from 'l
 import { setStoredSession, UserRole, formatRepNameFromEmail } from '@/lib/session';
 
 const KNOWN_TENANTS: Record<string, { name: string; code: string; defaultRep: string }> = {
-  'apexglobalbpo.ph': { name: 'Apex Global BPO', code: 'APEX-GLOBAL', defaultRep: 'Alex Mercer' },
-  'apexglobal.ph': { name: 'Apex Global BPO', code: 'APEX-GLOBAL', defaultRep: 'Alex Mercer' },
+  'appointmentlyy.com': { name: 'Appointmentlyy', code: 'APPOINTMENTLYY', defaultRep: 'Emil Halili' },
+  'apexglobalbpo.ph': { name: 'Apex Global BPO', code: 'APEX-GLOBAL', defaultRep: 'Julian Vance' },
+  'apexglobal.ph': { name: 'Apex Global BPO', code: 'APEX-GLOBAL', defaultRep: 'Julian Vance' },
   'shorepartners.ph': { name: 'ShorePartners BPO', code: 'SHORE-PARTNERS', defaultRep: 'Sarah Jenkins' },
   'cloudstaff.ph': { name: 'CloudStaff Outsourcing', code: 'CLOUD-STAFF', defaultRep: 'Marcus Vance' },
   'vanguard.ph': { name: 'Vanguard BPO Solutions', code: 'VANGUARD-PH', defaultRep: 'Paolo Reyes' },
@@ -18,7 +19,7 @@ const KNOWN_TENANTS: Record<string, { name: string; code: string; defaultRep: st
 function resolveTenant(email: string) {
   const parts = email.trim().toLowerCase().split('@');
   if (parts.length < 2) {
-    return { name: 'Apex Global BPO', code: 'APEX-GLOBAL', defaultRep: 'Alex Mercer' };
+    return { name: 'Appointmentlyy', code: 'APPOINTMENTLYY', defaultRep: 'Emil Halili' };
   }
   const domain = parts[1];
   if (KNOWN_TENANTS[domain]) {
@@ -35,7 +36,7 @@ function resolveTenant(email: string) {
 
 export default function SdrLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('alex.mercer@apexglobalbpo.ph');
+  const [email, setEmail] = useState('emil@appointmentlyy.com');
   const [password, setPassword] = useState('••••••••••••');
   const [role, setRole] = useState<UserRole>('Super Admin');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -116,15 +117,15 @@ export default function SdrLoginPage() {
             <div className="grid grid-cols-2 gap-1.5">
               <button
                 type="button"
-                onClick={() => setQuickDemo('alex.mercer@apexglobalbpo.ph', 'Rep')}
+                onClick={() => setQuickDemo('emil@appointmentlyy.com', 'Super Admin')}
                 className={`text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors border ${
-                  email.includes('alex') && role === 'Rep'
+                  email.includes('emil') && role === 'Super Admin'
                     ? 'bg-zinc-900 text-white border-zinc-900 font-medium'
                     : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-100'
                 }`}
               >
-                <div className="font-semibold truncate">Apex Global</div>
-                <div className="text-[10px] opacity-70">SDR Rep</div>
+                <div className="font-semibold truncate">Appointmentlyy</div>
+                <div className="text-[10px] opacity-70">CEO / Super Admin</div>
               </button>
 
               <button

@@ -55,8 +55,18 @@ import {
 } from '@/lib/coldEmailStudio';
 import { DEMO_CADENCE_LEADS, CadenceLeadRecord } from '@/lib/cadenceMaster';
 import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
+import { useSession } from '@/lib/session';
 
 export default function ColdEmailStudio() {
+  const { session } = useSession();
+
+  // Dynamic sender based on authenticated session
+  const senderDisplayName = session?.repName || 'Emil Halili';
+  const senderEmailRaw = session?.email || 'emil@appointmentlyy.com';
+  const verifiedSenderEmail = senderEmailRaw.toLowerCase().endsWith('@appointmentlyy.com')
+    ? senderEmailRaw
+    : 'emil@appointmentlyy.com';
+  const senderFrom = `${senderDisplayName} <${verifiedSenderEmail}>`;
   // Navigation & Framework State
   const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>('braun-poke-the-bear');
   const [userIdea, setUserIdea] = useState<string>(
@@ -369,7 +379,7 @@ export default function ColdEmailStudio() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: prospectEmail.trim(),
-          from: 'Emil Vance <emil@appointmentlyy.com>',
+          from: senderFrom,
           subject: activeSubject,
           body: editableBody,
           leadName: prospectName,
@@ -384,7 +394,7 @@ export default function ColdEmailStudio() {
         if (data.email) {
           saveEmailToStore(data.email);
         }
-        setDirectSendStatus(`Dispatched from emil@appointmentlyy.com to ${prospectEmail.trim()}`);
+        setDirectSendStatus(`Dispatched from ${senderFrom} to ${prospectEmail.trim()}`);
       } else {
         const errData = await res.json().catch(() => ({}));
         setDirectSendStatus(`Error: ${errData.error || 'Send failed'}`);
@@ -395,6 +405,17 @@ export default function ColdEmailStudio() {
       setIsSendingDirectEmail(false);
       setTimeout(() => setDirectSendStatus(null), 8000);
     }
+  };
+
+  // Apply changes from Prospect Modal and regenerate draft for target lead
+  const handleApplyProspectChanges = () => {
+    setIsProspectModalOpen(false);
+    const newDraft = getDeterministicColdEmail(selectedFrameworkId, userIdea, {
+      name: prospectName,
+      company: prospectCompany
+    });
+    setCurrentDraft(newDraft);
+    setEditableBody(newDraft.body);
   };
 
   // CSV Import Callback
@@ -592,7 +613,7 @@ export default function ColdEmailStudio() {
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-zinc-600 text-[11px] font-medium">From:</span>
-                  <strong className="text-zinc-900 font-mono text-[11px]">emil@appointmentlyy.com</strong>
+                  <strong className="text-zinc-900 font-mono text-[11px]">{senderFrom}</strong>
                 </div>
                 <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
                   GoDaddy Live
@@ -1136,7 +1157,7 @@ export default function ColdEmailStudio() {
               <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                 <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                 <span className="text-[11px]">
-                  Sender: <strong className="text-zinc-800 font-mono">emil@appointmentlyy.com</strong> &rarr; Target: <strong className="text-zinc-800 font-mono">{prospectEmail || 'Not set'}</strong>
+                  Sender: <strong className="text-zinc-800 font-mono">{senderFrom}</strong> &rarr; Target: <strong className="text-zinc-800 font-mono">{prospectEmail || 'Not set'}</strong>
                 </span>
                 {directSendStatus && (
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
@@ -1159,7 +1180,7 @@ export default function ColdEmailStudio() {
                   onClick={handleDirectSendEmail}
                   disabled={isSendingDirectEmail}
                   className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
-                  title={`Dispatch live email from emil@appointmentlyy.com to ${prospectEmail}`}
+                  title={`Dispatch live email from ${senderFrom} to ${prospectEmail}`}
                 >
                   {isSendingDirectEmail ? (
                     <>
@@ -1169,7 +1190,7 @@ export default function ColdEmailStudio() {
                   ) : (
                     <>
                       <Send className="h-3.5 w-3.5" />
-                      <span>Send via emil@appointmentlyy.com</span>
+                      <span>Send as {senderDisplayName}</span>
                     </>
                   )}
                 </button>
@@ -1489,8 +1510,8 @@ export default function ColdEmailStudio() {
 
             <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end gap-2">
               <button
-                onClick={() => setIsProspectModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-zinc-900 text-white font-bold text-xs hover:bg-zinc-800 transition-colors"
+                onClick={handleApplyProspectChanges}
+                className="px-4 py-2 rounded-xl bg-zinc-900 text-white font-bold text-xs hover:bg-zinc-800 transition-colors cursor-pointer"
               >
                 Apply Changes
               </button>

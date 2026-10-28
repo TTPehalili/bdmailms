@@ -28,11 +28,11 @@ export const SDR_SESSION_EVENT = 'appointmentlyy_sdr_session_updated';
 
 export const DEFAULT_SESSION: SdrSession = {
   role: 'Super Admin',
-  tenantName: 'Apex Global BPO',
-  tenantCode: 'APEX-GLOBAL',
-  email: 'alex.mercer@apexglobalbpo.ph',
-  repName: 'Alex Mercer',
-  headcount: '250 Seats (Manila & Cebu)',
+  tenantName: 'Appointmentlyy',
+  tenantCode: 'APPOINTMENTLYY',
+  email: 'emil@appointmentlyy.com',
+  repName: 'Emil Halili',
+  headcount: 'CEO/Founder',
   isAuthenticated: true,
 };
 
@@ -40,8 +40,9 @@ export const DEFAULT_SESSION: SdrSession = {
  * Format an email or string into a clean person name (e.g. julian.vance@company.com -> Julian Vance)
  */
 export function formatRepNameFromEmail(emailOrName: string): string {
-  if (!emailOrName) return 'Alex Mercer';
+  if (!emailOrName) return 'Emil Halili';
   if (!emailOrName.includes('@')) return emailOrName;
+  if (emailOrName.toLowerCase() === 'emil@appointmentlyy.com') return 'Emil Halili';
 
   const localPart = emailOrName.split('@')[0].replace(/[._-]/g, ' ');
   return localPart
@@ -88,6 +89,18 @@ export function getStoredSession(): SdrSession {
     const tenantCodeRaw = localStorage.getItem(SDR_SESSION_STORAGE_KEYS.TENANT_CODE);
     const headcountRaw = localStorage.getItem(SDR_SESSION_STORAGE_KEYS.HEADCOUNT);
     const authRaw = localStorage.getItem(SDR_SESSION_STORAGE_KEYS.AUTH_FLAG);
+
+    // Auto-migrate legacy Alex Mercer demo profile to Emil Halili / Appointmentlyy production state
+    if (!repNameRaw || repNameRaw === 'Alex Mercer' || emailRaw === 'alex.mercer@apexglobalbpo.ph') {
+      localStorage.setItem(SDR_SESSION_STORAGE_KEYS.REP_NAME, 'Emil Halili');
+      localStorage.setItem(SDR_SESSION_STORAGE_KEYS.EMAIL, 'emil@appointmentlyy.com');
+      localStorage.setItem(SDR_SESSION_STORAGE_KEYS.TENANT_NAME, 'Appointmentlyy');
+      localStorage.setItem(SDR_SESSION_STORAGE_KEYS.TENANT_CODE, 'APPOINTMENTLYY');
+      localStorage.setItem(SDR_SESSION_STORAGE_KEYS.HEADCOUNT, 'CEO/Founder');
+      localStorage.setItem(SDR_SESSION_STORAGE_KEYS.ROLE, 'Super Admin');
+      localStorage.setItem(SDR_SESSION_STORAGE_KEYS.AUTH_FLAG, 'true');
+      return DEFAULT_SESSION;
+    }
 
     return {
       role: normalizeUserRole(roleRaw || DEFAULT_SESSION.role),

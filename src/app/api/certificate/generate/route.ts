@@ -5,7 +5,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const repName = body.repName || 'Alex Mercer';
+    const repName = body.repName || 'Emil Halili';
     const campaignName = body.campaignName || 'Enterprise Outbound SDR Mastery';
     const score = Number(body.score || 92);
     const repId = body.repId || '00000000-0000-0000-0000-000000000000';

@@ -21,7 +21,7 @@ function CertificateContent() {
 
   const [certData, setCertData] = useState<CertificateMetadata>({
     certificateId: certId,
-    repName: 'Alex Mercer',
+    repName: 'Emil Halili',
     campaignName: 'Enterprise Outbound BDR Mastery',
     trackName: 'ARM (Acknowledge, Respond, Move) Objection Interception Framework',
     score: 92,

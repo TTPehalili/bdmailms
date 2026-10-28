@@ -108,7 +108,7 @@ export default function BorisCallingCockpit() {
   const [department, setDepartment] = useState('Client Acquisition & Outbound Sales');
   const [phone, setPhone] = useState('+1 (415) 890-1284');
   const [headcount, setHeadcount] = useState('250 Seats (Manila & Cebu)');
-  const [repName, setRepName] = useState('Alex Mercer');
+  const [repName, setRepName] = useState(sessionRep || 'Emil Halili');
   const [companyName, setCompanyName] = useState('Appointmentlyy');
   const [leadNotes, setLeadNotes] = useState('Directory Lead Source: Outsource Accelerator\nFloor: 250 Seats handling CS & Sales\nBottleneck: Competing against 3-5 BPOs on identical shared lists ($8/hr margin crush)\nNext Step: 20-min demo with Founder Emil (17+ yrs BDM)');
 

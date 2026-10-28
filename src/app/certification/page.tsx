@@ -17,10 +17,12 @@ import {
 } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
+import { useSession } from '@/lib/session';
 
 export default function CertificationGatePage() {
   const router = useRouter();
-  const [repName, setRepName] = useState('Alex Mercer');
+  const { repName: sessionRep } = useSession();
+  const [repName, setRepName] = useState(sessionRep || 'Emil Halili');
   const [attempts, setAttempts] = useState<Array<{ number: number; score: number; passed: boolean; date: string }>>([
     { number: 1, score: 76, passed: false, date: 'Attempt 1 - Needs Remediation' },
     { number: 2, score: 81, passed: false, date: 'Attempt 2 - Needs Remediation' }

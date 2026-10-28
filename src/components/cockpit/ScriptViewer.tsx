@@ -10,6 +10,7 @@ import {
   Square 
 } from 'lucide-react';
 import { CockpitLead } from './LeadQueue';
+import { useSession } from '@/lib/session';
 
 interface ScriptViewerProps {
   lead: CockpitLead;
@@ -28,6 +29,7 @@ export default function ScriptViewer({
   onSetDisposition,
   activeDisposition
 }: ScriptViewerProps) {
+  const { session } = useSession();
   const [activeChannel, setActiveChannel] = useState<'call' | 'email' | 'linkedin'>('call');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<Record<string, boolean>>({
@@ -336,7 +338,7 @@ export default function ScriptViewer({
               <p>Noticed {lead.company} is currently running {lead.techStack} with {lead.currentBpo}. Typically, demand generation leaders in your space mention that {lead.painPoint} holds back outbound pipeline quotas.</p>
               <p>We built AI Boris to feed SDRs live objection talk tracks during live calls with zero hesitation.</p>
               <p>Would you be open to a 10-minute diagnostic session next Tuesday or Wednesday?</p>
-              <p>Best,<br />Alex Mercer</p>
+              <p>Best,<br />{session?.repName || 'Emil Halili'}</p>
             </div>
           </div>
         )}

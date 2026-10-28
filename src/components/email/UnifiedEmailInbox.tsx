@@ -37,13 +37,23 @@ import {
   clearAllEmails, 
   resetToInitialSeeds 
 } from '@/lib/emailStore';
+import { useSession } from '@/lib/session';
 
 export default function UnifiedEmailInbox() {
+  const { session } = useSession();
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'inbound' | 'outbound' | 'unread'>('all');
   
+  // Dynamic sender based on authenticated session
+  const senderDisplayName = session?.repName || 'Emil Halili';
+  const senderEmailRaw = session?.email || 'emil@appointmentlyy.com';
+  const verifiedSenderEmail = senderEmailRaw.toLowerCase().endsWith('@appointmentlyy.com')
+    ? senderEmailRaw
+    : 'emil@appointmentlyy.com';
+  const senderFrom = `${senderDisplayName} <${verifiedSenderEmail}>`;
+
   // Compose / Reply State
   const [replyText, setReplyText] = useState<string>('');
   const [isSendingReply, setIsSendingReply] = useState<boolean>(false);
@@ -126,7 +136,7 @@ export default function UnifiedEmailInbox() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to,
-          from: 'Emil Vance <emil@appointmentlyy.com>',
+          from: senderFrom,
           subject: activeThreadLead.subject.startsWith('Re:') ? activeThreadLead.subject : `Re: ${activeThreadLead.subject}`,
           body: replyText.trim(),
           leadName: activeThreadLead.leadName,
@@ -204,17 +214,18 @@ export default function UnifiedEmailInbox() {
 
   // AI Quick Reply Presets
   const handleApplyAiReplyPreset = (presetType: 'demo' | 'objection' | 'pricing') => {
+    const signOff = `Best,\n${senderDisplayName}`;
     if (presetType === 'demo') {
       setReplyText(
-        `Hi ${activeThreadLead.leadName.split(' ')[0]},\n\nGlad this resonated. I just uploaded the 2-minute unscripted rebuttal video here: https://appointmentlyy.com/demo/sparring-150ms\n\nWould Thursday 2:00 PM or 3:30 PM EST work best for a quick 15-minute screen share with you and your floor QA lead? I'll show live objection telemetry on your exact campaign.\n\nBest,\nEmil`
+        `Hi ${activeThreadLead.leadName.split(' ')[0]},\n\nGlad this resonated. I just uploaded the 2-minute unscripted rebuttal video here: https://appointmentlyy.com/demo/sparring-150ms\n\nWould Thursday 2:00 PM or 3:30 PM EST work best for a quick 15-minute screen share with you and your floor QA lead? I'll show live objection telemetry on your exact campaign.\n\n${signOff}`
       );
     } else if (presetType === 'pricing') {
       setReplyText(
-        `Hi ${activeThreadLead.leadName.split(' ')[0]},\n\nFor a 50-seat floor on Salesforce and Twilio, we run on a direct per-seat model ($85/seat/month) that pays for itself on day 3 when reps stop burning accounts.\n\nAre you free for 10 minutes Wednesday morning to look at the exact ROI calculator for your seat count?\n\nBest,\nEmil`
+        `Hi ${activeThreadLead.leadName.split(' ')[0]},\n\nFor a 50-seat floor on Salesforce and Twilio, we run on a direct per-seat model ($85/seat/month) that pays for itself on day 3 when reps stop burning accounts.\n\nAre you free for 10 minutes Wednesday morning to look at the exact ROI calculator for your seat count?\n\n${signOff}`
       );
     } else {
       setReplyText(
-        `Hi ${activeThreadLead.leadName.split(' ')[0]},\n\nFair question on sounding robotic—that is why traditional static scripts fail. Our system is an agile situational teleprompter that detects the prospect's exact objection in 150ms and displays consultative reframes, so reps sound like peer partners rather than script readers.\n\nWorth a 10-minute look, or are you guys set for this quarter?\n\nBest,\nEmil`
+        `Hi ${activeThreadLead.leadName.split(' ')[0]},\n\nFair question on sounding robotic—that is why traditional static scripts fail. Our system is an agile situational teleprompter that detects the prospect's exact objection in 150ms and displays consultative reframes, so reps sound like peer partners rather than script readers.\n\nWorth a 10-minute look, or are you guys set for this quarter?\n\n${signOff}`
       );
     }
   };
@@ -235,49 +246,44 @@ export default function UnifiedEmailInbox() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-140px)] min-h-[600px] text-zinc-900">
+    <div className="bg-white rounded-xl border border-zinc-200/90 shadow-2xs overflow-hidden flex flex-col flex-1 min-h-0 text-zinc-900">
       
       {/* ========================================================================= */}
-      {/* 1. TOP INBOX TOOLBAR                                                      */}
+      {/* 1. TOP INBOX TOOLBAR (Compact)                                            */}
       {/* ========================================================================= */}
-      <div className="p-4 px-6 border-b border-zinc-200 bg-zinc-50/70 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-zinc-950 text-white flex items-center justify-center font-bold shadow-xs">
-            <Inbox className="h-5 w-5 text-zinc-100" />
+      <div className="px-3.5 py-2 border-b border-zinc-200 bg-zinc-50/80 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-zinc-950 text-white flex items-center justify-center font-bold shadow-2xs">
+            <Inbox className="h-4 w-4 text-zinc-100" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-zinc-900">
-                Unified Communications &amp; Email Inbox
-              </h2>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live Inbound &amp; Dispatches
-              </span>
-            </div>
-            <p className="text-xs text-zinc-500">
-              View all outbound campaign dispatches, live prospect replies, and send replies via Resend API.
-            </p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-bold text-zinc-900 tracking-tight">
+              Unified Communications Inbox
+            </h2>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 flex items-center gap-1" title={`Live sender: ${senderFrom}`}>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {senderDisplayName} &bull; {verifiedSenderEmail}
+            </span>
           </div>
         </div>
 
-        {/* Filter Pills & Search */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        {/* Search, Filter Pills & Clear */}
+        <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="h-3.5 w-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="h-3 w-3 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search emails or leads..."
-              className="text-xs py-1.5 pl-8 pr-3 rounded-lg border border-zinc-300 bg-white text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 w-44 sm:w-56"
+              placeholder="Filter emails..."
+              className="text-[11px] py-1 pl-7 pr-2.5 rounded-lg border border-zinc-200 bg-white text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 w-36 sm:w-48 shadow-2xs"
             />
           </div>
 
-          <div className="flex items-center gap-1 p-0.5 bg-zinc-200/70 rounded-lg border border-zinc-300/80">
+          <div className="flex items-center gap-0.5 p-0.5 bg-zinc-200/60 rounded-lg border border-zinc-300/60">
             <button
               onClick={() => setActiveFilter('all')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+              className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors ${
                 activeFilter === 'all' ? 'bg-white text-zinc-900 shadow-2xs' : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
@@ -285,7 +291,7 @@ export default function UnifiedEmailInbox() {
             </button>
             <button
               onClick={() => setActiveFilter('inbound')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors flex items-center gap-1 ${
+              className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1 ${
                 activeFilter === 'inbound' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
@@ -294,7 +300,7 @@ export default function UnifiedEmailInbox() {
             </button>
             <button
               onClick={() => setActiveFilter('outbound')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors flex items-center gap-1 ${
+              className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1 ${
                 activeFilter === 'outbound' ? 'bg-white text-blue-800 shadow-2xs' : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
@@ -306,17 +312,17 @@ export default function UnifiedEmailInbox() {
           {/* Clear All Trigger */}
           {emails.length > 0 && (
             showConfirmClearAll ? (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-xs">
-                <span className="text-rose-700 font-semibold text-[11px]">Clear all {emails.length}?</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-200 text-xs animate-in fade-in">
+                <span className="text-rose-700 font-semibold text-[10px]">Clear all {emails.length}?</span>
                 <button
                   onClick={handleConfirmClearAll}
-                  className="px-2 py-0.5 rounded bg-rose-600 text-white font-bold text-[10px] hover:bg-rose-700"
+                  className="px-1.5 py-0.2 rounded bg-rose-600 text-white font-bold text-[10px] hover:bg-rose-700"
                 >
                   Clear
                 </button>
                 <button
                   onClick={() => setShowConfirmClearAll(false)}
-                  className="px-2 py-0.5 rounded bg-zinc-200 text-zinc-700 text-[10px] hover:bg-zinc-300"
+                  className="px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-700 text-[10px] hover:bg-zinc-300"
                 >
                   Cancel
                 </button>
@@ -324,10 +330,10 @@ export default function UnifiedEmailInbox() {
             ) : (
               <button
                 onClick={() => setShowConfirmClearAll(true)}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 transition-colors"
-                title="Clear all emails in inbox"
+                className="p-1 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 transition-colors"
+                title="Clear all stored emails"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3 w-3" />
               </button>
             )
           )}
@@ -335,17 +341,17 @@ export default function UnifiedEmailInbox() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. DUAL-PANE INBOX WORKSTATION                                            */}
+      {/* 2. DUAL-PANE INBOX WORKSTATION (Compact Grid/Flex)                        */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden divide-x divide-zinc-200">
         
         {/* ======================================================================= */}
-        {/* LEFT PANE: THREAD LIST (4 COLS)                                         */}
+        {/* LEFT PANE: THREAD LIST (Compact Rail)                                   */}
         {/* ======================================================================= */}
-        <div className="md:col-span-4 border-r border-zinc-200 overflow-y-auto divide-y divide-zinc-100 bg-zinc-50/40">
+        <div className="w-72 sm:w-80 shrink-0 overflow-y-auto divide-y divide-zinc-100 bg-zinc-50/40">
           {threadSummaries.length === 0 ? (
-            <div className="p-8 text-center text-xs text-zinc-400 space-y-1">
-              <Mail className="h-6 w-6 mx-auto text-zinc-300" />
+            <div className="p-6 text-center text-xs text-zinc-400 space-y-1">
+              <Mail className="h-5 w-5 mx-auto text-zinc-300" />
               <p>No messages match your filter.</p>
             </div>
           ) : (
@@ -357,24 +363,24 @@ export default function UnifiedEmailInbox() {
                 <div
                   key={threadId}
                   onClick={() => setSelectedThreadId(threadId)}
-                  className={`p-4 cursor-pointer transition-all text-left space-y-1.5 ${
+                  className={`px-3 py-2.5 cursor-pointer transition-all text-left space-y-1 ${
                     isSelected
-                      ? 'bg-white border-l-4 border-zinc-950 shadow-2xs'
-                      : 'hover:bg-zinc-100/70 border-l-4 border-transparent'
+                      ? 'bg-white border-l-[3px] border-zinc-950 shadow-2xs'
+                      : 'hover:bg-zinc-100/70 border-l-[3px] border-transparent'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       {latestEmail.direction === 'inbound' ? (
-                        <span className="p-1 rounded bg-emerald-100 text-emerald-800 shrink-0">
-                          <ArrowDownLeft className="h-3 w-3" />
+                        <span className="p-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                          <ArrowDownLeft className="h-2.5 w-2.5" />
                         </span>
                       ) : (
-                        <span className="p-1 rounded bg-zinc-200 text-zinc-700 shrink-0">
-                          <ArrowUpRight className="h-3 w-3" />
+                        <span className="p-0.5 rounded bg-zinc-200 text-zinc-700 shrink-0">
+                          <ArrowUpRight className="h-2.5 w-2.5" />
                         </span>
                       )}
-                      <span className={`text-xs truncate ${hasUnreadInbound ? 'font-bold text-zinc-950' : 'font-semibold text-zinc-800'}`}>
+                      <span className={`text-[11px] truncate ${hasUnreadInbound ? 'font-bold text-zinc-950' : 'font-semibold text-zinc-800'}`}>
                         {latestEmail.leadName}
                       </span>
                     </div>
@@ -382,24 +388,24 @@ export default function UnifiedEmailInbox() {
                     <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-mono shrink-0">
                       <span>{formatTimeAgo(latestEmail.timestamp)}</span>
                       {hasUnreadInbound && (
-                        <span className="h-2 w-2 rounded-full bg-blue-600 inline-block" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-600 inline-block" />
                       )}
                     </div>
                   </div>
 
-                  <div className="text-[11px] font-bold text-zinc-900 truncate">
+                  <div className="text-[11px] font-medium text-zinc-900 truncate">
                     {latestEmail.subject}
                   </div>
 
-                  <p className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed">
+                  <p className="text-[10px] text-zinc-500 truncate leading-snug">
                     {latestEmail.body}
                   </p>
 
-                  <div className="flex items-center justify-between pt-1 text-[10px]">
-                    <span className="text-zinc-500 font-medium truncate max-w-[140px]">
+                  <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-0.5">
+                    <span className="truncate max-w-[150px] font-medium text-zinc-500">
                       {latestEmail.leadCompany}
                     </span>
-                    <span className="font-mono text-zinc-400">
+                    <span className="font-mono text-[9px] px-1 rounded bg-zinc-100 text-zinc-500">
                       {messageCount} {messageCount === 1 ? 'msg' : 'msgs'}
                     </span>
                   </div>
@@ -410,48 +416,46 @@ export default function UnifiedEmailInbox() {
         </div>
 
         {/* ======================================================================= */}
-        {/* RIGHT PANE: ACTIVE THREAD & AI REPLY COPILOT (8 COLS)                    */}
+        {/* RIGHT PANE: ACTIVE THREAD & COMPOSER (Flex-1)                           */}
         {/* ======================================================================= */}
-        <div className="md:col-span-8 flex flex-col h-full overflow-hidden bg-white">
+        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-white">
           
           {activeThreadLead ? (
             <>
-              {/* Thread Header Dossier */}
-              <div className="p-4 px-6 border-b border-zinc-200 bg-zinc-50/60 flex items-center justify-between flex-wrap gap-2 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-xs">
+              {/* Compact Thread Header Dossier */}
+              <div className="px-4 py-2 border-b border-zinc-200 bg-zinc-50/60 flex items-center justify-between flex-wrap gap-2 shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-7 w-7 rounded-full bg-zinc-950 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
                     {activeThreadLead.leadName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-zinc-900">
-                        {activeThreadLead.leadName}
-                      </h3>
-                      <span className="text-xs text-zinc-500">• {activeThreadLead.leadTitle || 'Executive'}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <strong className="font-bold text-zinc-900 truncate">{activeThreadLead.leadName}</strong>
+                      <span className="text-[11px] text-zinc-500 truncate">• {activeThreadLead.leadCompany}</span>
                     </div>
-                    <p className="text-xs text-zinc-500">
-                      {activeThreadLead.leadCompany} &lt;{activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to}&gt;
+                    <p className="text-[10px] text-zinc-400 font-mono truncate">
+                      {activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 font-bold border border-zinc-200">
-                    Thread ID: {selectedThreadId}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
+                    {selectedThreadId}
                   </span>
 
                   {showConfirmDeleteThread ? (
-                    <div className="flex items-center gap-1.5 animate-in fade-in">
-                      <span className="text-[11px] text-rose-600 font-semibold">Delete thread?</span>
+                    <div className="flex items-center gap-1 animate-in fade-in text-xs">
+                      <span className="text-[10px] text-rose-600 font-semibold">Delete thread?</span>
                       <button
                         onClick={handleConfirmDeleteThread}
-                        className="px-2 py-0.5 text-[11px] rounded bg-rose-600 hover:bg-rose-700 text-white font-bold transition-colors shadow-2xs"
+                        className="px-2 py-0.5 text-[10px] rounded bg-rose-600 hover:bg-rose-700 text-white font-bold transition-colors"
                       >
                         Confirm
                       </button>
                       <button
                         onClick={() => setShowConfirmDeleteThread(false)}
-                        className="px-1.5 py-0.5 text-[11px] rounded bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-medium transition-colors"
+                        className="px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-medium transition-colors"
                       >
                         Cancel
                       </button>
@@ -459,174 +463,170 @@ export default function UnifiedEmailInbox() {
                   ) : (
                     <button
                       onClick={() => setShowConfirmDeleteThread(true)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-500 hover:text-rose-600 hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 transition-colors"
-                      title="Delete this entire conversation thread"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-zinc-500 hover:text-rose-600 hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 transition-colors"
+                      title="Delete this conversation thread"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>Delete Thread</span>
+                      <Trash2 className="h-3 w-3" />
+                      <span>Delete</span>
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Thread Message Stream (Scrollable) */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-50/30">
+              {/* Thread Message Stream (Compact & Scrollable) */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-zinc-50/30">
                 {activeThreadMessages.map((msg) => {
                   const isInbound = msg.direction === 'inbound';
                   return (
                     <div
                       key={msg.id}
-                      className={`p-4 rounded-2xl border text-left space-y-2 max-w-2xl ${
+                      className={`p-3 rounded-xl border text-left space-y-1.5 max-w-xl ${
                         isInbound
-                          ? 'bg-white border-emerald-200 shadow-xs ml-0 mr-auto ring-1 ring-emerald-100'
-                          : 'bg-zinc-900 text-white border-zinc-800 shadow-xs ml-auto mr-0'
+                          ? 'bg-white border-emerald-200 shadow-2xs ml-0 mr-auto ring-1 ring-emerald-100'
+                          : 'bg-zinc-900 text-white border-zinc-800 shadow-2xs ml-auto mr-0'
                       }`}
                     >
-                      <div className="flex items-center justify-between pb-2 border-b border-zinc-200/50 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                      <div className="flex items-center justify-between pb-1.5 border-b border-zinc-200/40 text-[11px]">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
                             isInbound ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-800 text-zinc-300'
                           }`}>
-                            {isInbound ? '📥 Inbound Reply' : '📤 Outbound Dispatched'}
+                            {isInbound ? '📥 Reply' : '📤 Sent'}
                           </span>
-                          <span className={`font-semibold ${isInbound ? 'text-zinc-900' : 'text-zinc-100'}`}>
+                          <span className={`font-semibold truncate text-[11px] ${isInbound ? 'text-zinc-900' : 'text-zinc-100'}`}>
                             {msg.from}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-mono ${isInbound ? 'text-zinc-400' : 'text-zinc-400'}`}>
-                            {new Date(msg.timestamp).toLocaleString()}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] font-mono text-zinc-400">
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           <button
                             onClick={() => handleDeleteMessage(msg.id)}
-                            className={`p-1 rounded opacity-50 hover:opacity-100 transition-opacity ${
+                            className={`p-0.5 rounded opacity-60 hover:opacity-100 transition-opacity ${
                               isInbound 
                                 ? 'text-zinc-400 hover:text-rose-600 hover:bg-rose-50' 
                                 : 'text-zinc-400 hover:text-rose-400 hover:bg-zinc-800'
                             }`}
                             title="Delete this message"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         </div>
                       </div>
 
-                      <div className={`text-xs font-bold ${isInbound ? 'text-zinc-900' : 'text-zinc-200'}`}>
-                        Subject: {msg.subject}
+                      <div className={`text-[11px] font-bold ${isInbound ? 'text-zinc-900' : 'text-zinc-100'}`}>
+                        {msg.subject}
                       </div>
 
                       <div className={`text-xs whitespace-pre-line leading-relaxed ${isInbound ? 'text-zinc-800' : 'text-zinc-200'}`}>
                         {msg.body}
                       </div>
 
-                      <div className="flex items-center justify-between pt-1 text-[10px]">
-                        <span className={`${isInbound ? 'text-emerald-700 font-semibold' : 'text-zinc-400 font-mono'}`}>
-                          Provider: {msg.provider === 'resend_live' ? 'Resend Live API' : 'Resend Sandbox Simulated'}
-                        </span>
-                        <span className={`font-mono ${isInbound ? 'text-zinc-400' : 'text-zinc-400'}`}>
-                          Status: {msg.status}
-                        </span>
+                      <div className="flex items-center justify-between pt-1 text-[9px] text-zinc-400 font-mono">
+                        <span>{msg.provider === 'resend_live' ? 'Resend Live' : 'Sandbox'}</span>
+                        <span>{msg.status}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* AI Boris Quick Reply Copilot & Compose Bar */}
-              <div className="p-4 px-6 border-t border-zinc-200 bg-white space-y-3 shrink-0">
-                
-                {/* AI Reply Assistant Presets */}
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                    <span>AI Reply Copilot (1-Click Strategy Drafts):</span>
+              {/* Compact AI Boris Quick Reply & Composer */}
+              <div className="p-3 px-4 border-t border-zinc-200 bg-white space-y-2 shrink-0">
+                {/* AI Preset Chips */}
+                <div className="flex items-center justify-between flex-wrap gap-1.5">
+                  <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-amber-500" />
+                    <span>Boris Copilot:</span>
                   </span>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleApplyAiReplyPreset('demo')}
-                      className="text-[11px] px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-medium transition-colors"
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-medium transition-colors"
                     >
-                      📅 Book 15-min Demo Sit
+                      📅 Demo 15m
                     </button>
                     <button
                       onClick={() => handleApplyAiReplyPreset('pricing')}
-                      className="text-[11px] px-2.5 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 font-medium transition-colors"
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 font-medium transition-colors"
                     >
-                      💰 Address 50-Seat Pricing
+                      💰 Pricing 50-Seat
                     </button>
                     <button
                       onClick={() => handleApplyAiReplyPreset('objection')}
-                      className="text-[11px] px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 font-medium transition-colors"
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 font-medium transition-colors"
                     >
-                      ⚡ Deconstruct Script Pushback
+                      ⚡ Rebuttals
                     </button>
                   </div>
                 </div>
 
-                {/* Reply Input Box */}
-                <div className="space-y-2">
+                {/* Reply Composer */}
+                <div className="space-y-1.5">
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Write a direct reply to this prospect... (or click an AI copilot preset above)"
-                    className="w-full text-xs font-sans rounded-xl border border-zinc-200 p-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 resize-none leading-relaxed"
+                    placeholder="Write a direct reply... (or click a Boris copilot preset above)"
+                    className="w-full text-xs font-sans rounded-lg border border-zinc-200 p-2 text-zinc-900 placeholder:text-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 resize-none leading-relaxed"
                   />
 
-                  <div className="flex items-center justify-between">
-                    <div className="text-[11px] text-zinc-500">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[10px] text-zinc-500 truncate">
                       {sendSuccessKey === 'reply_sent' ? (
                         <span className="text-emerald-600 font-bold flex items-center gap-1">
-                          <Check className="h-3.5 w-3.5" />
-                          Reply dispatched successfully via Resend API!
+                          <Check className="h-3 w-3" />
+                          Reply dispatched via Resend!
                         </span>
                       ) : replyError ? (
                         <span className="text-rose-600 font-semibold flex items-center gap-1">
-                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
                           Error: {replyError}
                         </span>
                       ) : (
-                        <span>Dispatches to: <strong>{activeThreadLead.leadName}</strong> &lt;{activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to}&gt;</span>
+                        <span className="truncate">
+                          From: <strong className="font-mono text-zinc-700">emil@appointmentlyy.com</strong> &rarr; To: <strong>{activeThreadLead.leadName}</strong>
+                        </span>
                       )}
                     </div>
 
                     <button
                       onClick={handleSendReply}
                       disabled={isSendingReply || !replyText.trim()}
-                      className="px-4 py-2 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 disabled:opacity-50 transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 disabled:opacity-50 transition-colors shadow-2xs flex items-center gap-1.5 shrink-0 cursor-pointer"
                     >
                       {isSendingReply ? (
                         <>
-                          <RotateCw className="h-3.5 w-3.5 animate-spin" />
-                          <span>Sending via Resend...</span>
+                          <RotateCw className="h-3 w-3 animate-spin" />
+                          <span>Sending...</span>
                         </>
                       ) : (
                         <>
-                          <Send className="h-3.5 w-3.5" />
-                          <span>Send Reply (via Resend API)</span>
+                          <Send className="h-3 w-3" />
+                          <span>Send Reply</span>
                         </>
                       )}
                     </button>
                   </div>
                 </div>
-
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-xs text-zinc-400 space-y-3">
-              <div className="h-12 w-12 rounded-2xl bg-zinc-100 text-zinc-400 flex items-center justify-center shadow-2xs">
-                <Inbox className="h-6 w-6" />
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-xs text-zinc-400 space-y-2">
+              <div className="h-10 w-10 rounded-xl bg-zinc-100 text-zinc-400 flex items-center justify-center shadow-2xs">
+                <Inbox className="h-5 w-5" />
               </div>
-              <div className="space-y-1">
-                <p className="font-bold text-zinc-800 text-sm">Inbox is completely clear</p>
-                <p className="text-zinc-500 text-xs max-w-xs">
-                  All past emails and threads have been removed. Any new incoming or outbound emails will appear here.
+              <div className="space-y-0.5">
+                <p className="font-bold text-zinc-800 text-xs">Inbox is clear</p>
+                <p className="text-zinc-500 text-[11px] max-w-xs">
+                  All emails and threads have been pruned.
                 </p>
               </div>
               <button
                 onClick={handleResetSeeds}
-                className="mt-2 px-3.5 py-1.5 rounded-xl bg-zinc-950 text-white font-medium hover:bg-zinc-800 transition-colors shadow-2xs text-xs"
+                className="mt-1 px-3 py-1 rounded-lg bg-zinc-950 text-white font-medium hover:bg-zinc-800 transition-colors shadow-2xs text-[11px]"
               >
                 Restore Demo Threads
               </button>
