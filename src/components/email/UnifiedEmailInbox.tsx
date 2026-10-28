@@ -60,17 +60,60 @@ export default function UnifiedEmailInbox() {
   const [sendSuccessKey, setSendSuccessKey] = useState<string | null>(null);
   const [replyError, setReplyError] = useState<string | null>(null);
 
-  // Deletion Confirmation States
   const [showConfirmDeleteThread, setShowConfirmDeleteThread] = useState<boolean>(false);
   const [showConfirmClearAll, setShowConfirmClearAll] = useState<boolean>(false);
+  const [isSyncingInbound, setIsSyncingInbound] = useState<boolean>(false);
+  const [lastSyncStatus, setLastSyncStatus] = useState<string | null>(null);
+  const [showIngestModal, setShowIngestModal] = useState<boolean>(false);
+  const [ingestBody, setIngestBody] = useState<string>('');
 
-  // Load emails from localStorage or initial seeds
+  // Sync inbound replies from Resend receiving API
+  const handleSyncInbound = async () => {
+    setIsSyncingInbound(true);
+    try {
+      const res = await fetch('/api/email/inbound');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.emails) && data.emails.length > 0) {
+          let updated = getStoredEmails();
+          let countAdded = 0;
+          for (const item of data.emails) {
+            if (!updated.some(m => m.id === item.id)) {
+              updated = saveEmailToStore(item);
+              countAdded++;
+            }
+          }
+          if (countAdded > 0) {
+            setEmails(updated);
+            setLastSyncStatus(`+${countAdded} new reply`);
+            setTimeout(() => setLastSyncStatus(null), 4000);
+          } else {
+            setLastSyncStatus('Synced');
+            setTimeout(() => setLastSyncStatus(null), 2500);
+          }
+        } else {
+          setLastSyncStatus('Up to date');
+          setTimeout(() => setLastSyncStatus(null), 2500);
+        }
+      }
+    } catch (e) {
+      console.warn('Sync failed:', e);
+      setLastSyncStatus('Sync error');
+    } finally {
+      setIsSyncingInbound(false);
+    }
+  };
+
+  // Load emails from localStorage or initial seeds & start live inbound sync
   useEffect(() => {
     const loaded = getStoredEmails();
     setEmails(loaded);
     if (loaded.length > 0 && !selectedThreadId) {
       setSelectedThreadId(loaded[0].threadId);
     }
+    handleSyncInbound();
+    const interval = setInterval(handleSyncInbound, 12000);
+    return () => clearInterval(interval);
   }, []);
 
   // Filtered emails list
@@ -212,6 +255,47 @@ export default function UnifiedEmailInbox() {
     }
   };
 
+  // Ingest custom lead reply into active thread
+  const handleIngestReply = async (presetText?: string) => {
+    const textToIngest = presetText || ingestBody;
+    if (!textToIngest.trim() || !activeThreadLead) return;
+
+    const fromAddress = activeThreadLead.direction === 'inbound' 
+      ? activeThreadLead.from 
+      : activeThreadLead.to;
+
+    const leadName = activeThreadLead.leadName;
+    const leadCompany = activeThreadLead.leadCompany;
+
+    try {
+      const res = await fetch('/api/email/inbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: 'emil@appointmentlyy.com',
+          subject: activeThreadLead.subject.startsWith('Re:') ? activeThreadLead.subject : `Re: ${activeThreadLead.subject}`,
+          body: textToIngest.trim(),
+          leadName: leadName,
+          leadCompany: leadCompany,
+          threadId: selectedThreadId
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.message) {
+          const updated = saveEmailToStore(data.message);
+          setEmails(updated);
+          setShowIngestModal(false);
+          setIngestBody('');
+        }
+      }
+    } catch (e) {
+      console.error('Ingest reply error:', e);
+    }
+  };
+
   // AI Quick Reply Presets
   const handleApplyAiReplyPreset = (presetType: 'demo' | 'objection' | 'pricing') => {
     const signOff = `Best,\n${senderDisplayName}`;
@@ -308,6 +392,17 @@ export default function UnifiedEmailInbox() {
               <span>Outbound</span>
             </button>
           </div>
+
+          {/* Live Inbound Sync from Resend Button */}
+          <button
+            onClick={handleSyncInbound}
+            disabled={isSyncingInbound}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shadow-2xs cursor-pointer"
+            title="Sync incoming email replies live from Resend Inbound (reply@estuegai.resend.app)"
+          >
+            <RotateCw className={`h-3 w-3 ${isSyncingInbound ? 'animate-spin text-emerald-600' : 'text-zinc-500'}`} />
+            <span>{isSyncingInbound ? 'Syncing...' : (lastSyncStatus || 'Sync Replies')}</span>
+          </button>
 
           {/* Clear All Trigger */}
           {emails.length > 0 && (
@@ -443,6 +538,15 @@ export default function UnifiedEmailInbox() {
                   <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
                     {selectedThreadId}
                   </span>
+
+                  <button
+                    onClick={() => setShowIngestModal(true)}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors shadow-2xs cursor-pointer"
+                    title="Ingest / paste a lead reply into this thread"
+                  >
+                    <ArrowDownLeft className="h-3 w-3 text-emerald-600" />
+                    <span>+ Ingest Reply</span>
+                  </button>
 
                   {showConfirmDeleteThread ? (
                     <div className="flex items-center gap-1 animate-in fade-in text-xs">
@@ -636,6 +740,98 @@ export default function UnifiedEmailInbox() {
         </div>
 
       </div>
+
+      {/* Ingest Inbound Reply Modal */}
+      {showIngestModal && activeThreadLead && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-zinc-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <ArrowDownLeft className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-zinc-900">
+                    Ingest Inbound Lead Reply
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">
+                    From: <strong className="font-mono text-zinc-700">{activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowIngestModal(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                1-Click Preset Replies (Click to auto-inject):
+              </span>
+              <div className="grid grid-cols-1 gap-1.5">
+                <button
+                  onClick={() => handleIngestReply("Hey Emil,\n\nSaw your email. Send over that 2-minute video. If it looks solid, I'm open to a 15-minute screen share with my floor QA lead Thursday.\n\nBest,\n" + activeThreadLead.leadName)}
+                  className="text-left p-2 rounded-lg bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200/80 transition-colors text-[11px] text-emerald-950 font-medium"
+                >
+                  <strong className="text-emerald-800 font-bold block text-[10px]">🔥 Positive / Ready for Video:</strong>
+                  "Send over that 2-minute video. Open to a 15-minute screen share Thursday."
+                </button>
+                <button
+                  onClick={() => handleIngestReply("Hi Emil,\n\nFair question on price. We are currently locked into an annual contract with another vendor. What is the typical seat cost for a 50-seat team?\n\nBest,\n" + activeThreadLead.leadName)}
+                  className="text-left p-2 rounded-lg bg-blue-50/70 hover:bg-blue-100/70 border border-blue-200/80 transition-colors text-[11px] text-blue-950 font-medium"
+                >
+                  <strong className="text-blue-800 font-bold block text-[10px]">💰 Price & Competitor Lock-in:</strong>
+                  "What is the typical seat cost for a 50-seat team?"
+                </button>
+                <button
+                  onClick={() => handleIngestReply("Hey Emil,\n\nWe just restructured our outbound floor. Bad timing right now, please ping me back in Q1.\n\n" + activeThreadLead.leadName)}
+                  className="text-left p-2 rounded-lg bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 transition-colors text-[11px] text-zinc-800 font-medium"
+                >
+                  <strong className="text-zinc-600 font-bold block text-[10px]">⏰ Timing Constraint:</strong>
+                  "Bad timing right now, please ping me back in Q1."
+                </button>
+              </div>
+            </div>
+
+            {/* Custom Paste Textarea */}
+            <div className="space-y-1.5 pt-2 border-t border-zinc-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                Or Paste Custom Reply (From Gmail / Callview AI):
+              </span>
+              <textarea
+                rows={3}
+                value={ingestBody}
+                onChange={(e) => setIngestBody(e.target.value)}
+                placeholder="Paste the reply body you sent from Callview AI email here..."
+                className="w-full text-xs font-sans rounded-lg border border-zinc-300 p-2 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 resize-none leading-relaxed"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setShowIngestModal(false)}
+                className="px-3 py-1.5 text-xs rounded-lg text-zinc-600 hover:bg-zinc-100 transition-colors font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleIngestReply()}
+                disabled={!ingestBody.trim()}
+                className="px-3.5 py-1.5 text-xs rounded-lg bg-zinc-950 hover:bg-zinc-800 disabled:opacity-50 text-white font-bold transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+              >
+                <ArrowDownLeft className="h-3 w-3" />
+                <span>Inject Reply into Thread</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

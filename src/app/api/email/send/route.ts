@@ -74,9 +74,11 @@ export async function POST(req: NextRequest) {
         text: formattedText,
         html: formattedHtml
       };
-      if (replyTo) {
-        resendPayload.reply_to = replyTo;
-      }
+
+      const inboundAddress = process.env.RESEND_INBOUND_EMAIL || 'reply@estuegai.resend.app';
+      resendPayload.reply_to = replyTo 
+        ? [inboundAddress, replyTo]
+        : [inboundAddress, 'emil@appointmentlyy.com'];
 
       const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
