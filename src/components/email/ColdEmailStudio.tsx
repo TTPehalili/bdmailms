@@ -88,7 +88,20 @@ export default function ColdEmailStudio() {
   const [prospectTitle, setProspectTitle] = useState<string>('Director of Outbound Operations');
   const [prospectTech, setProspectTech] = useState<string>('Apollo.io & HubSpot');
   const [prospectPain, setProspectPain] = useState<string>('outbound hold rate and objection hesitation on shared lead lists');
-  const [prospectEmail, setProspectEmail] = useState<string>('julian@apexglobalbpo.com');
+  const [prospectEmail, setProspectEmailState] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sdr_target_recipient_email');
+      if (saved) return saved;
+    }
+    return 'emil@callview.ai';
+  });
+
+  const setProspectEmail = (email: string) => {
+    setProspectEmailState(email);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sdr_target_recipient_email', email);
+    }
+  };
   const [prospectHeadcount, setProspectHeadcount] = useState<string>('65 seats');
 
   // Generation & Draft State

@@ -57,71 +57,75 @@ export async function POST(req: NextRequest) {
     }
 
     const resendApiKey = process.env.RESEND_API_KEY;
-    let liveSendResult: any = null;
-    let provider: 'resend_live' | 'resend_sandbox' = 'resend_sandbox';
-
-    if (resendApiKey) {
-      try {
-        const resendPayload: any = {
-          from: sanitizedFrom,
-          to: Array.isArray(to) ? to : [to],
-          subject: subject,
-          text: formattedText,
-          html: formattedHtml
-        };
-        if (replyTo) {
-          resendPayload.reply_to = replyTo;
-        }
-
-        const resendRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(resendPayload)
-        });
-
-        if (resendRes.ok) {
-          liveSendResult = await resendRes.json();
-          provider = 'resend_live';
-        } else {
-          let errMessage = 'Resend API rejected the email';
-          try {
-            const errJson = await resendRes.json();
-            errMessage = errJson.message || errMessage;
-          } catch {
-            const errText = await resendRes.text();
-            if (errText) errMessage = errText;
-          }
-          console.error('[RESEND DISPATCH ERROR]', errMessage);
-          return NextResponse.json(
-            { error: errMessage },
-            { status: resendRes.status || 400 }
-          );
-        }
-      } catch (err: any) {
-        console.error('[RESEND API ERROR]', err.message);
-        return NextResponse.json(
-          { error: err.message || 'Resend network error' },
-          { status: 500 }
-        );
-      }
+    if (!resendApiKey) {
+      return NextResponse.json(
+        { error: 'RESEND_API_KEY is not configured or could not be loaded from .env.local. Live dispatch cannot proceed.' },
+        { status: 500 }
+      );
     }
 
-    const messageId = liveSendResult?.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    let liveSendResult: any = null;
+
+    try {
+      const resendPayload: any = {
+        from: sanitizedFrom,
+        to: Array.isArray(to) ? to : [to],
+        subject: subject,
+        text: formattedText,
+        html: formattedHtml
+      };
+      if (replyTo) {
+        resendPayload.reply_to = replyTo;
+      }
+
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(resendPayload)
+      });
+
+      if (resendRes.ok) {
+        liveSendResult = await resendRes.json();
+      } else {
+        let errMessage = 'Resend API rejected the email';
+        try {
+          const errJson = await resendRes.json();
+          errMessage = errJson.message || errMessage;
+        } catch {
+          const errText = await resendRes.text();
+          if (errText) errMessage = errText;
+        }
+        console.error('[RESEND DISPATCH ERROR]', errMessage);
+        return NextResponse.json(
+          { error: errMessage },
+          { status: resendRes.status || 400 }
+        );
+      }
+    } catch (err: any) {
+      console.error('[RESEND API ERROR]', err.message);
+      return NextResponse.json(
+        { error: err.message || 'Resend network error' },
+        { status: 500 }
+      );
+    }
+
+    const messageId = liveSendResult?.id;
     const finalThreadId = threadId || `thread_${leadName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
+    const provider: 'resend_live' = 'resend_live';
     const emailRecord = {
       id: messageId,
       threadId: finalThreadId,
-      direction: 'outbound',
+      direction: 'outbound' as const,
       from: sanitizedFrom,
       to: Array.isArray(to) ? to[0] : to,
       subject: subject,
       body: formattedText,
       timestamp: new Date().toISOString(),
-      status: provider === 'resend_live' ? 'delivered' : 'sent',
+      status: 'delivered' as const,
       leadName: leadName,
       leadCompany: leadCompany,
       leadTitle: leadTitle,
