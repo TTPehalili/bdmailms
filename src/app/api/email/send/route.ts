@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { formatEmailToParagraphs } from '@/lib/coldEmailStudio';
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,10 +30,8 @@ export async function POST(req: NextRequest) {
         .replace(/>/g, '&gt;');
 
     // Format HTML paragraphs so email clients (Gmail, Outlook) do not collapse line breaks
-    const paragraphs = body
-      .split(/\n\s*\n/)
-      .map((p: string) => p.trim())
-      .filter(Boolean);
+    const paragraphs = formatEmailToParagraphs(body);
+    const formattedText = paragraphs.join('\n\n');
 
     const formattedHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #111827;">
@@ -67,7 +66,7 @@ export async function POST(req: NextRequest) {
           from: sanitizedFrom,
           to: Array.isArray(to) ? to : [to],
           subject: subject,
-          text: body,
+          text: formattedText,
           html: formattedHtml
         };
         if (replyTo) {
@@ -120,7 +119,7 @@ export async function POST(req: NextRequest) {
       from: sanitizedFrom,
       to: Array.isArray(to) ? to[0] : to,
       subject: subject,
-      body: body,
+      body: formattedText,
       timestamp: new Date().toISOString(),
       status: provider === 'resend_live' ? 'delivered' : 'sent',
       leadName: leadName,

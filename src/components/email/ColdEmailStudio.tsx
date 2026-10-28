@@ -39,7 +39,8 @@ import {
   Zap,
   Info,
   Inbox,
-  Loader2
+  Loader2,
+  AlignLeft
 } from 'lucide-react';
 import { saveEmailToStore } from '@/lib/emailStore';
 import { 
@@ -51,7 +52,8 @@ import {
   sanitizeColdEmail,
   getDeterministicColdEmail,
   enforceMaxThreeWords,
-  suggestSubjectLinesFromIdea
+  suggestSubjectLinesFromIdea,
+  formatEmailToParagraphs
 } from '@/lib/coldEmailStudio';
 import { DEMO_CADENCE_LEADS, CadenceLeadRecord } from '@/lib/cadenceMaster';
 import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
@@ -96,7 +98,9 @@ export default function ColdEmailStudio() {
   );
   const [selectedSubjectIdx, setSelectedSubjectIdx] = useState<number>(0);
   const [selectedCtaIdx, setSelectedCtaIdx] = useState<number>(0);
-  const [editableBody, setEditableBody] = useState<string>(currentDraft.body);
+  const [editableBody, setEditableBody] = useState<string>(() => 
+    formatEmailToParagraphs(getDeterministicColdEmail('braun-poke-the-bear', undefined, { name: 'Julian Vance', company: 'Apex Global BPO' }).body).join('\n\n')
+  );
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isSendingDirectEmail, setIsSendingDirectEmail] = useState<boolean>(false);
   const [directSendStatus, setDirectSendStatus] = useState<string | null>(null);
@@ -165,9 +169,10 @@ export default function ColdEmailStudio() {
     }
   }, []);
 
-  // Update editable body when currentDraft changes
+  // Update editable body when currentDraft changes (ensuring clean paragraph breaks)
   useEffect(() => {
-    setEditableBody(currentDraft.body);
+    const formatted = formatEmailToParagraphs(currentDraft.body).join('\n\n');
+    setEditableBody(formatted);
     setSelectedSubjectIdx(currentDraft.selectedSubjectIndex);
     setSelectedCtaIdx(currentDraft.selectedCtaIndex);
   }, [currentDraft]);
@@ -335,12 +340,13 @@ export default function ColdEmailStudio() {
     }
   };
 
-  // Sanitize editable body manually
+  // Sanitize editable body manually and format paragraphs cleanly
   const handleManualSanitize = () => {
     const { cleanText } = sanitizeColdEmail(editableBody);
-    setEditableBody(cleanText);
+    const formatted = formatEmailToParagraphs(cleanText).join('\n\n');
+    setEditableBody(formatted);
     setCopiedKey('sanitized');
-    setTimeout(() => setCopiedKey(null), 2000);
+    setTimeout(() => setCopiedKey(null), 2500);
   };
 
   // Copy to clipboard helper
@@ -373,6 +379,7 @@ export default function ColdEmailStudio() {
     setIsSendingDirectEmail(true);
     setDirectSendStatus(null);
     const activeSubject = currentDraft.subjectLines[selectedSubjectIdx]?.text || 'quick question';
+    const bodyToSend = formatEmailToParagraphs(editableBody).join('\n\n');
     try {
       const res = await fetch('/api/email/send', {
         method: 'POST',
@@ -381,7 +388,7 @@ export default function ColdEmailStudio() {
           to: prospectEmail.trim(),
           from: senderFrom,
           subject: activeSubject,
-          body: editableBody,
+          body: bodyToSend,
           leadName: prospectName,
           leadCompany: prospectCompany,
           leadTitle: prospectTitle,
@@ -1059,12 +1066,13 @@ export default function ColdEmailStudio() {
 
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     onClick={handleManualSanitize}
-                    className="text-[11px] text-zinc-500 hover:text-zinc-900 font-medium flex items-center gap-1"
-                    title="Scrub stray em dashes or emojis"
+                    className="px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold flex items-center gap-1 border border-zinc-200 transition-colors shadow-2xs cursor-pointer"
+                    title="Auto-format email into clean spaced paragraphs and remove stray emojis/em-dashes"
                   >
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>Clean Formatting</span>
+                    <AlignLeft className="h-3.5 w-3.5 text-zinc-600" />
+                    <span>{copiedKey === 'sanitized' ? '✓ Paragraphs Formatted' : 'Auto-Format Paragraphs'}</span>
                   </button>
                   <button
                     onClick={() => copyToClipboard(editableBody, 'body')}

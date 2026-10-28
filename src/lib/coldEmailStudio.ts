@@ -341,6 +341,49 @@ export function sanitizeColdEmail(text: string): { cleanText: string; emDashesCo
   };
 }
 
+/**
+ * Automatically segments an email body into clean, spaced paragraphs.
+ * If the email is a single squashed run-on sentence, it separates greeting,
+ * problem observation, value prop, and call-to-action with double newlines.
+ */
+export function formatEmailToParagraphs(rawBody: string): string[] {
+  if (!rawBody) return [];
+
+  // If already formatted with double newlines, use them
+  if (/\n\s*\n/.test(rawBody.trim())) {
+    return rawBody
+      .split(/\n\s*\n/)
+      .map(p => p.trim())
+      .filter(Boolean);
+  }
+
+  // If already formatted with single newlines, use them
+  const lines = rawBody.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length > 1) {
+    return lines;
+  }
+
+  // If completely squashed into 1 run-on string with no newlines:
+  let text = rawBody.trim();
+
+  // 1. Separate greeting: "Hi Name," or "Hey Name," or "Hello Name,"
+  text = text.replace(/^((?:Hi|Hey|Hello|Dear)\s+[^,]+,)\s*/i, '$1\n\n');
+
+  // 2. Separate observation sentence if preceded by greeting
+  text = text.replace(/([.?!])\s+(Typically|Most leaders|Notice|Saw\s)/i, '$1\n\n$2');
+
+  // 3. Separate middle paragraph / value prop
+  text = text.replace(/([.?!])\s+(Traditional coaching|Our live cockpit|Our system|We feed|Top BPOs|Curious if)/i, '$1\n\n$2');
+
+  // 4. Separate CTA / closing question
+  text = text.replace(/([.?!])\s+(Open to|Would it be|Worth a|Are you|Could we|Have you|If this)/i, '$1\n\n$2');
+
+  // 5. Separate sign-offs
+  text = text.replace(/([.?!])\s+(Best,|Regards,|Thanks,|Cheers,|Sincerely,)\s*/i, '$1\n\n$2\n');
+
+  return text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+}
+
 // =========================================================================
 // STRICT SUBJECT LINE HELPER (ENFORCES MAXIMUM OF 3 WORDS ONLY)
 // =========================================================================
