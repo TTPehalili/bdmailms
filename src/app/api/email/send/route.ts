@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
     const payload = await req.json();
     const { 
       to, 
-      from = 'Appointmently AI <emil@appointmentlyy.com>', 
+      from = process.env.RESEND_FROM_EMAIL || 'Emil Vance <emil@appointmentlyy.com>', 
       subject, 
       body, 
       leadName = 'Prospect', 

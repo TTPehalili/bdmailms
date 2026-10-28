@@ -356,6 +356,10 @@ export default function ColdEmailStudio() {
 
   // Direct Send Email via Resend API
   const handleDirectSendEmail = async () => {
+    if (!prospectEmail || !prospectEmail.includes('@')) {
+      setDirectSendStatus('Error: Please enter a valid recipient email (To:)');
+      return;
+    }
     setIsSendingDirectEmail(true);
     setDirectSendStatus(null);
     const activeSubject = currentDraft.subjectLines[selectedSubjectIdx]?.text || 'quick question';
@@ -364,7 +368,8 @@ export default function ColdEmailStudio() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: prospectEmail,
+          to: prospectEmail.trim(),
+          from: 'Emil Vance <emil@appointmentlyy.com>',
           subject: activeSubject,
           body: editableBody,
           leadName: prospectName,
@@ -379,7 +384,7 @@ export default function ColdEmailStudio() {
         if (data.email) {
           saveEmailToStore(data.email);
         }
-        setDirectSendStatus(`Dispatched via ${data.provider === 'resend_live' ? 'Resend Live API' : 'Resend API (Sandbox)'}`);
+        setDirectSendStatus(`Dispatched from emil@appointmentlyy.com to ${prospectEmail.trim()}`);
       } else {
         const errData = await res.json().catch(() => ({}));
         setDirectSendStatus(`Error: ${errData.error || 'Send failed'}`);
@@ -388,7 +393,7 @@ export default function ColdEmailStudio() {
       setDirectSendStatus(`Error: ${e.message || 'Network error'}`);
     } finally {
       setIsSendingDirectEmail(false);
-      setTimeout(() => setDirectSendStatus(null), 6000);
+      setTimeout(() => setDirectSendStatus(null), 8000);
     }
   };
 
@@ -579,6 +584,42 @@ export default function ColdEmailStudio() {
                 </div>
                 <div className="text-[11px] text-zinc-500 pt-1 border-t border-zinc-200/50">
                   <span className="font-semibold text-zinc-700">Identified Friction:</span> {prospectPain}
+                </div>
+              </div>
+
+              {/* Verified Sender Info */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-zinc-600 text-[11px] font-medium">From:</span>
+                  <strong className="text-zinc-900 font-mono text-[11px]">emil@appointmentlyy.com</strong>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
+                  GoDaddy Live
+                </span>
+              </div>
+
+              {/* Recipient Target Email (To:) with 1-click test button */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500">
+                  <span className="uppercase tracking-wider">Prospect Recipient (To:):</span>
+                  <button
+                    type="button"
+                    onClick={() => setProspectEmail('emil@appointmentlyy.com')}
+                    className="text-emerald-700 hover:text-emerald-950 font-bold hover:underline"
+                    title="Quickly fill with emil@appointmentlyy.com to test deliverability directly to your GoDaddy inbox"
+                  >
+                    Test Send to My Inbox
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={prospectEmail}
+                    onChange={(e) => setProspectEmail(e.target.value)}
+                    placeholder="prospect@company.com or your test email"
+                    className="w-full text-xs font-mono font-medium rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 shadow-2xs"
+                  />
                 </div>
               </div>
             </div>
@@ -1095,7 +1136,7 @@ export default function ColdEmailStudio() {
               <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                 <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                 <span className="text-[11px]">
-                  Audited: <strong>0 em dashes, 0 emojis</strong> • Safe send volume ceiling: 40/day
+                  Sender: <strong className="text-zinc-800 font-mono">emil@appointmentlyy.com</strong> &rarr; Target: <strong className="text-zinc-800 font-mono">{prospectEmail || 'Not set'}</strong>
                 </span>
                 {directSendStatus && (
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
@@ -1118,7 +1159,7 @@ export default function ColdEmailStudio() {
                   onClick={handleDirectSendEmail}
                   disabled={isSendingDirectEmail}
                   className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
-                  title="Dispatch email directly via Resend API and sync to Unified Inbox"
+                  title={`Dispatch live email from emil@appointmentlyy.com to ${prospectEmail}`}
                 >
                   {isSendingDirectEmail ? (
                     <>
@@ -1128,7 +1169,7 @@ export default function ColdEmailStudio() {
                   ) : (
                     <>
                       <Send className="h-3.5 w-3.5" />
-                      <span>Send via Resend</span>
+                      <span>Send via emil@appointmentlyy.com</span>
                     </>
                   )}
                 </button>

@@ -126,6 +126,7 @@ export default function UnifiedEmailInbox() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to,
+          from: 'Emil Vance <emil@appointmentlyy.com>',
           subject: activeThreadLead.subject.startsWith('Re:') ? activeThreadLead.subject : `Re: ${activeThreadLead.subject}`,
           body: replyText.trim(),
           leadName: activeThreadLead.leadName,
