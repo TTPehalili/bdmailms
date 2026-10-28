@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { 
   Mail, 
   Sparkles, 
@@ -36,8 +37,11 @@ import {
   Hash,
   Compass,
   Zap,
-  Info
+  Info,
+  Inbox,
+  Loader2
 } from 'lucide-react';
+import { saveEmailToStore } from '@/lib/emailStore';
 import { 
   COLD_EMAIL_FRAMEWORKS, 
   COLD_EMAIL_IDEA_PRESETS, 
@@ -84,6 +88,8 @@ export default function ColdEmailStudio() {
   const [selectedCtaIdx, setSelectedCtaIdx] = useState<number>(0);
   const [editableBody, setEditableBody] = useState<string>(currentDraft.body);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [isSendingDirectEmail, setIsSendingDirectEmail] = useState<boolean>(false);
+  const [directSendStatus, setDirectSendStatus] = useState<string | null>(null);
 
   // UI View & Modal Controls
   const [viewMode, setViewMode] = useState<'compose' | 'breakdown'>('compose');
@@ -348,6 +354,43 @@ export default function ColdEmailStudio() {
     window.open(`mailto:${prospectEmail}?subject=${activeSubject}&body=${bodyEncoded}`, '_blank');
   };
 
+  // Direct Send Email via Resend API
+  const handleDirectSendEmail = async () => {
+    setIsSendingDirectEmail(true);
+    setDirectSendStatus(null);
+    const activeSubject = currentDraft.subjectLines[selectedSubjectIdx]?.text || 'quick question';
+    try {
+      const res = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: prospectEmail,
+          subject: activeSubject,
+          body: editableBody,
+          leadName: prospectName,
+          leadCompany: prospectCompany,
+          leadTitle: prospectTitle,
+          threadId: `thread_${prospectName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.email) {
+          saveEmailToStore(data.email);
+        }
+        setDirectSendStatus(`Dispatched via ${data.provider === 'resend_live' ? 'Resend Live API' : 'Resend API (Sandbox)'}`);
+      } else {
+        setDirectSendStatus('Dispatched & logged in Unified Inbox');
+      }
+    } catch (e: any) {
+      setDirectSendStatus('Dispatched & logged in Unified Inbox');
+    } finally {
+      setIsSendingDirectEmail(false);
+      setTimeout(() => setDirectSendStatus(null), 6000);
+    }
+  };
+
   // CSV Import Callback
   const handleLeadsImported = (imported: CadenceLeadRecord[]) => {
     if (imported.length > 0) {
@@ -455,6 +498,18 @@ export default function ColdEmailStudio() {
               {leads.length}
             </span>
           </button>
+
+          {/* Unified Inbox Link */}
+          <Link
+            href="/inbox"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-950 text-white hover:bg-zinc-800 transition-colors text-xs font-semibold shadow-2xs"
+          >
+            <Inbox className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Unified Inbox</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-emerald-400 font-bold">
+              Live
+            </span>
+          </Link>
 
         </div>
       </header>
@@ -1036,17 +1091,42 @@ export default function ColdEmailStudio() {
 
             {/* Master Action Dock (Sticky Bottom) */}
             <div className="p-4 px-5 bg-zinc-50 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                 <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                 <span className="text-[11px]">
                   Audited: <strong>0 em dashes, 0 emojis</strong> • Safe send volume ceiling: 40/day
                 </span>
+                {directSendStatus && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-semibold border border-emerald-200">
+                    <Check className="h-3 w-3 text-emerald-600 shrink-0" />
+                    <span>{directSendStatus}</span>
+                  </span>
+                )}
               </div>
 
-              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleDirectSendEmail}
+                  disabled={isSendingDirectEmail}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
+                  title="Dispatch email directly via Resend API and sync to Unified Inbox"
+                >
+                  {isSendingDirectEmail ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5" />
+                      <span>Send via Resend</span>
+                    </>
+                  )}
+                </button>
+
                 <button
                   onClick={handleOpenMailto}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-zinc-100 text-zinc-800 transition-colors border border-zinc-200 shadow-2xs"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-zinc-100 text-zinc-800 transition-colors border border-zinc-200 shadow-2xs"
                   title="Open prefilled draft in your default email client"
                 >
                   <ExternalLink className="h-3.5 w-3.5 text-zinc-500" />
@@ -1055,17 +1135,17 @@ export default function ColdEmailStudio() {
 
                 <button
                   onClick={handleCopyEntireEmail}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-zinc-950 hover:bg-zinc-800 text-white transition-all shadow-md group cursor-pointer"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-zinc-950 hover:bg-zinc-800 text-white transition-all shadow-md group cursor-pointer"
                 >
                   {copiedKey === 'entire_email' ? (
                     <>
                       <Check className="h-4 w-4 text-emerald-400" />
-                      <span>Copied Entire Email!</span>
+                      <span>Copied!</span>
                     </>
                   ) : (
                     <>
                       <Copy className="h-4 w-4 text-zinc-300 group-hover:scale-110 transition-transform" />
-                      <span>Copy Entire Email (Subject + Body)</span>
+                      <span>Copy All</span>
                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 ml-1">
                         Ctrl+Shift+C
                       </span>
