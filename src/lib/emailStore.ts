@@ -134,12 +134,12 @@ export function getStoredEmails(): EmailMessage[] {
   if (typeof window === 'undefined') return INITIAL_SEED_EMAILS;
   try {
     const raw = localStorage.getItem('sdr_unified_inbox_emails');
-    if (!raw) {
+    if (raw === null) {
       localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify(INITIAL_SEED_EMAILS));
       return INITIAL_SEED_EMAILS;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_SEED_EMAILS;
+    return Array.isArray(parsed) ? parsed : INITIAL_SEED_EMAILS;
   } catch (e) {
     console.warn('Could not read stored emails:', e);
     return INITIAL_SEED_EMAILS;
@@ -156,5 +156,53 @@ export function saveEmailToStore(email: EmailMessage): EmailMessage[] {
   } catch (e) {
     console.warn('Could not save email:', e);
     return [email, ...INITIAL_SEED_EMAILS];
+  }
+}
+
+export function deleteEmailById(id: string): EmailMessage[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const current = getStoredEmails();
+    const updated = current.filter(m => m.id !== id);
+    localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.warn('Could not delete email:', e);
+    return [];
+  }
+}
+
+export function deleteThreadById(threadId: string): EmailMessage[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const current = getStoredEmails();
+    const updated = current.filter(m => m.threadId !== threadId);
+    localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.warn('Could not delete thread:', e);
+    return [];
+  }
+}
+
+export function clearAllEmails(): EmailMessage[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify([]));
+    return [];
+  } catch (e) {
+    console.warn('Could not clear emails:', e);
+    return [];
+  }
+}
+
+export function resetToInitialSeeds(): EmailMessage[] {
+  if (typeof window === 'undefined') return INITIAL_SEED_EMAILS;
+  try {
+    localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify(INITIAL_SEED_EMAILS));
+    return INITIAL_SEED_EMAILS;
+  } catch (e) {
+    console.warn('Could not reset seeds:', e);
+    return INITIAL_SEED_EMAILS;
   }
 }

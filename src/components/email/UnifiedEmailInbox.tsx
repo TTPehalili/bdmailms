@@ -28,7 +28,15 @@ import {
   Trash2,
   Share2
 } from 'lucide-react';
-import { EmailMessage, getStoredEmails, saveEmailToStore } from '@/lib/emailStore';
+import { 
+  EmailMessage, 
+  getStoredEmails, 
+  saveEmailToStore, 
+  deleteEmailById, 
+  deleteThreadById, 
+  clearAllEmails, 
+  resetToInitialSeeds 
+} from '@/lib/emailStore';
 
 export default function UnifiedEmailInbox() {
   const [emails, setEmails] = useState<EmailMessage[]>([]);
@@ -41,6 +49,10 @@ export default function UnifiedEmailInbox() {
   const [isSendingReply, setIsSendingReply] = useState<boolean>(false);
   const [sendSuccessKey, setSendSuccessKey] = useState<string | null>(null);
   const [replyError, setReplyError] = useState<string | null>(null);
+
+  // Deletion Confirmation States
+  const [showConfirmDeleteThread, setShowConfirmDeleteThread] = useState<boolean>(false);
+  const [showConfirmClearAll, setShowConfirmClearAll] = useState<boolean>(false);
 
   // Load emails from localStorage or initial seeds
   useEffect(() => {
@@ -147,6 +159,48 @@ export default function UnifiedEmailInbox() {
     }
   };
 
+  // Delete a single email message
+  const handleDeleteMessage = (id: string) => {
+    const updated = deleteEmailById(id);
+    setEmails(updated);
+    
+    // Check if the current thread still has messages left
+    const remainingInThread = updated.filter(m => m.threadId === selectedThreadId);
+    if (remainingInThread.length === 0) {
+      const nextThread = updated[0]?.threadId || '';
+      setSelectedThreadId(nextThread);
+    }
+  };
+
+  // Delete entire conversation thread
+  const handleConfirmDeleteThread = () => {
+    if (!selectedThreadId) return;
+    const updated = deleteThreadById(selectedThreadId);
+    setEmails(updated);
+    setShowConfirmDeleteThread(false);
+    
+    // Switch to first remaining thread or empty
+    const nextThread = updated[0]?.threadId || '';
+    setSelectedThreadId(nextThread);
+  };
+
+  // Clear all stored emails
+  const handleConfirmClearAll = () => {
+    const updated = clearAllEmails();
+    setEmails(updated);
+    setSelectedThreadId('');
+    setShowConfirmClearAll(false);
+  };
+
+  // Reset demo emails
+  const handleResetSeeds = () => {
+    const updated = resetToInitialSeeds();
+    setEmails(updated);
+    if (updated.length > 0) {
+      setSelectedThreadId(updated[0].threadId);
+    }
+  };
+
   // AI Quick Reply Presets
   const handleApplyAiReplyPreset = (presetType: 'demo' | 'objection' | 'pricing') => {
     if (presetType === 'demo') {
@@ -247,6 +301,35 @@ export default function UnifiedEmailInbox() {
               <span>Outbound</span>
             </button>
           </div>
+
+          {/* Clear All Trigger */}
+          {emails.length > 0 && (
+            showConfirmClearAll ? (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-xs">
+                <span className="text-rose-700 font-semibold text-[11px]">Clear all {emails.length}?</span>
+                <button
+                  onClick={handleConfirmClearAll}
+                  className="px-2 py-0.5 rounded bg-rose-600 text-white font-bold text-[10px] hover:bg-rose-700"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setShowConfirmClearAll(false)}
+                  className="px-2 py-0.5 rounded bg-zinc-200 text-zinc-700 text-[10px] hover:bg-zinc-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowConfirmClearAll(true)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 transition-colors"
+                title="Clear all emails in inbox"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )
+          )}
         </div>
       </div>
 
@@ -355,6 +438,33 @@ export default function UnifiedEmailInbox() {
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 font-bold border border-zinc-200">
                     Thread ID: {selectedThreadId}
                   </span>
+
+                  {showConfirmDeleteThread ? (
+                    <div className="flex items-center gap-1.5 animate-in fade-in">
+                      <span className="text-[11px] text-rose-600 font-semibold">Delete thread?</span>
+                      <button
+                        onClick={handleConfirmDeleteThread}
+                        className="px-2 py-0.5 text-[11px] rounded bg-rose-600 hover:bg-rose-700 text-white font-bold transition-colors shadow-2xs"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setShowConfirmDeleteThread(false)}
+                        className="px-1.5 py-0.5 text-[11px] rounded bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowConfirmDeleteThread(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-500 hover:text-rose-600 hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 transition-colors"
+                      title="Delete this entire conversation thread"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete Thread</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -382,9 +492,22 @@ export default function UnifiedEmailInbox() {
                             {msg.from}
                           </span>
                         </div>
-                        <span className={`text-[10px] font-mono ${isInbound ? 'text-zinc-400' : 'text-zinc-400'}`}>
-                          {new Date(msg.timestamp).toLocaleString()}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-mono ${isInbound ? 'text-zinc-400' : 'text-zinc-400'}`}>
+                            {new Date(msg.timestamp).toLocaleString()}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className={`p-1 rounded opacity-50 hover:opacity-100 transition-opacity ${
+                              isInbound 
+                                ? 'text-zinc-400 hover:text-rose-600 hover:bg-rose-50' 
+                                : 'text-zinc-400 hover:text-rose-400 hover:bg-zinc-800'
+                            }`}
+                            title="Delete this message"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className={`text-xs font-bold ${isInbound ? 'text-zinc-900' : 'text-zinc-200'}`}>
@@ -490,8 +613,22 @@ export default function UnifiedEmailInbox() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-xs text-zinc-400">
-              Select an email thread on the left to view the conversation.
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-xs text-zinc-400 space-y-3">
+              <div className="h-12 w-12 rounded-2xl bg-zinc-100 text-zinc-400 flex items-center justify-center shadow-2xs">
+                <Inbox className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-zinc-800 text-sm">Inbox is completely clear</p>
+                <p className="text-zinc-500 text-xs max-w-xs">
+                  All past emails and threads have been removed. Any new incoming or outbound emails will appear here.
+                </p>
+              </div>
+              <button
+                onClick={handleResetSeeds}
+                className="mt-2 px-3.5 py-1.5 rounded-xl bg-zinc-950 text-white font-medium hover:bg-zinc-800 transition-colors shadow-2xs text-xs"
+              >
+                Restore Demo Threads
+              </button>
             </div>
           )}
 
