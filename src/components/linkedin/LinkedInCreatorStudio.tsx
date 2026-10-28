@@ -17,13 +17,29 @@ import {
   Sliders, 
   AlertCircle, 
   Upload,
-  ArrowRight,
-  ChevronRight,
-  Flame,
-  CheckCircle,
-  Pencil,
-  Lightbulb,
-  FileText
+  ArrowRight, 
+  ChevronRight, 
+  Flame, 
+  CheckCircle, 
+  Pencil, 
+  Lightbulb, 
+  FileText,
+  Calendar,
+  Layers,
+  Eye,
+  Globe,
+  Tag,
+  ShieldCheck,
+  Search,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  ThumbsUp,
+  Repeat2,
+  Send,
+  MoreHorizontal,
+  Bookmark,
+  Heart
 } from 'lucide-react';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
 import LinkedInVisualCard from './LinkedInVisualCard';
@@ -33,14 +49,14 @@ import {
   LINKEDIN_IDEA_PRESETS,
   summarizeCsvLeads, 
   getDeterministicLinkedInSeries, 
-  getDeterministicViralComments,
-  getDeterministicThreadFollowUps,
-  sanitizeTextForLinkedIn,
-  CsvIntelligenceSummary,
-  LinkedInSeries,
-  LinkedInPost,
-  ViralCommentDraft,
-  ThreadFollowUpDraft
+  getDeterministicViralComments, 
+  getDeterministicThreadFollowUps, 
+  sanitizeTextForLinkedIn, 
+  CsvIntelligenceSummary, 
+  LinkedInSeries, 
+  LinkedInPost, 
+  ViralCommentDraft, 
+  ThreadFollowUpDraft 
 } from '@/lib/linkedinStudio';
 import { DEMO_CADENCE_LEADS, CadenceLeadRecord } from '@/lib/cadenceMaster';
 import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
@@ -52,6 +68,7 @@ export default function LinkedInCreatorStudio() {
   const [leads, setLeads] = useState<CadenceLeadRecord[]>(DEMO_CADENCE_LEADS);
   const [csvSummary, setCsvSummary] = useState<CsvIntelligenceSummary>(() => summarizeCsvLeads(DEMO_CADENCE_LEADS));
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [csvSearchTerm, setCsvSearchTerm] = useState('');
 
   // Series Generation State
   const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>('contrarian-truth');
@@ -63,10 +80,19 @@ export default function LinkedInCreatorStudio() {
   const [seriesData, setSeriesData] = useState<LinkedInSeries>(() => 
     getDeterministicLinkedInSeries(summarizeCsvLeads(DEMO_CADENCE_LEADS), 'contrarian-truth', 'broker-margin-continuity')
   );
-  // Post Draft Editing State: Tracks which post cards are in inline edit mode
+
+  // Active Episode Focus State (0 = Ep 1 Tuesday, 1 = Ep 2 Thursday, 2 = Ep 3 Friday)
+  const [activeEpisodeIdx, setActiveEpisodeIdx] = useState<number>(0);
+
+  // Post Draft Inline Editing State
   const [editingPostIds, setEditingPostIds] = useState<Record<string, boolean>>({});
 
+  // Show Comments & Visual Toggles inside the LinkedIn Feed Post
+  const [showInjectedComments, setShowInjectedComments] = useState<boolean>(true);
+  const [showVisualStudio, setShowVisualStudio] = useState<boolean>(false);
+
   const currentPreset = CONTINUITY_SERIES_PRESETS.find(p => p.id === selectedPresetId) || CONTINUITY_SERIES_PRESETS[0];
+  const activeFramework = LINKEDIN_FRAMEWORKS.find(f => f.id === selectedFrameworkId) || LINKEDIN_FRAMEWORKS[0];
 
   // Viral Post Comment State
   const [viralPostInput, setViralPostInput] = useState<string>(
@@ -78,10 +104,22 @@ export default function LinkedInCreatorStudio() {
     getDeterministicViralComments(viralPostInput)
   );
 
+  // Thread Conversation Accelerator State
+  const [authorReplyInput, setAuthorReplyInput] = useState<string>(
+    'Fair point, but in our experience enterprise buyers ignore cold outreach completely unless they already recognize the brand.'
+  );
+  const [previousCommentInput, setPreviousCommentInput] = useState<string>(
+    'Interesting take, but in BPO operations we usually see the opposite. Activity numbers mean nothing if the list has already been fatigued by three other agencies. List exclusivity beats call volume every time.'
+  );
+  const [isGeneratingThreadReplies, setIsGeneratingThreadReplies] = useState(false);
+  const [threadReplies, setThreadReplies] = useState<ThreadFollowUpDraft[]>(() => 
+    getDeterministicThreadFollowUps('Fair point, but in our experience enterprise buyers ignore cold outreach completely unless they already recognize the brand.')
+  );
+
   // Copy Feedback State
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Load any previously saved CSV leads from localStorage
+  // Load cached CSV leads from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem('sdr_active_csv_leads');
@@ -96,6 +134,22 @@ export default function LinkedInCreatorStudio() {
       console.warn('Failed to load cached CSV leads:', e);
     }
   }, []);
+
+  // Keyboard shortcut listener: Ctrl+Enter (or Cmd+Enter) to generate
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (activeTab === 'series') {
+          handleGenerateSeries();
+        } else if (activeTab === 'viral') {
+          handleGenerateViralComments();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, customTopic, selectedFrameworkId, selectedPresetId, viralPostInput, selectedAngle]);
 
   const handleLeadsImported = (imported: CadenceLeadRecord[]) => {
     setLeads(imported);
@@ -114,12 +168,12 @@ export default function LinkedInCreatorStudio() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Switch Week / Continuity Arc instantly
+  // Switch Week / Continuity Arc
   const handleSelectWeekPreset = (presetId: string) => {
     setSelectedPresetId(presetId);
-    // Instant update with rich sequential posts so the user sees the continuation immediately
     const updated = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, presetId);
     setSeriesData(updated);
+    setActiveEpisodeIdx(0);
   };
 
   // Toggle Edit Mode for a post card
@@ -130,7 +184,7 @@ export default function LinkedInCreatorStudio() {
     }));
   };
 
-  // Update post field directly (Hook, Body, CTA, Hashtags, InjectedComments)
+  // Update post field directly
   const handleUpdatePostField = (postId: string, field: 'hook' | 'body' | 'cta' | 'hashtags' | 'injectedComments', value: any) => {
     setSeriesData(prev => {
       const updatedPosts = prev.posts.map(p => {
@@ -170,6 +224,8 @@ export default function LinkedInCreatorStudio() {
       });
       return { ...prev, posts: updatedPosts };
     });
+    setCopiedKey(`cleaned-${postId}`);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   // Generate 3-Post Series via Gemini
@@ -197,15 +253,18 @@ export default function LinkedInCreatorStudio() {
         const data = await res.json();
         if (data.series) {
           setSeriesData(data.series);
+          setActiveEpisodeIdx(0);
           return;
         }
       }
       const fallback = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, presetIdToUse);
       setSeriesData(fallback);
+      setActiveEpisodeIdx(0);
     } catch (err) {
       console.error('Error generating series:', err);
       const fallback = getDeterministicLinkedInSeries(csvSummary, selectedFrameworkId, presetIdToUse);
       setSeriesData(fallback);
+      setActiveEpisodeIdx(0);
     } finally {
       setIsGeneratingSeries(false);
     }
@@ -242,18 +301,7 @@ export default function LinkedInCreatorStudio() {
     }
   };
 
-  // Thread Conversation & Relationship Builder State
-  const [authorReplyInput, setAuthorReplyInput] = useState<string>(
-    'Fair point, but in our experience enterprise buyers ignore cold outreach completely unless they already recognize the brand.'
-  );
-  const [previousCommentInput, setPreviousCommentInput] = useState<string>(
-    'Interesting take, but in BPO operations we usually see the opposite. Activity numbers mean nothing if the list has already been fatigued by three other agencies. List exclusivity beats call volume every time.'
-  );
-  const [isGeneratingThreadReplies, setIsGeneratingThreadReplies] = useState(false);
-  const [threadReplies, setThreadReplies] = useState<ThreadFollowUpDraft[]>(() => 
-    getDeterministicThreadFollowUps('Fair point, but in our experience enterprise buyers ignore cold outreach completely unless they already recognize the brand.')
-  );
-
+  // Generate Thread Follow-Ups via Gemini
   const handleGenerateThreadReplies = async () => {
     if (!authorReplyInput.trim()) return;
     setIsGeneratingThreadReplies(true);
@@ -285,109 +333,207 @@ export default function LinkedInCreatorStudio() {
     }
   };
 
+  // Active post in the LinkedIn feed
+  const activePost: LinkedInPost = seriesData.posts[activeEpisodeIdx] || seriesData.posts[0];
+  const fullPostText = `${activePost.hook}\n\n${activePost.body}\n\n${activePost.cta}\n\n${activePost.hashtags.join(' ')}`;
+
+  // Filtered CSV leads for Dossier view
+  const filteredLeads = leads.filter(l => {
+    if (!csvSearchTerm.trim()) return true;
+    const term = csvSearchTerm.toLowerCase();
+    return (
+      (l.name && l.name.toLowerCase().includes(term)) ||
+      (l.company && l.company.toLowerCase().includes(term)) ||
+      (l.title && l.title.toLowerCase().includes(term)) ||
+      (l.painPoint && l.painPoint.toLowerCase().includes(term))
+    );
+  });
+
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
-      {/* Top Banner / Studio Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-7 w-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center">
-              <LinkedinIcon className="h-4 w-4" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-900">
-              LinkedIn Thought Leadership &amp; Viral Engagement Studio
-            </h1>
-          </div>
-          <p className="text-xs text-zinc-500">
-            Synthesize a 3-part sequential series grounded in your prospect CSV, paired with Gemini visual prompts and algorithmic hashtags, or craft viral comment drafts with zero em dashes and zero emojis.
-          </p>
-        </div>
-
-        {/* Studio Mode Switcher */}
-        <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 shrink-0 self-start md:self-auto">
-          <button
-            onClick={() => setActiveTab('series')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              activeTab === 'series'
-                ? 'bg-white text-zinc-900 shadow-2xs'
-                : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            <TrendingUp className="h-3.5 w-3.5" />
-            <span>3-Post Series Arc</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('viral')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              activeTab === 'viral'
-                ? 'bg-white text-zinc-900 shadow-2xs'
-                : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            <MessageSquareQuote className="h-3.5 w-3.5" />
-            <span>Viral Post Comments</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('dossier')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              activeTab === 'dossier'
-                ? 'bg-white text-zinc-900 shadow-2xs'
-                : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            <span>CSV Intel ({leads.length})</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ACTIVE CLIENT DOSSIER INTELLIGENCE STRIP */}
-      <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+    <div className="min-h-full bg-[#f4f2ee] p-3 sm:p-5 lg:p-6 space-y-4 font-sans text-[#191919]">
+      
+      {/* ========================================================================= */}
+      {/* 1. LINKEDIN-STYLE TOP NAVIGATION BAR                                      */}
+      {/* ========================================================================= */}
+      <header className="bg-white border border-[#e0dfdc] rounded-xl p-3 px-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        
+        {/* Brand & Search/Mode */}
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-zinc-200/70 text-zinc-700 flex items-center justify-center shrink-0">
-            <FileSpreadsheet className="h-4 w-4" />
+          <div className="h-9 w-9 rounded-lg bg-[#0a66c2] text-white flex items-center justify-center shrink-0">
+            <LinkedinIcon className="h-5 w-5 fill-current text-white" />
           </div>
           <div>
-            <div className="font-semibold text-zinc-900 flex items-center gap-2">
-              <span>Active CSV Grounding: {csvSummary.totalLeads} Target Accounts</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
-                {csvSummary.dominantHeadcount}
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-bold text-[#191919] leading-tight">
+                LinkedIn Thought Leadership Studio
+              </h1>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#ebf4fd] text-[#0a66c2] font-bold border border-[#cbe1f9]">
+                0 Em Dashes • 0 Emojis
               </span>
             </div>
-            <p className="text-[11px] text-zinc-500 line-clamp-1">
-              Top Bottlenecks: <strong className="text-zinc-700">{csvSummary.topPainPoints.join(', ')}</strong> • Tech: {csvSummary.topTechStacks[0]}
+            <p className="text-xs text-[#666666]">
+              Synthesize high-conversion episodic posts grounded in target prospect data.
             </p>
           </div>
         </div>
 
-        <button
-          onClick={() => setIsCsvModalOpen(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-zinc-700 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-100 hover:text-zinc-950 transition-colors self-start md:self-auto shrink-0 shadow-2xs"
-        >
-          <Upload className="h-3 w-3" />
-          <span>Upload / Switch CSV</span>
-        </button>
-      </div>
+        {/* LinkedIn Navigation Tabs */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 p-1 bg-[#f4f2ee] rounded-xl border border-[#e0dfdc]">
+            <button
+              onClick={() => setActiveTab('series')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'series'
+                  ? 'bg-white text-[#0a66c2] shadow-2xs'
+                  : 'text-[#666666] hover:text-[#191919]'
+              }`}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              <span>Episodic Series (3-Part)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('viral')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'viral'
+                  ? 'bg-white text-[#0a66c2] shadow-2xs'
+                  : 'text-[#666666] hover:text-[#191919]'
+              }`}
+            >
+              <MessageSquareQuote className="h-3.5 w-3.5" />
+              <span>Viral Comment Copilot</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('dossier')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'dossier'
+                  ? 'bg-white text-[#0a66c2] shadow-2xs'
+                  : 'text-[#666666] hover:text-[#191919]'
+              }`}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              <span>CSV Intel ({leads.length})</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => setIsCsvModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#e0dfdc] text-[#666666] hover:bg-[#f4f2ee] hover:text-[#191919] transition-colors text-xs font-semibold shadow-2xs"
+            title="Upload CSV leads"
+          >
+            <Upload className="h-3.5 w-3.5 text-[#0a66c2]" />
+            <span className="hidden sm:inline">CSV:</span>
+            <span className="font-mono text-[#0a66c2] font-bold">{csvSummary.dominantHeadcount}</span>
+          </button>
+        </div>
+      </header>
 
       {/* ========================================================================= */}
-      {/* TAB 1: 3-POST SEQUENTIAL LINKEDIN SERIES ARC STUDIO                       */}
+      {/* TAB 1: AUTHENTIC LINKEDIN POST WORKBENCH (SERIES ARC)                     */}
       {/* ========================================================================= */}
       {activeTab === 'series' && (
-        <div className="space-y-6">
-          {/* Controls Panel */}
-          <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Framework Selector */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          
+          {/* ======================================================================= */}
+          {/* LEFT RAIL: LINKEDIN PROFILE & STRATEGY CONTROLS (4 COLS)                */}
+          {/* ======================================================================= */}
+          <div className="lg:col-span-4 space-y-4">
+            
+            {/* LinkedIn Mini Profile Card */}
+            <div className="bg-white rounded-xl border border-[#e0dfdc] overflow-hidden shadow-2xs text-left">
+              <div className="h-16 bg-gradient-to-r from-[#0a66c2] via-[#004182] to-zinc-900 relative">
+                <span className="absolute top-2 right-2 text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-black/40 text-white backdrop-blur-xs">
+                  Week {currentPreset.weekNumber} of 4 Active
+                </span>
+              </div>
+              <div className="px-4 pb-4 relative pt-0">
+                <div className="h-14 w-14 rounded-full border-2 border-white bg-zinc-900 text-white -mt-7 flex items-center justify-center font-bold text-sm shadow-xs overflow-hidden">
+                  <span className="bg-gradient-to-br from-[#0a66c2] to-zinc-950 w-full h-full flex items-center justify-center text-white font-bold">
+                    EV
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <h3 className="text-sm font-bold text-[#191919] flex items-center gap-1">
+                    <span>Emil Vance</span>
+                    <span className="text-[10px] text-[#666666] font-normal">• 1st</span>
+                  </h3>
+                  <p className="text-[11px] text-[#666666] leading-tight mt-0.5">
+                    Head of Outbound Operations &amp; BPO Partnerships | 17-Year BDM
+                  </p>
+                </div>
+                <div className="mt-3 pt-3 border-t border-[#e8e8e8] text-[11px] text-[#666666] space-y-1">
+                  <div className="flex justify-between">
+                    <span>Target Audience:</span>
+                    <strong className="text-[#191919]">BPO Founders &amp; CROs</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Cadence:</span>
+                    <strong className="text-[#0a66c2]">Tue • Thu • Fri</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4-Week Series Continuity Calendar */}
+            <div className="bg-white rounded-xl border border-[#e0dfdc] p-4 shadow-2xs space-y-2.5 text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#191919] uppercase tracking-wider flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-[#0a66c2]" />
+                  <span>Series Continuity (4 Weeks)</span>
+                </span>
+                <span className="text-[10px] font-mono font-bold text-[#0a66c2] bg-[#ebf4fd] px-1.5 py-0.2 rounded">
+                  {currentPreset.episodesRange}
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                {CONTINUITY_SERIES_PRESETS.map((p) => {
+                  const isSelected = selectedPresetId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => handleSelectWeekPreset(p.id)}
+                      className={`w-full p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#ebf4fd] border-[#0a66c2] text-[#0a66c2] shadow-2xs'
+                          : 'bg-white hover:bg-[#f4f2ee] border-[#e0dfdc] text-[#191919]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] font-bold">
+                        <span className="uppercase">Week {p.weekNumber}</span>
+                        <span className="font-mono">{p.episodesRange}</span>
+                      </div>
+                      <div className="text-xs font-semibold leading-tight line-clamp-1 mt-0.5">
+                        {p.title.replace(/^Week \d+:\s*/, '')}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {currentPreset.nextPresetId && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId!)}
+                  className="w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-[#0a66c2] hover:bg-[#004182] text-white transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Zap className="h-3.5 w-3.5 text-amber-300" />
+                  <span>Advance to Week {((currentPreset.weekNumber) % 4) + 1} ➔</span>
+                </button>
+              )}
+            </div>
+
+            {/* Framework & Idea Box Card */}
+            <div className="bg-white rounded-xl border border-[#e0dfdc] p-4 shadow-2xs space-y-3 text-left">
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
+                <label className="text-xs font-bold text-[#191919] uppercase tracking-wider block mb-1">
                   1. Writing Framework
                 </label>
                 <select
                   value={selectedFrameworkId}
                   onChange={(e) => setSelectedFrameworkId(e.target.value)}
-                  className="w-full text-xs font-medium bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-2 text-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-zinc-900"
+                  className="w-full text-xs font-semibold rounded-lg border border-[#e0dfdc] bg-[#f4f2ee] px-2.5 py-2 text-[#191919] focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-[#0a66c2]"
                 >
                   {LINKEDIN_FRAMEWORKS.map((f) => (
                     <option key={f.id} value={f.id}>
@@ -395,698 +541,443 @@ export default function LinkedInCreatorStudio() {
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-zinc-400 mt-1 line-clamp-1">
-                  {LINKEDIN_FRAMEWORKS.find(f => f.id === selectedFrameworkId)?.description}
-                </p>
               </div>
 
-              {/* Continuity Preset Selector */}
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
-                  2. Continuity Arc (Tied to Last Week)
+                <label className="text-xs font-bold text-[#191919] uppercase tracking-wider block mb-1">
+                  2. Idea Box (Your Strategic Angle)
                 </label>
-                <select
-                  value={selectedPresetId}
-                  onChange={(e) => setSelectedPresetId(e.target.value)}
-                  className="w-full text-xs font-medium bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-2 text-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-zinc-900"
-                >
-                  {CONTINUITY_SERIES_PRESETS.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-zinc-400 mt-1 line-clamp-1">
-                  Connects to previous posts so followers anticipate each drop.
-                </p>
-              </div>
-            </div>
+                <textarea
+                  rows={3}
+                  value={customTopic}
+                  onChange={(e) => setCustomTopic(e.target.value)}
+                  placeholder="Type your raw thought, experience, or observation here..."
+                  className="w-full text-xs rounded-lg border border-[#e0dfdc] bg-[#f4f2ee] p-2.5 text-[#191919] focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-[#0a66c2] leading-relaxed resize-none"
+                />
 
-            {/* IDEA BOX: Raw Angle, Plan & Thought Input */}
-            <div className="p-3.5 rounded-xl bg-amber-50/40 border border-amber-200/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
-                  <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
-                  <span>3. Idea Box — What do you want to post about?</span>
-                </label>
-                <span className="text-[10px] font-mono text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded">
-                  AI Analyzes Your Idea &amp; Writes The Series
-                </span>
-              </div>
-
-              <textarea
-                rows={3}
-                value={customTopic}
-                onChange={(e) => setCustomTopic(e.target.value)}
-                placeholder="Type your raw thought, experience, or observation here. For example: 'Brokers take up to a 60% cut on cheap pay-per-performance campaigns while BPO carries 100% OPEX burden. They take over operations without risking capital. It is time to take internal acquisition back to all BPOs'..."
-                className="w-full text-xs bg-white border border-amber-200 rounded-lg p-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-amber-500 shadow-2xs leading-relaxed"
-              />
-
-              {/* AI Logic & Framework Intelligence Confirmation */}
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-100/70 border border-amber-300/80 text-[11px] text-amber-950 leading-tight">
-                <Sparkles className="h-3.5 w-3.5 text-amber-700 shrink-0" />
-                <span>
-                  <strong>AI Idea Engine Active:</strong> Anchors 3 episodes directly to your Idea Box • Applies <em>{LINKEDIN_FRAMEWORKS.find(f => f.id === selectedFrameworkId)?.name}</em> • Enforces 17-Year BDM POV: 60% broker cut vs 100% BPO OPEX burden &amp; taking internal acquisition back.
-                </span>
-              </div>
-
-              {/* Quick Idea Starters */}
-              <div className="space-y-1.5 pt-1">
-                <span className="text-[10px] font-mono text-zinc-500 block">
-                  Click a Quick Idea Starter to populate:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {LINKEDIN_IDEA_PRESETS.map((preset) => (
+                <div className="flex flex-wrap gap-1 pt-1.5">
+                  {LINKEDIN_IDEA_PRESETS.slice(0, 3).map((preset) => (
                     <button
                       key={preset.id}
                       type="button"
                       onClick={() => {
                         setCustomTopic(preset.idea);
-                        if (preset.frameworkId) {
-                          setSelectedFrameworkId(preset.frameworkId);
-                        }
+                        if (preset.frameworkId) setSelectedFrameworkId(preset.frameworkId);
                       }}
-                      className="px-2.5 py-1 text-[11px] rounded-lg bg-white border border-amber-200/90 hover:border-amber-400 text-zinc-800 hover:text-zinc-950 font-medium transition-colors shadow-2xs text-left"
+                      className="text-[10px] px-2 py-0.5 rounded bg-[#f4f2ee] hover:bg-[#e0dfdc] text-[#666666] hover:text-[#191919] transition-colors"
                     >
                       💡 {preset.label}
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Synthesize Button */}
-            <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Grounds copy in CSV bottlenecks • Generates visual pairing &amp; comments</span>
-              </div>
 
               <button
                 onClick={() => handleGenerateSeries()}
                 disabled={isGeneratingSeries}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 transition-colors shadow-2xs"
+                className="w-full py-2.5 px-4 rounded-lg bg-[#0a66c2] hover:bg-[#004182] text-white font-bold text-xs disabled:opacity-50 transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isGeneratingSeries ? (
                   <>
-                    <RotateCw className="h-3.5 w-3.5 animate-spin" />
-                    <span>Synthesizing 3-Post Series with Gemini...</span>
+                    <RotateCw className="h-3.5 w-3.5 animate-spin text-white" />
+                    <span>Synthesizing Series...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                     <span>Synthesize 3-Post Series</span>
                   </>
                 )}
               </button>
             </div>
+
           </div>
 
-          {/* ========================================================================= */}
-          {/* MULTI-WEEK CONTINUITY CALENDAR NAVIGATOR (WEEKS 1 - 4)                    */}
-          {/* ========================================================================= */}
-          <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
+          {/* ======================================================================= */}
+          {/* CENTER/MAIN FEED: AUTHENTIC LINKEDIN POST WORKSTATION (8 COLS)          */}
+          {/* ======================================================================= */}
+          <div className="lg:col-span-8 space-y-4">
+            
+            {/* Episode Switcher / Post Tabs (LinkedIn Feed Style) */}
+            <div className="bg-white rounded-xl border border-[#e0dfdc] p-3 shadow-2xs flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-[#666666] uppercase tracking-wider mr-1">
+                  Episode:
+                </span>
+                {seriesData.posts.map((p, idx) => {
+                  const isSelected = activeEpisodeIdx === idx;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setActiveEpisodeIdx(idx)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-[#0a66c2] text-white shadow-2xs'
+                          : 'bg-[#f4f2ee] hover:bg-[#e0dfdc] text-[#666666]'
+                      }`}
+                    >
+                      <span>{p.dayLabel.split('•')[0].trim()}</span>
+                      <span className={`text-[10px] font-mono px-1 rounded-full ${isSelected ? 'bg-[#004182] text-white' : 'bg-[#e0dfdc] text-zinc-700'}`}>
+                        Ep {p.episodeNumber}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Master Actions */}
               <div className="flex items-center gap-2">
-                <span className="p-1 rounded bg-zinc-900 text-white text-xs font-bold">📅</span>
-                <div>
-                  <h3 className="text-xs font-bold text-zinc-900 flex items-center gap-2">
-                    <span>Multi-Week Series Continuity Calendar</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold border border-amber-200">
-                      Week {currentPreset.weekNumber} of 4 • {currentPreset.episodesRange} Active
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-zinc-500">
-                    4-week sequential arcs tied to each other so your audience anticipates every post
-                  </p>
+                <button
+                  onClick={() => handleCleanPost(activePost.id)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#666666] hover:text-[#191919] bg-[#f4f2ee] hover:bg-[#e0dfdc] transition-colors flex items-center gap-1"
+                  title="Verify 0 em-dashes and 0 emojis"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>{copiedKey === `cleaned-${activePost.id}` ? 'Cleaned!' : 'Audit Rules'}</span>
+                </button>
+
+                <button
+                  onClick={() => toggleEditMode(activePost.id)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                    editingPostIds[activePost.id]
+                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                      : 'bg-[#f4f2ee] hover:bg-[#e0dfdc] text-[#191919]'
+                  }`}
+                >
+                  <Pencil className="h-3 w-3" />
+                  <span>{editingPostIds[activePost.id] ? 'Done' : 'Edit Post'}</span>
+                </button>
+
+                <button
+                  onClick={() => copyToClipboard(fullPostText, `copy-main-${activePost.id}`)}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#0a66c2] hover:bg-[#004182] text-white transition-colors shadow-2xs cursor-pointer"
+                >
+                  {copiedKey === `copy-main-${activePost.id}` ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-300" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      <span>Copy for LinkedIn</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* =================================================================== */}
+            {/* THE AUTHENTIC LINKEDIN POST CARD                                   */}
+            {/* =================================================================== */}
+            <div className="bg-white rounded-xl border border-[#e0dfdc] shadow-2xs overflow-hidden text-left">
+              
+              {/* Post Header: Profile & Timestamp */}
+              <div className="p-4 pb-2 flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#0a66c2] to-zinc-900 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                    EV
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1 leading-tight">
+                      <span className="font-bold text-sm text-[#191919] hover:text-[#0a66c2] hover:underline cursor-pointer">
+                        Emil Vance
+                      </span>
+                      <span className="text-xs text-[#666666] font-normal">• 1st</span>
+                    </div>
+                    <p className="text-xs text-[#666666] leading-snug line-clamp-1">
+                      Head of Outbound Operations &amp; BPO Partnerships | 17-Year BDM
+                    </p>
+                    <div className="flex items-center gap-1 text-[11px] text-[#666666] mt-0.5">
+                      <span>1d • Edited</span>
+                      <span>•</span>
+                      <Globe className="h-3 w-3 text-[#666666]" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-[#666666]">
+                  <button className="p-1.5 rounded-full hover:bg-[#f4f2ee] transition-colors">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Advance to Next Week Button */}
-              {currentPreset.nextPresetId && (
-                <button
-                  type="button"
-                  onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId!)}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Zap className="w-3.5 h-3.5 text-black" />
-                  <span>Advance to Week {((currentPreset.weekNumber) % 4) + 1} ➔</span>
-                </button>
-              )}
-            </div>
-
-            {/* 4 Interactive Week Tabs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {CONTINUITY_SERIES_PRESETS.map((p) => {
-                const isSelected = selectedPresetId === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handleSelectWeekPreset(p.id)}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative ${
-                      isSelected
-                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-md ring-2 ring-amber-400/80'
-                        : 'bg-zinc-50 hover:bg-white border-zinc-200 text-zinc-800 hover:border-zinc-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                        isSelected ? 'bg-amber-400 text-black' : 'bg-white text-zinc-700 border border-zinc-200'
-                      }`}>
-                        Week {p.weekNumber}
-                      </span>
-                      <span className={`text-[10px] font-mono ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                        {p.episodesRange}
-                      </span>
+              {/* Post Content Area */}
+              <div className="px-4 py-2 text-[14px] leading-[1.45] text-[#191919]">
+                {editingPostIds[activePost.id] ? (
+                  /* INLINE EDIT MODE */
+                  <div className="space-y-3 p-3 bg-amber-50/50 rounded-lg border border-amber-300">
+                    <div>
+                      <label className="text-[10px] font-bold text-amber-950 uppercase block mb-1">
+                        Hook (First 2 Lines)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={activePost.hook}
+                        onChange={(e) => handleUpdatePostField(activePost.id, 'hook', e.target.value)}
+                        className="w-full text-xs font-bold rounded border border-amber-300 p-2 bg-white text-[#191919]"
+                      />
                     </div>
-
-                    <div className="text-xs font-bold leading-tight line-clamp-1">
-                      {p.title.replace(/^Week \d+:\s*/, '')}
+                    <div>
+                      <label className="text-[10px] font-bold text-amber-950 uppercase block mb-1">
+                        Body Text (&lt;90 words)
+                      </label>
+                      <textarea
+                        rows={5}
+                        value={activePost.body}
+                        onChange={(e) => handleUpdatePostField(activePost.id, 'body', e.target.value)}
+                        className="w-full text-xs rounded border border-amber-300 p-2 bg-white text-[#191919] leading-relaxed"
+                      />
                     </div>
-
-                    <div className={`text-[10px] mt-1 line-clamp-1 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                      {p.theme}
+                    <div>
+                      <label className="text-[10px] font-bold text-amber-950 uppercase block mb-1">
+                        CTA (Open Discussion Question)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={activePost.cta}
+                        onChange={(e) => handleUpdatePostField(activePost.id, 'cta', e.target.value)}
+                        className="w-full text-xs font-semibold rounded border border-amber-300 p-2 bg-white text-[#0a66c2]"
+                      />
                     </div>
-
-                    {isSelected && (
-                      <div className="mt-2 pt-1 border-t border-zinc-800 text-[10px] font-mono text-amber-300 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-amber-400" />
-                        <span>Active Drop Loaded</span>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Series Metadata Header */}
-          <div className="p-4 rounded-xl bg-zinc-900 text-white shadow-xs space-y-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-rose-400 bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-700">
-                  Episodic LinkedIn Series • Week {currentPreset.weekNumber} of 4
-                </span>
-                <span className="text-[10px] font-mono text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded border border-zinc-700">
-                  {currentPreset.episodesRange}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-zinc-400 hidden sm:inline">
-                  Cadence: Tuesday • Thursday • Friday
-                </span>
-                {currentPreset.nextPresetId && (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId!)}
-                    className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>Next Week Arc ➔</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <h2 className="text-base font-bold tracking-tight text-white">
-              {seriesData.seriesTitle}
-            </h2>
-            <div className="text-xs text-zinc-300 leading-relaxed bg-zinc-800/60 p-2.5 rounded-lg border border-zinc-700/60">
-              <span className="font-semibold text-zinc-200">Continuity Bridge from Previous Drop: </span>
-              "{seriesData.seriesHookRecap}"
-            </div>
-          </div>
-
-          {/* 3-Post Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {seriesData.posts.map((post) => {
-              const fullPostText = `${post.hook}\n\n${post.body}\n\n${post.cta}\n\n${post.hashtags.join(' ')}`;
-              return (
-                <div
-                  key={post.id}
-                  className="rounded-2xl border border-zinc-200 bg-white shadow-2xs flex flex-col justify-between overflow-hidden"
-                >
-                  {/* Card Header */}
-                  <div className="p-4 border-b border-zinc-100 bg-zinc-50/60 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
-                        {post.dayLabel}
-                      </span>
-                      <h3 className="text-xs font-bold text-zinc-900 truncate">
-                        {post.title}
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex justify-end">
                       <button
-                        onClick={() => copyToClipboard(fullPostText, `header-post-${post.id}`)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
-                        title="Copy entire post formatted for LinkedIn"
+                        onClick={() => toggleEditMode(activePost.id)}
+                        className="px-3 py-1 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"
                       >
-                        {copiedKey === `header-post-${post.id}` ? (
-                          <>
-                            <Check className="h-3.5 w-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3.5 w-3.5" />
-                            <span>Copy Full Post</span>
-                          </>
-                        )}
+                        ✓ Done Editing
                       </button>
                     </div>
                   </div>
-
-                  {/* Post Content Body */}
-                  <div className="p-4 space-y-3 text-left">
-                    {/* Unified Clean LinkedIn Post Block (Ready to Copy & Edit) */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                          <CheckCircle className="h-3 w-3 text-emerald-600" />
-                          <span>{editingPostIds[post.id] ? 'Editing Post Draft (Free Hand)' : 'Ready-to-Paste LinkedIn Post (Whole Block)'}</span>
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => toggleEditMode(post.id)}
-                            className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded cursor-pointer transition-colors ${
-                              editingPostIds[post.id]
-                                ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
-                            }`}
-                          >
-                            <Pencil className="h-3 w-3" />
-                            <span>{editingPostIds[post.id] ? 'Done Editing' : 'Edit Draft'}</span>
-                          </button>
-                          <span className="text-[10px] font-mono text-zinc-500">
-                            {post.wordCount} words • {post.estimatedReadSeconds}s read
-                          </span>
-                        </div>
-                      </div>
-
-                      {editingPostIds[post.id] ? (
-                        /* EDITING MODE: Free-hand editable textareas */
-                        <div className="p-3.5 rounded-xl bg-amber-50/50 border-2 border-amber-300 space-y-3 text-xs">
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider">
-                                Hook (First 2 Lines — Grabs Attention)
-                              </label>
-                              <span className="text-[10px] font-mono text-zinc-400">Lines 1 &amp; 2</span>
-                            </div>
-                            <textarea
-                              rows={2}
-                              value={post.hook}
-                              onChange={(e) => handleUpdatePostField(post.id, 'hook', e.target.value)}
-                              className="w-full bg-white border border-amber-300 rounded-lg p-2 font-bold text-zinc-950 focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
-                            />
-                          </div>
-
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider">
-                                Body (Target: Under 90 Words • 0 Em Dashes • 0 Emojis)
-                              </label>
-                              <span className="text-[10px] font-mono text-zinc-500">
-                                {post.body.trim().split(/\s+/).filter(Boolean).length} words
-                              </span>
-                            </div>
-                            <textarea
-                              rows={6}
-                              value={post.body}
-                              onChange={(e) => handleUpdatePostField(post.id, 'body', e.target.value)}
-                              className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-relaxed font-sans"
-                            />
-                          </div>
-
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider">
-                                Call to Action (Philosophical Open-Ended Question)
-                              </label>
-                            </div>
-                            <textarea
-                              rows={2}
-                              value={post.cta}
-                              onChange={(e) => handleUpdatePostField(post.id, 'cta', e.target.value)}
-                              className="w-full bg-white border border-amber-300 rounded-lg p-2 font-semibold text-emerald-950 focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider block mb-1">
-                              Hashtags (Space separated)
-                            </label>
-                            <input
-                              type="text"
-                              value={post.hashtags.join(' ')}
-                              onChange={(e) => {
-                                const tags = e.target.value.split(/\s+/).filter(Boolean).map(t => t.startsWith('#') ? t : `#${t}`);
-                                handleUpdatePostField(post.id, 'hashtags', tags);
-                              }}
-                              className="w-full bg-white border border-amber-300 rounded-lg p-2 font-mono text-[11px] text-zinc-700 focus:outline-hidden focus:ring-1 focus:ring-amber-500"
-                            />
-                          </div>
-
-                          {/* Injected Comments Editing (3 Bold & Controversial Injections) */}
-                          <div className="space-y-2.5 pt-2 border-t border-amber-200">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1">
-                                <Flame className="h-3 w-3 text-rose-500" />
-                                <span>Injected Comments (3 Bold &amp; Controversial Triggers)</span>
-                              </label>
-                              <span className="text-[9px] font-mono text-zinc-500">Stoke Reader Discussion</span>
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-mono font-semibold text-zinc-600 block mb-0.5">
-                                Comment 1 (The Sacred Cow Sledgehammer / Bold Truth Bomb):
-                              </span>
-                              <textarea
-                                rows={2}
-                                value={post.injectedComments[0] || ''}
-                                onChange={(e) => {
-                                  const updated = [e.target.value, post.injectedComments[1] || '', post.injectedComments[2] || ''];
-                                  handleUpdatePostField(post.id, 'injectedComments', updated);
-                                }}
-                                className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 text-[11px] focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-mono font-semibold text-zinc-600 block mb-0.5">
-                                Comment 2 (Executive Debate Flame / Direct Call-Out):
-                              </span>
-                              <textarea
-                                rows={2}
-                                value={post.injectedComments[1] || ''}
-                                onChange={(e) => {
-                                  const updated = [post.injectedComments[0] || '', e.target.value, post.injectedComments[2] || ''];
-                                  handleUpdatePostField(post.id, 'injectedComments', updated);
-                                }}
-                                className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 text-[11px] focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-mono font-semibold text-zinc-600 block mb-0.5">
-                                Comment 3 (Devil's Advocate / Excuse-Shredder):
-                              </span>
-                              <textarea
-                                rows={2}
-                                value={post.injectedComments[2] || ''}
-                                onChange={(e) => {
-                                  const updated = [post.injectedComments[0] || '', post.injectedComments[1] || '', e.target.value];
-                                  handleUpdatePostField(post.id, 'injectedComments', updated);
-                                }}
-                                className="w-full bg-white border border-amber-300 rounded-lg p-2 text-zinc-800 text-[11px] focus:outline-hidden focus:ring-1 focus:ring-amber-500 leading-snug"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="pt-2 border-t border-amber-200 flex items-center justify-between">
-                            <button
-                              type="button"
-                              onClick={() => handleCleanPost(post.id)}
-                              className="px-2.5 py-1 rounded bg-zinc-900 text-white text-[11px] font-bold hover:bg-zinc-800 transition-colors shadow-2xs"
-                              title="Strip any accidental em dashes or emojis"
-                            >
-                              Clean Rules (0 Em Dashes / 0 Emojis)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => toggleEditMode(post.id)}
-                              className="px-3 py-1 rounded bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 transition-colors shadow-2xs"
-                            >
-                              ✓ Save &amp; Finish
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* PREVIEW MODE: Formatted Block with Click-to-Copy */
-                        <div className="relative group">
-                          <div 
-                            onClick={() => copyToClipboard(fullPostText, `block-post-${post.id}`)}
-                            className="p-3.5 rounded-xl bg-zinc-50 hover:bg-zinc-100/60 border-2 border-zinc-200 hover:border-zinc-300 text-zinc-900 font-sans text-xs leading-relaxed whitespace-pre-line select-text cursor-pointer transition-all space-y-2 shadow-2xs"
-                          >
-                            <div className="font-bold text-zinc-950 pb-1 border-b border-zinc-200/70">
-                              {post.hook}
-                            </div>
-                            <div className="text-zinc-800">
-                              {post.body}
-                            </div>
-                            <div className="text-emerald-900 font-semibold pt-1 border-t border-zinc-200/70">
-                              {post.cta}
-                            </div>
-                            <div className="text-[11px] font-mono text-zinc-500 pt-1">
-                              {post.hashtags.join(' ')}
-                            </div>
-                          </div>
-
-                          {/* Floating Action Buttons */}
-                          <div className="mt-2 flex items-center gap-2">
-                            <button
-                              onClick={() => toggleEditMode(post.id)}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300 transition-colors shadow-2xs cursor-pointer"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span>Edit Draft</span>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyToClipboard(fullPostText, `block-post-${post.id}`);
-                              }}
-                              className="flex-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs cursor-pointer"
-                            >
-                              {copiedKey === `block-post-${post.id}` ? (
-                                <>
-                                  <Check className="h-4 w-4 text-emerald-400" />
-                                  <span className="text-emerald-400 font-bold">Entire Post Copied (Ready for LinkedIn)!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="h-4 w-4" />
-                                  <span>Copy Whole Block for LinkedIn</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                ) : (
+                  /* AUTHENTIC LINKEDIN FEED VIEW */
+                  <div className="space-y-3 whitespace-pre-line font-sans">
+                    <div className="font-bold text-[#191919] text-[15px] leading-snug">
+                      {activePost.hook}
                     </div>
 
-                    {/* Visual Graphic Pairing */}
-                    <div className="pt-2">
-                      <LinkedInVisualCard
-                        visualConfig={post.visualCard}
-                        imagePrompt={post.imagePrompt}
-                        realisticPhotoPrompt={post.realisticPhotoPrompt}
-                        realisticImageUrl={post.realisticImageUrl}
-                        alternativeImageUrl={post.alternativeImageUrl}
-                        alternativeImageLabel={post.alternativeImageLabel}
-                        alternativeImagePrompt={post.alternativeImagePrompt}
-                        episodeNumber={post.episodeNumber}
-                        postTitle={post.title}
-                        postHook={post.hook}
-                        postBody={post.body}
-                      />
+                    <div className="text-[#191919] text-[14px] leading-relaxed">
+                      {activePost.body}
                     </div>
 
-                    {/* Injected Comments Tray (Bold, Controversial & Engagement-Igniting) */}
-                    <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2.5 text-left">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-900 flex items-center gap-1.5 uppercase tracking-wider">
-                          <Flame className="h-3.5 w-3.5 text-rose-500" />
-                          <span>Injected Engagement Starters (Bold &amp; Controversial)</span>
-                        </span>
-                        <span className="text-[9px] font-mono text-zinc-600 bg-zinc-200/70 px-1.5 py-0.5 rounded">
-                          0 Emojis • 0 Em Dashes
-                        </span>
-                      </div>
-                      <div className="p-2 rounded-lg bg-amber-50/90 border border-amber-200/80 text-[10px] text-amber-950 leading-relaxed flex items-start gap-1.5">
-                        <span className="font-bold text-amber-800 shrink-0">⚡ Engagement Injection:</span>
-                        <span>Post these follow-up comments right after publishing to provoke debate, challenge sacred cows, and compel readers (BPO founders, CROs, brokers) to comment their thoughts.</span>
-                      </div>
+                    <div className="text-[#191919] font-medium text-[14px]">
+                      {activePost.cta}
+                    </div>
 
-                      {post.injectedComments.map((comment, cIdx) => (
-                        <div
-                          key={cIdx}
-                          className="p-2.5 rounded-lg bg-white border border-zinc-200 space-y-1.5 shadow-2xs"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-mono font-bold text-rose-800 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded flex items-center gap-1">
-                              <Flame className="h-2.5 w-2.5 text-rose-600" />
-                              {cIdx === 0 
-                                ? 'Comment 1 (The Sacred Cow Sledgehammer)' 
-                                : cIdx === 1 
-                                ? 'Comment 2 (Executive Debate Flame)' 
-                                : cIdx === 2
-                                ? "Comment 3 (Devil's Advocate / Excuse-Shredder)"
-                                : `Comment ${cIdx + 1} (Engagement Trigger)`}
-                            </span>
-                            <button
-                              onClick={() => copyToClipboard(comment, `post-${post.id}-cmt-${cIdx}`)}
-                              className="text-[10px] font-medium text-zinc-600 hover:text-zinc-950 flex items-center gap-1 cursor-pointer"
-                            >
-                              {copiedKey === `post-${post.id}-cmt-${cIdx}` ? (
-                                <>
-                                  <Check className="h-2.5 w-2.5 text-emerald-600" />
-                                  <span className="text-emerald-600 font-semibold">Copied!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="h-2.5 w-2.5" />
-                                  <span>Copy</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                          <p className="text-[11px] font-medium text-zinc-800 leading-snug">
-                            "{comment}"
-                          </p>
-                        </div>
+                    <div className="text-[#0a66c2] font-semibold text-[13px] space-x-1.5 pt-1">
+                      {activePost.hashtags.map((tag, tIdx) => (
+                        <span key={tIdx} className="hover:underline cursor-pointer">
+                          {tag}
+                        </span>
                       ))}
                     </div>
+                  </div>
+                )}
+              </div>
 
-                    {/* Cliffhanger Bridge Box on Final Post of the Week */}
-                    {post.episodeNumber % 3 === 0 && (
-                      <div className="mx-0 mt-3 p-3 rounded-xl bg-amber-50/90 border border-amber-200/90 text-left space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-amber-900 uppercase font-mono flex items-center gap-1">
-                            <span>⚡</span>
-                            <span>Series Cliffhanger & Bridge</span>
-                          </span>
-                          <span className="text-[9px] font-mono font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.2 rounded">
-                            Teases Next Week
-                          </span>
+              {/* Media Attachment / Photo or Graphic */}
+              <div className="mt-3 border-t border-[#e8e8e8] bg-[#f9fafb]">
+                <div className="p-2 px-4 flex items-center justify-between text-xs text-[#666666] bg-[#f4f2ee] border-b border-[#e8e8e8]">
+                  <span className="font-semibold flex items-center gap-1.5">
+                    <Layers className="h-3.5 w-3.5 text-[#0a66c2]" />
+                    <span>Media Attachment: {showVisualStudio ? 'Visual Studio Open' : 'Graphic Card Preview'}</span>
+                  </span>
+                  <button
+                    onClick={() => setShowVisualStudio(!showVisualStudio)}
+                    className="text-xs font-bold text-[#0a66c2] hover:underline cursor-pointer"
+                  >
+                    {showVisualStudio ? 'Hide Visual Studio ▲' : 'Open Photo & Prompt Studio ▼'}
+                  </button>
+                </div>
+
+                {showVisualStudio ? (
+                  <div className="p-3">
+                    <LinkedInVisualCard
+                      visualConfig={activePost.visualCard}
+                      imagePrompt={activePost.imagePrompt}
+                      realisticPhotoPrompt={activePost.realisticPhotoPrompt}
+                      realisticImageUrl={activePost.realisticImageUrl}
+                      alternativeImageUrl={activePost.alternativeImageUrl}
+                      alternativeImageLabel={activePost.alternativeImageLabel}
+                      alternativeImagePrompt={activePost.alternativeImagePrompt}
+                      episodeNumber={activePost.episodeNumber}
+                      postTitle={activePost.title}
+                      postHook={activePost.hook}
+                      postBody={activePost.body}
+                    />
+                  </div>
+                ) : (
+                  /* Compact Clean LinkedIn Image Preview */
+                  <div className="p-4 flex items-center justify-center bg-zinc-950 text-white rounded-b-none min-h-[160px] relative overflow-hidden">
+                    <div className="max-w-md text-center space-y-1.5 p-3">
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold block">
+                        {activePost.visualCard?.tag || `EPISODE ${activePost.episodeNumber}`}
+                      </span>
+                      <h4 className="text-base font-extrabold tracking-tight text-white leading-tight">
+                        {activePost.visualCard?.headline || activePost.title}
+                      </h4>
+                      <p className="text-xs text-zinc-300 line-clamp-2">
+                        {activePost.visualCard?.subheadline || activePost.hook}
+                      </p>
+                      {activePost.visualCard?.metric && (
+                        <div className="text-xl font-black font-mono text-emerald-400 pt-1">
+                          {activePost.visualCard.metric}
                         </div>
-                        <p className="text-[11px] text-amber-900 leading-snug">
-                          This Friday post sets up next week's discussion. Click below to view the continuation posts:
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId || 'broker-margin-continuity')}
-                          className="w-full py-1.5 px-2 rounded-lg bg-zinc-900 hover:bg-black text-amber-300 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                        >
-                          <Zap className="w-3 h-3 text-amber-400" />
-                          <span>Advance to Week {((currentPreset.weekNumber) % 4) + 1} ({currentPreset.nextWeekTitle?.split('(')[1]?.replace(')', '') || 'Next Episodes'}) ➔</span>
-                        </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Social Reaction Counts Bar */}
+              <div className="px-4 py-2 border-b border-[#e8e8e8] flex items-center justify-between text-xs text-[#666666]">
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center -space-x-1">
+                    <span className="h-4 w-4 rounded-full bg-[#0a66c2] text-white flex items-center justify-center text-[9px]">👍</span>
+                    <span className="h-4 w-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px]">👏</span>
+                    <span className="h-4 w-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px]">❤️</span>
+                  </div>
+                  <span className="hover:text-[#0a66c2] hover:underline cursor-pointer">1,842</span>
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className="hover:text-[#0a66c2] hover:underline cursor-pointer">89 comments</span>
+                  <span>•</span>
+                  <span className="hover:text-[#0a66c2] hover:underline cursor-pointer">42 reposts</span>
+                </div>
+              </div>
+
+              {/* Authentic Action Buttons Bar */}
+              <div className="px-2 py-1 border-b border-[#e8e8e8] grid grid-cols-4 gap-1 text-[#666666]">
+                <button className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg hover:bg-[#f4f2ee] transition-colors text-xs font-semibold">
+                  <ThumbsUp className="h-4 w-4" />
+                  <span>Like</span>
+                </button>
+                <button 
+                  onClick={() => setShowInjectedComments(!showInjectedComments)}
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg hover:bg-[#f4f2ee] transition-colors text-xs font-semibold text-[#0a66c2]"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Comment (3)</span>
+                </button>
+                <button className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg hover:bg-[#f4f2ee] transition-colors text-xs font-semibold">
+                  <Repeat2 className="h-4 w-4" />
+                  <span>Repost</span>
+                </button>
+                <button 
+                  onClick={() => copyToClipboard(fullPostText, `copy-btn-${activePost.id}`)}
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg hover:bg-[#f4f2ee] transition-colors text-xs font-semibold text-[#191919]"
+                >
+                  <Send className="h-4 w-4" />
+                  <span>{copiedKey === `copy-btn-${activePost.id}` ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+
+              {/* =================================================================== */}
+              {/* AUTHENTIC LINKEDIN COMMENTS THREAD (THE 3 INJECTED COMMENTS)        */}
+              {/* =================================================================== */}
+              {showInjectedComments && (
+                <div className="p-4 bg-[#f9fafb] space-y-3 border-t border-[#e8e8e8]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#191919] uppercase tracking-wider flex items-center gap-1.5">
+                      <Flame className="h-3.5 w-3.5 text-rose-500" />
+                      <span>Injected Comments Thread (Post Immediately After Dropping)</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-[#666666] bg-white px-2 py-0.5 rounded border border-[#e0dfdc]">
+                      0 Emojis • 0 Em Dashes
+                    </span>
                   </div>
 
-                  {/* Card Bottom: Copy Full Post */}
-                  <div className="p-3 border-t border-zinc-100 bg-zinc-50/50">
-                    <button
-                      onClick={() => copyToClipboard(fullPostText, `full-post-${post.id}`)}
-                      className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
-                    >
-                      {copiedKey === `full-post-${post.id}` ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">Post Copied to Clipboard!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5" />
-                          <span>Copy Complete Post to Clipboard</span>
-                        </>
-                      )}
-                    </button>
+                  <div className="space-y-2.5 pt-1">
+                    {activePost.injectedComments.map((comment, cIdx) => (
+                      <div key={cIdx} className="flex items-start gap-2.5">
+                        <div className="h-8 w-8 rounded-full bg-[#0a66c2] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                          EV
+                        </div>
+                        <div className="flex-1 bg-[#f2f2f2] hover:bg-[#e8e8e8]/70 transition-colors p-3 rounded-2xl rounded-tl-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-[#191919]">Emil Vance</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#ebf4fd] text-[#0a66c2] font-bold">
+                                Author
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-[#666666]">
+                              {cIdx === 0 ? 'Comment 1 (Sacred Cow)' : cIdx === 1 ? 'Comment 2 (Debate Flame)' : 'Comment 3 (Excuse Shredder)'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#191919] leading-snug">
+                            {comment}
+                          </p>
+                          <div className="flex items-center justify-between pt-1 text-[11px] text-[#666666]">
+                            <div className="flex items-center gap-2">
+                              <span className="hover:text-[#0a66c2] cursor-pointer">Like</span>
+                              <span>•</span>
+                              <span className="hover:text-[#0a66c2] cursor-pointer">Reply</span>
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(comment, `feed-cmt-${cIdx}`)}
+                              className="text-[10px] font-bold text-[#0a66c2] hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              {copiedKey === `feed-cmt-${cIdx}` ? '✓ Copied' : 'Copy Comment'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              )}
 
-          {/* ========================================================================= */}
-          {/* MULTI-WEEK CONTINUATION CTA BANNER                                        */}
-          {/* ========================================================================= */}
-          <div className="p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white border border-amber-500/30 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="space-y-1 text-left">
-              <div className="flex items-center gap-2">
-                <span className="p-1 rounded bg-amber-500 text-black font-black text-xs">🚀</span>
-                <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
-                  How To Continue The Series For Upcoming Weeks
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
-                  Week {currentPreset.weekNumber} of 4 • {currentPreset.episodesRange} Active
-                </span>
-              </div>
-              <h3 className="text-sm font-bold text-white">
-                Looking for the continuation of the series?
-              </h3>
-              <p className="text-xs text-zinc-400 max-w-xl">
-                {currentPreset.nextWeekTitle 
-                  ? `Advance to ${currentPreset.nextWeekTitle} to maintain audience momentum and build your weekly LinkedIn pipeline without starting from scratch.`
-                  : 'Cycle through the 4-week thematic arcs to keep your profile consistently publishing high-conversion thought leadership.'}
-              </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => handleSelectWeekPreset(currentPreset.nextPresetId || 'broker-margin-continuity')}
-                className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md cursor-pointer"
-              >
-                <Zap className="w-4 h-4 text-black" />
-                <span>
-                  {currentPreset.nextPresetId 
-                    ? `Advance to Week ${((currentPreset.weekNumber) % 4) + 1} (${currentPreset.nextWeekTitle?.split('(')[1]?.replace(')', '') || 'Next Episodes'}) ➔` 
-                    : 'Cycle Back to Week 1 ➔'}
-                </span>
-              </button>
-            </div>
           </div>
+
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: VIRAL POST COMMENT COPILOT (MANUAL ENGAGEMENT ENGINE)              */}
+      {/* TAB 2: VIRAL COMMENT COPILOT (LINKEDIN NOTIFICATION/ENGAGEMENT STYLE)     */}
       {/* ========================================================================= */}
       {activeTab === 'viral' && (
-        <div className="space-y-6">
-          <div className="p-5 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-4">
-            <div>
-              <h2 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                <MessageSquareQuote className="h-4 w-4 text-zinc-700" />
-                <span>Viral Post Comment Copilot</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">
-                  Manual Engagement Engine
-                </span>
-              </h2>
-              <p className="text-xs text-zinc-500 mt-1">
-                Paste any viral post from an influencer, buyer, or competitor. Gemini drafts short, thoughtful comments you can post manually on LinkedIn. Strictly zero em dashes and zero emojis.
-              </p>
+        <div className="space-y-4 max-w-5xl mx-auto">
+          
+          {/* Post Input Box */}
+          <div className="bg-white rounded-xl border border-[#e0dfdc] p-5 shadow-2xs space-y-3 text-left">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-[#191919] flex items-center gap-1.5">
+                  <MessageSquareQuote className="h-4 w-4 text-[#0a66c2]" />
+                  <span>Viral Post Comment Copilot</span>
+                </h2>
+                <p className="text-xs text-[#666666]">
+                  Paste any viral post from an influencer, buyer, or competitor. Gemini drafts short, thoughtful comments you can post manually on LinkedIn. Strictly zero em dashes and zero emojis.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">
+                &lt;42 Words • 0 Em Dashes • 0 Emojis
+              </span>
             </div>
 
-            {/* Post Input Textarea */}
-            <div>
-              <label className="block text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
-                Paste Viral LinkedIn Post Text:
-              </label>
-              <textarea
-                rows={5}
-                value={viralPostInput}
-                onChange={(e) => setViralPostInput(e.target.value)}
-                placeholder="Paste the viral post content here..."
-                className="w-full text-xs font-mono bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 leading-relaxed placeholder:text-zinc-400"
-              />
-            </div>
+            <textarea
+              rows={4}
+              value={viralPostInput}
+              onChange={(e) => setViralPostInput(e.target.value)}
+              placeholder="Paste viral LinkedIn post text here..."
+              className="w-full text-xs rounded-lg border border-[#e0dfdc] bg-[#f4f2ee] p-3 text-[#191919] focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-[#0a66c2] leading-relaxed resize-none"
+            />
 
-            {/* Angle Selection & Action */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-zinc-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-zinc-500 mr-1">Angle:</span>
+                <span className="text-xs font-semibold text-[#666666]">Angle:</span>
                 {['All', 'Counter-Perspective', 'Consultative Question', 'Frontline Operator', 'Punchy 20-Word'].map((angle) => (
                   <button
                     key={angle}
                     onClick={() => setSelectedAngle(angle)}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                       selectedAngle === angle
-                        ? 'bg-zinc-900 text-white font-semibold'
-                        : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900'
+                        ? 'bg-[#0a66c2] text-white'
+                        : 'bg-[#f4f2ee] text-[#666666] hover:bg-[#e0dfdc]'
                     }`}
                   >
                     {angle}
@@ -1097,16 +988,16 @@ export default function LinkedInCreatorStudio() {
               <button
                 onClick={handleGenerateViralComments}
                 disabled={isGeneratingComments || !viralPostInput.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 transition-colors shadow-2xs shrink-0"
+                className="px-4 py-2 rounded-lg bg-[#0a66c2] hover:bg-[#004182] text-white text-xs font-bold disabled:opacity-50 transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
               >
                 {isGeneratingComments ? (
                   <>
                     <RotateCw className="h-3.5 w-3.5 animate-spin" />
-                    <span>Analyzing Viral Post...</span>
+                    <span>Analyzing...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                     <span>Draft Engagement Comments</span>
                   </>
                 )}
@@ -1114,198 +1005,145 @@ export default function LinkedInCreatorStudio() {
             </div>
           </div>
 
-          {/* Generated Comment Drafts Cards */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
-                  Ready-to-Post Comment Drafts ({viralComments.length})
-                </h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
-                  Strict Rules: 0 Emojis • 0 Em Dashes • &lt;42 Words
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {viralComments.map((draft) => (
-                <div
-                  key={draft.id}
-                  className="rounded-xl border border-zinc-200 bg-white p-4 shadow-2xs flex flex-col justify-between space-y-3 text-left hover:border-zinc-300 transition-colors"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 text-zinc-800 border border-zinc-200">
-                        {draft.angle}
-                      </span>
-                      <span className="text-[10px] font-mono text-zinc-400">
-                        {draft.wordCount} words
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-zinc-800 font-sans leading-relaxed bg-zinc-50/60 p-3 rounded-lg border border-zinc-200/60">
-                      "{draft.comment}"
-                    </p>
-
-                    <p className="text-[10px] text-zinc-500 font-mono">
-                      Intent: {draft.intent}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
-                    <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      Cleaned: No emojis, no em dashes
+          {/* Drafted Comments Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
+            {viralComments.map((draft) => (
+              <div
+                key={draft.id}
+                className="bg-white rounded-xl border border-[#e0dfdc] p-4 shadow-2xs flex flex-col justify-between space-y-2.5 hover:border-[#0a66c2]/50 transition-colors"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#ebf4fd] text-[#0a66c2]">
+                      {draft.angle}
                     </span>
-
-                    <button
-                      onClick={() => copyToClipboard(draft.comment, draft.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-2xs"
-                    >
-                      {copiedKey === draft.id ? (
-                        <>
-                          <Check className="h-3 w-3 text-emerald-400" />
-                          <span className="text-emerald-400">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3" />
-                          <span>Copy Comment</span>
-                        </>
-                      )}
-                    </button>
+                    <span className="text-[10px] font-mono text-[#666666]">
+                      {draft.wordCount} words
+                    </span>
                   </div>
+
+                  <p className="text-xs text-[#191919] leading-relaxed bg-[#f4f2ee] p-3 rounded-xl border border-[#e0dfdc]">
+                    "{draft.comment}"
+                  </p>
+
+                  <p className="text-[10px] text-[#666666] font-mono">
+                    Strategic Intent: {draft.intent}
+                  </p>
                 </div>
-              ))}
-            </div>
+
+                <div className="pt-2 border-t border-[#e8e8e8] flex items-center justify-between">
+                  <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" />
+                    Clean: 0 emojis, 0 em dashes
+                  </span>
+
+                  <button
+                    onClick={() => copyToClipboard(draft.comment, draft.id)}
+                    className="px-3 py-1.5 rounded-lg bg-[#0a66c2] text-white text-xs font-bold hover:bg-[#004182] transition-colors shadow-2xs cursor-pointer flex items-center gap-1"
+                  >
+                    {copiedKey === draft.id ? (
+                      <>
+                        <Check className="h-3 w-3 text-emerald-300" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" />
+                        <span>Copy Comment</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* THREAD CONVERSATION & RELATIONSHIP BUILDER */}
-          <div className="p-5 rounded-xl bg-zinc-900 text-white border border-zinc-800 shadow-md space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+          {/* Stage 3: Thread Conversation Accelerator */}
+          <div className="bg-white rounded-xl border border-[#e0dfdc] p-5 shadow-2xs space-y-3 text-left">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-800 text-emerald-400 border border-zinc-700">
-                    STAGE 2: DIALOGUE ACCELERATOR
-                  </span>
-                  <h3 className="text-sm font-bold text-white">
-                    Thread Conversation &amp; Relationship Builder
-                  </h3>
-                </div>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  When the author or prospect responds to your POV comment, continue the thread to build rapport and transition into a warm peer relationship.
+                <h3 className="text-sm font-bold text-[#191919]">
+                  Thread Conversation &amp; Relationship Accelerator
+                </h3>
+                <p className="text-xs text-[#666666]">
+                  When the author or prospect replies, generate 3 sequential follow-up stages to build rapport.
                 </p>
               </div>
-
-              <span className="text-[10px] font-mono text-zinc-400 self-start sm:self-auto bg-zinc-800/80 px-2.5 py-1 rounded-md border border-zinc-700">
-                0 Emojis • 0 Em Dashes • &lt;35 Words
+              <span className="text-[10px] font-mono bg-[#f4f2ee] text-[#666666] px-2 py-0.5 rounded">
+                &lt;35 Words • 0 Emojis
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-300 uppercase tracking-wider mb-1">
-                  1. Your Initial Comment (POV):
+                <label className="text-[11px] font-semibold text-[#666666] block mb-1">
+                  1. Your Initial Comment:
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={previousCommentInput}
                   onChange={(e) => setPreviousCommentInput(e.target.value)}
-                  placeholder="Paste the comment you posted..."
-                  className="w-full text-xs font-mono bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  className="w-full text-xs rounded-lg border border-[#e0dfdc] bg-[#f4f2ee] p-2 text-[#191919] resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-300 uppercase tracking-wider mb-1">
-                  2. What did the Author or Prospect Reply?
+                <label className="text-[11px] font-semibold text-[#666666] block mb-1">
+                  2. Author's Response:
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={authorReplyInput}
                   onChange={(e) => setAuthorReplyInput(e.target.value)}
-                  placeholder="Paste their reply here..."
-                  className="w-full text-xs font-mono bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  className="w-full text-xs rounded-lg border border-[#e0dfdc] bg-[#f4f2ee] p-2 text-[#191919] resize-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-zinc-400">
-                AI generates 3 stages: Deepen Dialogue, Nuanced Counter, and Relationship Bridge to Connection.
-              </span>
-
+            <div className="flex justify-end pt-1">
               <button
                 onClick={handleGenerateThreadReplies}
                 disabled={isGeneratingThreadReplies || !authorReplyInput.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors shadow-2xs shrink-0"
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
               >
                 {isGeneratingThreadReplies ? (
                   <>
-                    <RotateCw className="h-3.5 w-3.5 animate-spin" />
-                    <span>Synthesizing Thread Replies...</span>
+                    <RotateCw className="h-3 w-3 animate-spin" />
+                    <span>Generating Follow-ups...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-3.5 w-3.5 text-emerald-200" />
+                    <Sparkles className="h-3 w-3 text-emerald-200" />
                     <span>Generate Thread Follow-ups</span>
                   </>
                 )}
               </button>
             </div>
 
-            {/* Generated Thread Reply Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
               {threadReplies.map((r) => (
-                <div
-                  key={r.id}
-                  className="rounded-xl border border-zinc-800 bg-zinc-950 p-3.5 flex flex-col justify-between space-y-2.5 text-left"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-zinc-700">
-                        {r.stage}
-                      </span>
-                      <span className="text-[9px] font-mono text-zinc-500">
-                        {r.wordCount} words
-                      </span>
+                <div key={r.id} className="p-3 bg-[#f4f2ee] rounded-xl border border-[#e0dfdc] space-y-1.5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between text-[10px] font-mono">
+                      <strong className="text-[#0a66c2] uppercase">{r.stage}</strong>
+                      <span className="text-[#666666]">{r.wordCount}w</span>
                     </div>
-
-                    <p className="text-xs text-zinc-200 font-sans leading-relaxed bg-zinc-900/90 p-2.5 rounded-lg border border-zinc-800">
-                      "{r.reply}"
-                    </p>
-
-                    <p className="text-[10px] text-zinc-400 font-mono">
-                      Goal: {r.strategicGoal}
-                    </p>
+                    <p className="text-xs text-[#191919] leading-snug mt-1">"{r.reply}"</p>
                   </div>
-
-                  <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
-                    <span className="text-[9px] font-mono text-emerald-400">
-                      Verified clean
-                    </span>
-
+                  <div className="pt-2 border-t border-[#e0dfdc] flex justify-between items-center text-[10px]">
+                    <span className="text-[#666666]">{r.strategicGoal}</span>
                     <button
                       onClick={() => copyToClipboard(r.reply, r.id)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-zinc-800 text-white hover:bg-zinc-700 transition-colors"
+                      className="text-[#0a66c2] font-bold hover:underline"
                     >
-                      {copiedKey === r.id ? (
-                        <>
-                          <Check className="h-3 w-3 text-emerald-400" />
-                          <span className="text-emerald-400">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3" />
-                          <span>Copy Reply</span>
-                        </>
-                      )}
+                      {copiedKey === r.id ? 'Copied' : 'Copy'}
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
         </div>
       )}
 
@@ -1313,104 +1151,70 @@ export default function LinkedInCreatorStudio() {
       {/* TAB 3: CSV PROSPECT INTELLIGENCE DOSSIER                                   */}
       {/* ========================================================================= */}
       {activeTab === 'dossier' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
-                Accounts Analyzed
-              </span>
-              <div className="text-2xl font-extrabold text-zinc-900 mt-1">
-                {csvSummary.totalLeads}
-              </div>
-              <p className="text-[10px] text-zinc-400 mt-0.5">
-                Imported CSV dataset
-              </p>
+        <div className="space-y-4 max-w-5xl mx-auto text-left">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-xl bg-white border border-[#e0dfdc] shadow-2xs">
+              <span className="text-[10px] font-mono uppercase text-[#666666]">Accounts Analyzed</span>
+              <div className="text-xl font-bold text-[#191919] mt-0.5">{csvSummary.totalLeads}</div>
             </div>
-
-            <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
-                Dominant Seat Segment
-              </span>
-              <div className="text-xl font-bold text-zinc-900 mt-1">
-                {csvSummary.dominantHeadcount}
-              </div>
-              <p className="text-[10px] text-zinc-400 mt-0.5">
-                Mid-market BPO &amp; contact centers
-              </p>
+            <div className="p-3.5 rounded-xl bg-white border border-[#e0dfdc] shadow-2xs">
+              <span className="text-[10px] font-mono uppercase text-[#666666]">Dominant Segment</span>
+              <div className="text-base font-bold text-[#191919] mt-0.5">{csvSummary.dominantHeadcount}</div>
             </div>
-
-            <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
-                Primary Bottleneck
-              </span>
-              <div className="text-xs font-bold text-rose-600 mt-1 line-clamp-2">
-                {csvSummary.topPainPoints[0]}
-              </div>
-              <p className="text-[10px] text-zinc-400 mt-0.5">
-                Recurring client complaint
-              </p>
+            <div className="p-3.5 rounded-xl bg-white border border-[#e0dfdc] shadow-2xs">
+              <span className="text-[10px] font-mono uppercase text-[#666666]">Primary Bottleneck</span>
+              <div className="text-xs font-bold text-rose-600 mt-0.5 line-clamp-1">{csvSummary.topPainPoints[0]}</div>
             </div>
-
-            <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
-                Incumbent Competitor
-              </span>
-              <div className="text-sm font-bold text-zinc-900 mt-1">
-                {csvSummary.topCompetitors[0]}
-              </div>
-              <p className="text-[10px] text-zinc-400 mt-0.5">
-                Commodity outsourcer footprint
-              </p>
+            <div className="p-3.5 rounded-xl bg-white border border-[#e0dfdc] shadow-2xs">
+              <span className="text-[10px] font-mono uppercase text-[#666666]">Incumbent Competitor</span>
+              <div className="text-xs font-bold text-[#191919] mt-0.5">{csvSummary.topCompetitors[0]}</div>
             </div>
           </div>
 
-          {/* Dossier Table */}
-          <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-3">
+          <div className="bg-white rounded-xl border border-[#e0dfdc] p-4 shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
-                Raw Prospect Intelligence Table ({leads.length} accounts)
+              <h3 className="text-xs font-bold text-[#191919] uppercase tracking-wider">
+                Target Accounts Grounding ({leads.length} accounts)
               </h3>
-              <button
-                onClick={() => setIsCsvModalOpen(true)}
-                className="flex items-center gap-1 text-xs font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 px-2.5 py-1 rounded-md transition-colors"
-              >
-                <Upload className="h-3 w-3" />
-                <span>Upload New CSV</span>
-              </button>
+              <div className="relative">
+                <Search className="h-3 w-3 text-[#666666] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={csvSearchTerm}
+                  onChange={(e) => setCsvSearchTerm(e.target.value)}
+                  placeholder="Search leads..."
+                  className="text-xs py-1 pl-7 pr-2.5 rounded-lg border border-[#e0dfdc] bg-[#f4f2ee] text-[#191919]"
+                />
+              </div>
             </div>
 
-            <div className="overflow-x-auto border border-zinc-200 rounded-lg">
+            <div className="overflow-x-auto border border-[#e0dfdc] rounded-lg">
               <table className="w-full text-left text-xs">
-                <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-600 font-semibold uppercase text-[10px] tracking-wider">
+                <thead className="bg-[#f4f2ee] border-b border-[#e0dfdc] text-[#666666] font-semibold text-[10px] uppercase">
                   <tr>
-                    <th className="px-3 py-2">Contact &amp; Title</th>
-                    <th className="px-3 py-2">Company</th>
-                    <th className="px-3 py-2">Headcount</th>
-                    <th className="px-3 py-2">Specific Bottleneck / Pain</th>
-                    <th className="px-3 py-2">Tech Stack</th>
+                    <th className="p-2.5">Contact</th>
+                    <th className="p-2.5">Company</th>
+                    <th className="p-2.5">Seats</th>
+                    <th className="p-2.5">Identified Friction</th>
+                    <th className="p-2.5">Tech</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 text-zinc-700">
-                  {leads.slice(0, 10).map((l, idx) => (
-                    <tr key={idx} className="hover:bg-zinc-50/50">
-                      <td className="px-3 py-2 font-medium text-zinc-900">
+                <tbody className="divide-y divide-[#e0dfdc]">
+                  {filteredLeads.slice(0, 10).map((l, idx) => (
+                    <tr key={idx} className="hover:bg-[#f4f2ee]/50">
+                      <td className="p-2.5 font-medium text-[#191919]">
                         {l.name}
-                        <div className="text-[10px] text-zinc-400 font-normal">{l.title}</div>
+                        <div className="text-[10px] text-[#666666] font-normal">{l.title}</div>
                       </td>
-                      <td className="px-3 py-2 font-medium">{l.company}</td>
-                      <td className="px-3 py-2 font-mono text-[11px]">{l.headcount}</td>
-                      <td className="px-3 py-2 text-rose-700 font-medium">{l.painPoint}</td>
-                      <td className="px-3 py-2 text-zinc-500 font-mono text-[11px]">{l.techStack}</td>
+                      <td className="p-2.5 font-medium">{l.company}</td>
+                      <td className="p-2.5 font-mono text-[11px]">{l.headcount}</td>
+                      <td className="p-2.5 text-rose-700 font-medium">{l.painPoint}</td>
+                      <td className="p-2.5 text-[#666666] font-mono text-[11px]">{l.techStack}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            {leads.length > 10 && (
-              <p className="text-[10px] text-zinc-400 text-center font-mono pt-1">
-                Showing 10 of {leads.length} accounts. All {leads.length} are factored into the Gemini summary.
-              </p>
-            )}
           </div>
         </div>
       )}
@@ -1421,6 +1225,7 @@ export default function LinkedInCreatorStudio() {
         onClose={() => setIsCsvModalOpen(false)}
         onLeadsImported={handleLeadsImported}
       />
+
     </div>
   );
 }
