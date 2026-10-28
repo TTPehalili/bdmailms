@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Mail, 
   Sparkles, 
@@ -18,12 +18,25 @@ import {
   ChevronDown,
   ChevronUp,
   Sliders,
-  CheckCircle2,
-  HelpCircle,
-  FileText,
-  User,
-  Building,
-  Briefcase
+  CheckCircle2, 
+  HelpCircle, 
+  FileText, 
+  User, 
+  Building, 
+  Briefcase,
+  Upload,
+  X,
+  Layers,
+  ArrowRight,
+  Flame,
+  Globe,
+  Pencil,
+  Eye,
+  CheckCircle,
+  Hash,
+  Compass,
+  Zap,
+  Info
 } from 'lucide-react';
 import { 
   COLD_EMAIL_FRAMEWORKS, 
@@ -36,7 +49,8 @@ import {
   enforceMaxThreeWords,
   suggestSubjectLinesFromIdea
 } from '@/lib/coldEmailStudio';
-import { CadenceLeadRecord } from '@/lib/cadenceMaster';
+import { DEMO_CADENCE_LEADS, CadenceLeadRecord } from '@/lib/cadenceMaster';
+import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
 
 export default function ColdEmailStudio() {
   // Navigation & Framework State
@@ -48,31 +62,70 @@ export default function ColdEmailStudio() {
   // End User Subject Line Idea State
   const [subjectLineIdea, setSubjectLineIdea] = useState<string>('');
   const [isAnalyzingSubjectIdea, setIsAnalyzingSubjectIdea] = useState<boolean>(false);
+  const [showSubjectIdeaBox, setShowSubjectIdeaBox] = useState<boolean>(false);
 
   // Prospect Context State
-  const [leads, setLeads] = useState<CadenceLeadRecord[]>([]);
-  const [selectedLeadIndex, setSelectedLeadIndex] = useState<number>(-1);
+  const [leads, setLeads] = useState<CadenceLeadRecord[]>(DEMO_CADENCE_LEADS);
+  const [selectedLeadIndex, setSelectedLeadIndex] = useState<number>(0);
   const [prospectName, setProspectName] = useState<string>('Julian Vance');
-  const [prospectCompany, setProspectCompany] = useState<string>('Apex BPO Solutions');
-  const [prospectTitle, setProspectTitle] = useState<string>('VP of Outbound Operations');
+  const [prospectCompany, setProspectCompany] = useState<string>('Apex Global BPO');
+  const [prospectTitle, setProspectTitle] = useState<string>('Director of Outbound Operations');
   const [prospectTech, setProspectTech] = useState<string>('Apollo.io & HubSpot');
-  const [prospectPain, setProspectPain] = useState<string>('reps fumbling price pushback on recycled broker lists');
+  const [prospectPain, setProspectPain] = useState<string>('outbound hold rate and objection hesitation on shared lead lists');
+  const [prospectEmail, setProspectEmail] = useState<string>('julian@apexglobalbpo.com');
+  const [prospectHeadcount, setProspectHeadcount] = useState<string>('65 seats');
 
   // Generation & Draft State
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [currentDraft, setCurrentDraft] = useState<ColdEmailGeneratedDraft>(() => 
-    getDeterministicColdEmail('braun-poke-the-bear', undefined, { name: 'Julian Vance', company: 'Apex BPO Solutions' })
+    getDeterministicColdEmail('braun-poke-the-bear', undefined, { name: 'Julian Vance', company: 'Apex Global BPO' })
   );
   const [selectedSubjectIdx, setSelectedSubjectIdx] = useState<number>(0);
   const [selectedCtaIdx, setSelectedCtaIdx] = useState<number>(0);
   const [editableBody, setEditableBody] = useState<string>(currentDraft.body);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // UI Control State
-  const [showGuidance, setShowGuidance] = useState<boolean>(true);
-  const [showProspectFields, setShowProspectFields] = useState<boolean>(false);
+  // UI View & Modal Controls
+  const [viewMode, setViewMode] = useState<'compose' | 'breakdown'>('compose');
+  const [isPlaybookDrawerOpen, setIsPlaybookDrawerOpen] = useState<boolean>(false);
+  const [isProspectModalOpen, setIsProspectModalOpen] = useState<boolean>(false);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState<boolean>(false);
+  const [activeTimezoneTab, setActiveTimezoneTab] = useState<'EST' | 'PST' | 'GMT' | 'AEST' | 'PHT'>('EST');
 
-  // Load leads from localStorage on mount
+  // Clocks for global hub timing
+  const [currentTimes, setCurrentTimes] = useState<{ [tz: string]: string }>({});
+
+  useEffect(() => {
+    const updateTimes = () => {
+      const now = new Date();
+      const formatTz = (tz: string) => {
+        try {
+          return new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }).format(now);
+        } catch {
+          return '--:--';
+        }
+      };
+
+      setCurrentTimes({
+        EST: formatTz('America/New_York'),
+        PST: formatTz('America/Los_Angeles'),
+        GMT: formatTz('Europe/London'),
+        AEST: formatTz('Australia/Sydney'),
+        PHT: formatTz('Asia/Manila')
+      });
+    };
+
+    updateTimes();
+    const interval = setInterval(updateTimes, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load stored CSV leads if present
   useEffect(() => {
     try {
       const stored = localStorage.getItem('sdr_active_csv_leads');
@@ -83,10 +136,12 @@ export default function ColdEmailStudio() {
           const first = parsed[0];
           setSelectedLeadIndex(0);
           setProspectName(first.name || 'Julian Vance');
-          setProspectCompany(first.company || 'Apex BPO Solutions');
-          setProspectTitle(first.title || 'VP of Outbound Operations');
+          setProspectCompany(first.company || 'Apex Global BPO');
+          setProspectTitle(first.title || 'Director of Outbound Operations');
           setProspectTech(first.techStack || 'Apollo.io & HubSpot');
-          setProspectPain(first.painPoint || 'reps fumbling price pushback on recycled broker lists');
+          setProspectPain(first.painPoint || 'outbound hold rate on shared broker lists');
+          setProspectEmail(first.email || 'prospect@targetcompany.com');
+          setProspectHeadcount(first.headcount || '50+ seats');
         }
       }
     } catch (e) {
@@ -101,6 +156,22 @@ export default function ColdEmailStudio() {
     setSelectedCtaIdx(currentDraft.selectedCtaIndex);
   }, [currentDraft]);
 
+  // Keyboard shortcut listener: Ctrl+Enter (or Cmd+Enter) to synthesize
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleSynthesizeEmail();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+        e.preventDefault();
+        handleCopyEntireEmail();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [userIdea, selectedFrameworkId, prospectName, prospectCompany, prospectTitle, prospectPain, editableBody, selectedSubjectIdx]);
+
   const activeFramework = COLD_EMAIL_FRAMEWORKS.find(f => f.id === selectedFrameworkId) || COLD_EMAIL_FRAMEWORKS[0];
 
   // Lead selection handler
@@ -113,6 +184,8 @@ export default function ColdEmailStudio() {
       setProspectTitle(l.title || 'Decision Maker');
       setProspectTech(l.techStack || 'Apollo & HubSpot');
       setProspectPain(l.painPoint || 'list fatigue and objection drop-offs');
+      setProspectEmail(l.email || `${(l.name || 'contact').toLowerCase().replace(/\s+/g, '.')}@${(l.company || 'company').toLowerCase().replace(/[^a-z0-9]/g, '')}.com`);
+      setProspectHeadcount(l.headcount || '50+ seats');
     }
   };
 
@@ -139,7 +212,8 @@ export default function ColdEmailStudio() {
             company: prospectCompany,
             title: prospectTitle,
             techStack: prospectTech,
-            painPoint: prospectPain
+            painPoint: prospectPain,
+            headcount: prospectHeadcount
           }
         })
       });
@@ -249,6 +323,8 @@ export default function ColdEmailStudio() {
   const handleManualSanitize = () => {
     const { cleanText } = sanitizeColdEmail(editableBody);
     setEditableBody(cleanText);
+    setCopiedKey('sanitized');
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   // Copy to clipboard helper
@@ -269,454 +345,460 @@ export default function ColdEmailStudio() {
   const handleOpenMailto = () => {
     const activeSubject = encodeURIComponent(currentDraft.subjectLines[selectedSubjectIdx]?.text || 'quick question');
     const bodyEncoded = encodeURIComponent(editableBody);
-    window.open(`mailto:?subject=${activeSubject}&body=${bodyEncoded}`, '_blank');
+    window.open(`mailto:${prospectEmail}?subject=${activeSubject}&body=${bodyEncoded}`, '_blank');
+  };
+
+  // CSV Import Callback
+  const handleLeadsImported = (imported: CadenceLeadRecord[]) => {
+    if (imported.length > 0) {
+      setLeads(imported);
+      setSelectedLeadIndex(0);
+      const first = imported[0];
+      setProspectName(first.name || 'Julian Vance');
+      setProspectCompany(first.company || 'Apex Global BPO');
+      setProspectTitle(first.title || 'Director of Outbound Operations');
+      setProspectTech(first.techStack || 'Apollo.io & HubSpot');
+      setProspectPain(first.painPoint || 'outbound hold rate and objection hesitation on shared lead lists');
+      setProspectEmail(first.email || 'prospect@targetcompany.com');
+      setProspectHeadcount(first.headcount || '50+ seats');
+      try {
+        localStorage.setItem('sdr_active_csv_leads', JSON.stringify(imported));
+      } catch (e) {
+        console.warn('Could not cache CSV leads:', e);
+      }
+    }
   };
 
   // Real-time compliance audit
   const wordCount = editableBody.trim().split(/\s+/).filter(Boolean).length;
   const emDashCount = (editableBody.match(/[—–]|(?<=\s)--(?:(?=\s)|$)|(?<=\w)--(?:(?=\w)|$)/g) || []).length;
   const emojiCount = (editableBody.match(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2B50}\u{200D}\u{FE0F}]/gu) || []).length;
-  const isCompliant = emDashCount === 0 && emojiCount === 0 && wordCount <= 85;
+  const isCompliant = emDashCount === 0 && emojiCount === 0 && wordCount <= 75;
+
+  const activeSubjectText = currentDraft.subjectLines[selectedSubjectIdx]?.text || 'quick question';
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 text-zinc-900">
-      {/* Studio Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-7 w-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center">
-              <Mail className="h-4 w-4" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-900">
-              Manual Cold Email AI Studio
-            </h1>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-              0 Em Dashes • 0 Emojis Rule Enforced
-            </span>
-          </div>
-          <p className="text-xs text-zinc-500">
-            Synthesize concise, high-converting cold emails from your raw ideas using battle-tested sales frameworks (Josh Braun, Will Allred, Chris Voss, and Radical Transparency). Built for manual personal sends with strict deliverability guardrails.
-          </p>
-        </div>
-
-        {/* Deliverability Timing Guidance Toggle */}
-        <button
-          onClick={() => setShowGuidance(!showGuidance)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 transition-colors shrink-0 self-start md:self-auto"
-        >
-          <Clock className="h-3.5 w-3.5 text-amber-600" />
-          <span>{showGuidance ? 'Hide Sending Hints' : 'View Best Days, Times & Safe Sending Limits'}</span>
-          {showGuidance ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-        </button>
-      </div>
-
+    <div className="min-h-full bg-zinc-50/70 p-4 sm:p-6 lg:p-8 space-y-6">
+      
       {/* ========================================================================= */}
-      {/* STRATEGIC SENDING HINTS: BEST DAYS, BEST TIMES & PERSONAL ACCOUNT LIMITS   */}
+      {/* 1. TOP COMMAND BAR & RADAR STATUS                                         */}
       {/* ========================================================================= */}
-      {showGuidance && (
-        <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 border border-amber-200/80 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-amber-100">
-            <div className="flex items-center gap-2">
-              <span className="p-1 rounded bg-amber-900 text-white text-xs font-bold">💡</span>
-              <h2 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
-                Manual Cold Email Intelligence: Best Days, Times &amp; Safe Account Limits
-              </h2>
-            </div>
-            <span className="text-[11px] text-amber-800 font-medium">
-              Protects personal Google Workspace / Microsoft 365 domain health
-            </span>
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-zinc-200/80">
+        
+        {/* Left: Studio Identity & Compliance Badges */}
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-zinc-950 text-white flex items-center justify-center shadow-xs shrink-0 ring-1 ring-zinc-800">
+            <Mail className="h-5 w-5 text-zinc-100" />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 1. Best Days */}
-            <div className="p-3 rounded-lg bg-white border border-amber-200/60 shadow-2xs space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-900">
-                <Calendar className="h-3.5 w-3.5 text-amber-600" />
-                <span>Best Days of the Week</span>
-              </div>
-              <div className="space-y-1.5 text-[11px]">
-                <div className="flex items-start gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
-                    Tue - Thu
-                  </span>
-                  <span className="text-zinc-600 leading-tight">
-                    <strong>Optimal window (32% higher replies).</strong> Executives cleared Monday emergencies and focus on operational solutions.
-                  </span>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 shrink-0">
-                    Sun Eve
-                  </span>
-                  <span className="text-zinc-600 leading-tight">
-                    <strong>Secret high-yield window (6:30 - 8:30 PM).</strong> Executives clean inbox before Monday; 0 vendor inbox competition.
-                  </span>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 shrink-0">
-                    Mon / Fri
-                  </span>
-                  <span className="text-zinc-500 leading-tight">
-                    <strong>Avoid sending.</strong> Monday is triage overload; Friday afternoon emails get swept into Monday trash.
-                  </span>
-                </div>
-              </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-zinc-900">
+                Cold Email AI Studio
+              </h1>
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                <Check className="h-2.5 w-2.5 text-emerald-600" />
+                Zero Em Dashes • Zero Emojis Enforced
+              </span>
             </div>
-
-            {/* 2. Best Times */}
-            <div className="p-3 rounded-lg bg-white border border-amber-200/60 shadow-2xs space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-900">
-                <Clock className="h-3.5 w-3.5 text-amber-600" />
-                <span>Best Time Slots (Recipient Time)</span>
-              </div>
-              <div className="space-y-1.5 text-[11px]">
-                <div className="flex items-start gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
-                    8:15 - 10:00 AM
-                  </span>
-                  <span className="text-zinc-600 leading-tight">
-                    <strong>Morning Coffee Check.</strong> 3.4x open rate when caught right before daily calendar fills with meetings.
-                  </span>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 shrink-0">
-                    1:30 - 2:30 PM
-                  </span>
-                  <span className="text-zinc-600 leading-tight">
-                    <strong>Post-Lunch Lull.</strong> Executives return to their desk and browse quick 50-word emails before afternoon blocks.
-                  </span>
-                </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-100 text-zinc-700 shrink-0">
-                    Rule
-                  </span>
-                  <span className="text-zinc-500 leading-tight">
-                    Always calculate the prospect's local time (e.g. Sydney AEST, London GMT, New York EST) before hitting send.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Personal Account Safety Limits */}
-            <div className="p-3 rounded-lg bg-white border border-amber-200/60 shadow-2xs space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-900">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                <span>Safe Personal Email Volume</span>
-              </div>
-              <div className="space-y-1.5 text-[11px]">
-                <div className="p-1.5 rounded bg-emerald-50 border border-emerald-200 flex items-center justify-between">
-                  <span className="font-bold text-emerald-950">Max Daily Manual Volume:</span>
-                  <span className="font-mono font-bold text-emerald-800 text-xs">30 - 50 emails/day</span>
-                </div>
-                <div className="flex items-start gap-1.5 text-zinc-600 leading-tight">
-                  <span className="font-bold text-zinc-900 shrink-0">Stagger Rule:</span>
-                  <span>Space manual sends by <strong>2 to 4 minutes</strong>. Never paste and fire 10 emails in 60 seconds.</span>
-                </div>
-                <div className="text-[10px] text-zinc-500 leading-tight bg-zinc-50 p-1.5 rounded border border-zinc-200">
-                  <strong className="text-zinc-700">Ramp Strategy:</strong> Week 1: 10/day • Week 2: 20/day • Week 3: 35/day • Week 4+: 45-50/day max.
-                </div>
-              </div>
-            </div>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Battle-tested framework engine built for personal high-conversion sends with strict deliverability guardrails.
+            </p>
           </div>
         </div>
-      )}
+
+        {/* Right: Deliverability Radar & Lead Target Pill */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          
+          {/* Active Target Quick Pill */}
+          <button
+            onClick={() => setIsProspectModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200/90 shadow-2xs hover:border-zinc-300 hover:bg-zinc-50 transition-all text-left"
+            title="Click to view or edit target prospect dossier"
+          >
+            <div className="h-6 w-6 rounded-full bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold">
+              {prospectName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+            </div>
+            <div className="text-left">
+              <div className="text-[11px] font-bold text-zinc-900 leading-tight">
+                {prospectName}
+              </div>
+              <div className="text-[10px] text-zinc-500 leading-tight truncate max-w-[140px]">
+                {prospectCompany}
+              </div>
+            </div>
+            <Pencil className="h-3 w-3 text-zinc-400 ml-1" />
+          </button>
+
+          {/* Deliverability Playbook / Radar Trigger */}
+          <button
+            onClick={() => setIsPlaybookDrawerOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-300/80 text-amber-950 hover:bg-amber-500/20 transition-all text-xs font-semibold shadow-2xs"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="hidden sm:inline">Deliverability Radar:</span>
+            <span className="font-mono text-emerald-800 text-[11px] font-bold">Optimal Window</span>
+            <Clock className="h-3.5 w-3.5 text-amber-700 ml-0.5" />
+          </button>
+
+          {/* Upload CSV Leads Trigger */}
+          <button
+            onClick={() => setIsCsvModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 transition-colors text-xs font-semibold shadow-2xs"
+            title="Load CSV leads from campaign"
+          >
+            <Upload className="h-3.5 w-3.5 text-zinc-500" />
+            <span className="hidden sm:inline">CSV Leads</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-600 font-bold">
+              {leads.length}
+            </span>
+          </button>
+
+        </div>
+      </header>
 
       {/* ========================================================================= */}
-      {/* 2-COLUMN STUDIO WORKBENCH                                                 */}
+      {/* 2. MAIN 2-PANE WORKBENCH                                                  */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* ======================================================================= */}
-        {/* LEFT COLUMN: FRAMEWORK, IDEA BOX, PROSPECT (5 COLS)                     */}
+        {/* LEFT PANE: STRATEGY & ANGLE ENGINE (5 COLS)                             */}
         {/* ======================================================================= */}
         <div className="lg:col-span-5 space-y-4">
           
-          {/* Framework Selector Card */}
-          <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5 text-zinc-600" />
-                <span>1. Proven Email Framework</span>
-              </label>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 text-zinc-600 font-semibold">
-                {activeFramework.authorOrStyle}
-              </span>
-            </div>
-
-            <select
-              value={selectedFrameworkId}
-              onChange={(e) => {
-                const newId = e.target.value;
-                setSelectedFrameworkId(newId);
-                const found = COLD_EMAIL_FRAMEWORKS.find(f => f.id === newId);
-                if (found && !userIdea.trim()) {
-                  setUserIdea(found.defaultIdeaTemplate);
-                }
-              }}
-              className="w-full text-xs font-medium rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900"
-            >
-              {COLD_EMAIL_FRAMEWORKS.map(f => (
-                <option key={f.id} value={f.id}>
-                  {f.name} ({f.category})
-                </option>
-              ))}
-            </select>
-
-            <div className="p-2.5 rounded-lg bg-zinc-50 border border-zinc-200/80 text-[11px] space-y-1">
-              <p className="font-semibold text-zinc-900">{activeFramework.description}</p>
-              <p className="text-zinc-500 italic">
-                Anti-Sales Rule: {activeFramework.antiSalesPrinciple}
-              </p>
-            </div>
-          </div>
-
-          {/* THE IDEA BOX CARD (CORE USER REQUEST) */}
-          <div className="p-4 rounded-xl bg-white border-2 border-zinc-900/10 hover:border-zinc-900/30 transition-colors shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
-                <span>2. The Idea Box (Your Strategy / Raw Angle)</span>
-              </label>
-              <span className="text-[10px] text-zinc-400 font-mono">
-                AI grounds email in this
-              </span>
-            </div>
-
-            <p className="text-[11px] text-zinc-500">
-              Type your raw thought, pitch angle, or specific client bottleneck below. The AI will weave it into the selected framework with zero em dashes and zero emojis.
-            </p>
-
-            <textarea
-              rows={4}
-              value={userIdea}
-              onChange={(e) => setUserIdea(e.target.value)}
-              placeholder="e.g., I want to tell a BPO owner in Clark that their SDRs are wasting 4 hours a day on dead leads from shared lists, and invite them to see how we qualify leads live without buying more bloated Apollo lists..."
-              className="w-full text-xs rounded-lg border border-zinc-300 p-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 font-sans leading-relaxed"
-            />
-
-            {/* 1-Click Quick Idea Starters */}
-            <div className="space-y-1.5 pt-1">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                Quick Idea Starters (Click to load):
+          {/* Card 1: Target Prospect Dossier */}
+          <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+            <div className="p-3.5 px-4 bg-zinc-50/70 border-b border-zinc-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="h-3.5 w-3.5 text-zinc-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-800">
+                  Target Recipient Dossier
+                </span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {COLD_EMAIL_IDEA_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    onClick={() => handleSelectIdeaPreset(preset)}
-                    className="text-[11px] px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium transition-colors border border-zinc-200/60 text-left"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Target Prospect & Context Card */}
-          <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-zinc-600" />
-                <span>3. Target Prospect Context</span>
-              </label>
-              <button
-                onClick={() => setShowProspectFields(!showProspectFields)}
-                className="text-[11px] text-zinc-500 hover:text-zinc-900 font-medium underline"
-              >
-                {showProspectFields ? 'Hide Details' : 'Edit Details'}
-              </button>
-            </div>
-
-            {leads.length > 0 && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-zinc-500">Pick from loaded CSV Leads:</label>
-                <select
-                  value={selectedLeadIndex}
-                  onChange={(e) => handleSelectLead(Number(e.target.value))}
-                  className="w-full text-xs rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-800"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsProspectModalOpen(true)}
+                  className="text-[11px] text-zinc-600 hover:text-zinc-950 font-semibold underline"
                 >
-                  <option value={-1}>Custom Prospect (manual entry)</option>
-                  {leads.slice(0, 25).map((l, idx) => (
-                    <option key={idx} value={idx}>
-                      {l.name} • {l.company} ({l.title || 'Executive'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="p-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-[11px] space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-zinc-900">{prospectName}</span>
-                <span className="text-zinc-500 font-mono text-[10px]">{prospectTitle}</span>
-              </div>
-              <div className="text-zinc-600">
-                Company: <strong className="text-zinc-800">{prospectCompany}</strong>
-              </div>
-              <div className="text-zinc-500 text-[10px]">
-                Bottleneck: {prospectPain}
+                  Edit Details
+                </button>
               </div>
             </div>
 
-            {showProspectFields && (
-              <div className="space-y-2 pt-2 border-t border-zinc-100 text-xs">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] font-semibold text-zinc-500">Name</label>
-                    <input
-                      type="text"
-                      value={prospectName}
-                      onChange={(e) => setProspectName(e.target.value)}
-                      className="w-full text-xs rounded border border-zinc-300 p-1.5 text-zinc-800"
-                    />
+            <div className="p-4 space-y-3">
+              {/* CSV Quick Switcher */}
+              {leads.length > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500">
+                    <span>Switch Target from Loaded Leads:</span>
+                    <span className="font-mono text-zinc-400">{selectedLeadIndex + 1} of {leads.length}</span>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-semibold text-zinc-500">Company</label>
-                    <input
-                      type="text"
-                      value={prospectCompany}
-                      onChange={(e) => setProspectCompany(e.target.value)}
-                      className="w-full text-xs rounded border border-zinc-300 p-1.5 text-zinc-800"
-                    />
-                  </div>
+                  <select
+                    value={selectedLeadIndex}
+                    onChange={(e) => handleSelectLead(Number(e.target.value))}
+                    className="w-full text-xs font-medium rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-2 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900"
+                  >
+                    {leads.map((l, idx) => (
+                      <option key={idx} value={idx}>
+                        {l.name} • {l.company} ({l.title || 'Executive'})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-500">Job Title</label>
-                  <input
-                    type="text"
-                    value={prospectTitle}
-                    onChange={(e) => setProspectTitle(e.target.value)}
-                    className="w-full text-xs rounded border border-zinc-300 p-1.5 text-zinc-800"
-                  />
+              )}
+
+              {/* Prospect Dossier Summary */}
+              <div className="p-3 rounded-xl bg-zinc-50/80 border border-zinc-200/60 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-zinc-900">{prospectName}</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-200/60 text-zinc-700 font-semibold">
+                    {prospectHeadcount}
+                  </span>
                 </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-500">Primary Bottleneck / Pain Point</label>
-                  <input
-                    type="text"
-                    value={prospectPain}
-                    onChange={(e) => setProspectPain(e.target.value)}
-                    className="w-full text-xs rounded border border-zinc-300 p-1.5 text-zinc-800"
-                  />
+                <div className="text-[11px] text-zinc-600">
+                  {prospectTitle} • <strong className="text-zinc-900">{prospectCompany}</strong>
+                </div>
+                <div className="text-[11px] text-zinc-500 pt-1 border-t border-zinc-200/50">
+                  <span className="font-semibold text-zinc-700">Identified Friction:</span> {prospectPain}
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Action / Synthesize Button */}
+          {/* Card 2: Proven Email Framework Selector */}
+          <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+            <div className="p-3.5 px-4 bg-zinc-50/70 border-b border-zinc-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-3.5 w-3.5 text-zinc-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-800">
+                  Proven Framework
+                </span>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
+                {activeFramework.targetWordCount} Words Target
+              </span>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {/* Segmented / Dropdown Framework Selector */}
+              <select
+                value={selectedFrameworkId}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setSelectedFrameworkId(newId);
+                  const found = COLD_EMAIL_FRAMEWORKS.find(f => f.id === newId);
+                  if (found && !userIdea.trim()) {
+                    setUserIdea(found.defaultIdeaTemplate);
+                  }
+                }}
+                className="w-full text-xs font-semibold rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-2.5 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900"
+              >
+                {COLD_EMAIL_FRAMEWORKS.map(f => (
+                  <option key={f.id} value={f.id}>
+                    {f.name} — ({f.category})
+                  </option>
+                ))}
+              </select>
+
+              {/* Framework Breakdown Card */}
+              <div className="p-3 rounded-xl bg-gradient-to-br from-zinc-50 to-zinc-100/50 border border-zinc-200/70 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-zinc-900 text-[11px]">{activeFramework.name}</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">By {activeFramework.authorOrStyle}</span>
+                </div>
+                <p className="text-[11px] text-zinc-600 leading-relaxed">
+                  {activeFramework.description}
+                </p>
+                <div className="p-2 rounded-lg bg-white/80 border border-zinc-200/60 text-[10px] text-zinc-700 italic">
+                  <strong>Anti-Sales Principle:</strong> {activeFramework.antiSalesPrinciple}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: The Idea Box (Strategy & Bottleneck Angle) */}
+          <div className="bg-white rounded-2xl border-2 border-zinc-900/10 shadow-2xs overflow-hidden">
+            <div className="p-3.5 px-4 bg-zinc-50/70 border-b border-zinc-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-900">
+                  The Idea Box (Your Raw Angle)
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-zinc-400">
+                Grounds email in reality
+              </span>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <textarea
+                rows={4}
+                value={userIdea}
+                onChange={(e) => setUserIdea(e.target.value)}
+                placeholder="Type your raw thought, pitch angle, or specific client bottleneck..."
+                className="w-full text-xs font-sans rounded-xl border border-zinc-200 bg-zinc-50/40 p-3 text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-zinc-900 leading-relaxed resize-none"
+              />
+
+              {/* 1-Click Quick Angle Starters */}
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  Quick Angle Starters (Click to inject):
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {COLD_EMAIL_IDEA_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => handleSelectIdeaPreset(preset)}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium transition-colors border border-zinc-200/60 text-left"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action / Master Synthesize Button */}
           <button
             onClick={handleSynthesizeEmail}
             disabled={isGenerating}
-            className="w-full py-3 rounded-xl bg-zinc-900 text-white font-bold text-xs hover:bg-zinc-800 disabled:opacity-50 transition-colors shadow-2xs flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-4 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-md flex items-center justify-center gap-2 group cursor-pointer"
           >
             {isGenerating ? (
               <>
-                <RotateCw className="h-4 w-4 animate-spin" />
+                <RotateCw className="h-4 w-4 animate-spin text-amber-300" />
                 <span>Synthesizing Cold Email with Gemini...</span>
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4 text-amber-400" />
+                <Sparkles className="h-4 w-4 text-amber-400 group-hover:rotate-12 transition-transform" />
                 <span>Synthesize Cold Email from Idea Box</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-normal ml-1">
+                  Ctrl+Enter
+                </span>
               </>
             )}
           </button>
+
         </div>
 
         {/* ======================================================================= */}
-        {/* RIGHT COLUMN: AI EMAIL CANVAS, SUBJECTS, BODY & CTA (7 COLS)            */}
+        {/* RIGHT PANE: EXECUTIVE EMAIL COMPOSER WORKSTATION (7 COLS)               */}
         {/* ======================================================================= */}
         <div className="lg:col-span-7 space-y-4">
           
-          {/* Email Canvas Container */}
-          <div className="p-5 rounded-xl bg-white border border-zinc-200 shadow-2xs space-y-5">
+          {/* Main Composer Window */}
+          <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-sm overflow-hidden flex flex-col">
             
-            {/* Top Toolbar & Compliance Badges */}
-            <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-zinc-200">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-bold text-zinc-900">
-                  {currentDraft.frameworkUsed}
+            {/* Window Chrome & Compliance Bar */}
+            <div className="p-3.5 px-5 bg-zinc-900 text-white flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80 inline-block" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80 inline-block" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                </div>
+                <div className="h-3.5 w-px bg-zinc-700 mx-1" />
+                <span className="text-xs font-semibold text-zinc-200 truncate">
+                  To: <span className="text-zinc-100 font-bold">{prospectName}</span> &lt;{prospectEmail}&gt;
                 </span>
               </div>
 
-              {/* Strict Compliance Badges */}
-              <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Real-time Compliance Indicators */}
+              <div className="flex items-center gap-1.5">
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
                   emDashCount === 0 
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800' 
+                    : 'bg-rose-950/80 text-rose-300 border-rose-800'
                 }`}>
                   {emDashCount === 0 ? '✓ 0 Em Dashes' : `⚠ ${emDashCount} Em Dashes`}
                 </span>
-                
+
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
                   emojiCount === 0 
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800' 
+                    : 'bg-rose-950/80 text-rose-300 border-rose-800'
                 }`}>
                   {emojiCount === 0 ? '✓ 0 Emojis' : `⚠ ${emojiCount} Emojis`}
                 </span>
 
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
                   wordCount <= 75 
-                    ? 'bg-blue-50 text-blue-800 border-blue-200' 
-                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                    ? 'bg-blue-950/80 text-blue-300 border-blue-800' 
+                    : 'bg-amber-950/80 text-amber-300 border-amber-800'
                 }`}>
                   {wordCount} Words ({currentDraft.readingGradeLevel})
                 </span>
               </div>
             </div>
 
-            {/* =================================================================== */}
-            {/* 1. SUBJECT LINE SELECTOR, IDEA BOX & VARIATIONS (MAX 3 WORDS)       */}
-            {/* =================================================================== */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
+            {/* Sub-header: Subject Line Station */}
+            <div className="p-4 border-b border-zinc-100 bg-zinc-50/50 space-y-3">
+              
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>Subject Line Variations</span>
-                  </label>
-                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Check className="h-2.5 w-2.5 text-emerald-600" />
-                    Rule: Maximum 3 Words ONLY
+                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                    Subject:
+                  </span>
+                  <span className="text-xs font-bold font-mono text-zinc-900 bg-white px-2.5 py-1 rounded-md border border-zinc-200">
+                    {activeSubjectText}
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                    {activeSubjectText.trim().split(/\s+/).length}/3 Words
                   </span>
                 </div>
 
-                <button
-                  onClick={() => copyToClipboard(currentDraft.subjectLines[selectedSubjectIdx]?.text || '', 'subject')}
-                  className="text-[11px] text-zinc-600 hover:text-zinc-900 flex items-center gap-1 font-semibold"
-                >
-                  {copiedKey === 'subject' ? (
-                    <>
-                      <Check className="h-3 w-3 text-emerald-600" />
-                      <span className="text-emerald-600 font-bold">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3 w-3" />
-                      <span>Copy Subject</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setShowSubjectIdeaBox(!showSubjectIdeaBox)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 transition-colors shadow-2xs"
+                  >
+                    <Sparkles className="h-3 w-3 text-amber-500" />
+                    <span>AI Subject Variations</span>
+                    {showSubjectIdeaBox ? <ChevronUp className="h-3 w-3 ml-0.5" /> : <ChevronDown className="h-3 w-3 ml-0.5" />}
+                  </button>
+
+                  <button
+                    onClick={() => copyToClipboard(activeSubjectText, 'subject')}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 transition-colors shadow-2xs"
+                  >
+                    {copiedKey === 'subject' ? (
+                      <>
+                        <Check className="h-3 w-3 text-emerald-600" />
+                        <span className="text-emerald-600 font-bold">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3 text-zinc-400" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
-              {/* End User Subject Line Idea Box */}
-              <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/90 space-y-2 text-left">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-zinc-800 flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                    <span>Subject Line Idea Box</span>
-                    <span className="text-[10px] text-zinc-500 font-normal">
-                      (Type your angle or pain point, AI analyzes and suggests 3 variations)
-                    </span>
-                  </span>
-                  <span className="text-[9px] font-mono text-zinc-400">
-                    Max 3 Words Rule
-                  </span>
-                </div>
+              {/* 3 Subject Line Options Pills */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {currentDraft.subjectLines.map((s, idx) => {
+                  const words = (s.text || '').trim().split(/\s+/).filter(Boolean);
+                  const wordLen = words.length;
+                  const isSelected = selectedSubjectIdx === idx;
 
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedSubjectIdx(idx)}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        isSelected
+                          ? 'bg-zinc-900 text-white border-zinc-900 shadow-2xs ring-1 ring-zinc-900'
+                          : 'bg-white hover:bg-zinc-100 text-zinc-800 border-zinc-200/90'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                          isSelected ? 'text-amber-400' : 'text-zinc-500'
+                        }`}>
+                          {s.label}
+                        </span>
+                        <span className={`text-[9px] font-mono px-1 py-0.2 rounded font-bold ${
+                          wordLen <= 3 
+                            ? (isSelected ? 'bg-emerald-950 text-emerald-300' : 'bg-emerald-100 text-emerald-800')
+                            : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {wordLen}/3 words
+                        </span>
+                      </div>
+                      <div className="font-mono text-xs font-bold truncate">
+                        {s.text}
+                      </div>
+                      <div className={`text-[10px] mt-0.5 line-clamp-1 ${
+                        isSelected ? 'text-zinc-300' : 'text-zinc-400'
+                      }`}>
+                        {s.angle}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Expandable Subject Line AI Generator Box */}
+              {showSubjectIdeaBox && (
+                <div className="p-3.5 rounded-xl bg-white border border-amber-200 shadow-2xs space-y-2 mt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      <span>Custom Subject Line Generator</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-900 font-semibold">
+                      Max 3 Words Rule
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={subjectLineIdea}
@@ -727,135 +809,109 @@ export default function ColdEmailStudio() {
                           handleAnalyzeSubjectIdea();
                         }
                       }}
-                      placeholder="e.g. broker margin leaks, 65 seats scaling, rep objection freeze, quick question..."
-                      className="w-full text-xs py-1.5 px-3 rounded-lg border border-zinc-300 bg-white placeholder:text-zinc-400 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-800"
+                      placeholder="e.g. broker margin leaks, 65 seats scaling, rep objection freeze..."
+                      className="flex-1 text-xs py-2 px-3 rounded-lg border border-zinc-300 bg-zinc-50/50 text-zinc-900 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-zinc-900"
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleAnalyzeSubjectIdea()}
+                      disabled={isAnalyzingSubjectIdea || !subjectLineIdea.trim()}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 transition-colors shrink-0 shadow-2xs"
+                    >
+                      {isAnalyzingSubjectIdea ? (
+                        <>
+                          <RotateCw className="h-3.5 w-3.5 animate-spin text-amber-300" />
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                          <span>Generate 3 Subjects</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
+                  {/* Quick Inspiration Pills */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[10px] text-zinc-400 font-medium">Quick Ideas:</span>
+                    {[
+                      'broker margin leak',
+                      '65 seat scale',
+                      'lead list fatigue',
+                      'rep freeze rate',
+                      'quick question',
+                      'direct contract win'
+                    ].map((pill, pIdx) => (
+                      <button
+                        key={pIdx}
+                        type="button"
+                        onClick={() => {
+                          setSubjectLineIdea(pill);
+                          handleAnalyzeSubjectIdea(pill);
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 transition-colors font-mono"
+                      >
+                        {pill}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Email Body Canvas & View Switcher */}
+            <div className="p-5 flex-1 flex flex-col space-y-4">
+              
+              <div className="flex items-center justify-between">
+                {/* View Switcher Tabs */}
+                <div className="flex items-center gap-1 p-0.5 bg-zinc-100 rounded-lg border border-zinc-200/80">
                   <button
-                    type="button"
-                    onClick={() => handleAnalyzeSubjectIdea()}
-                    disabled={isAnalyzingSubjectIdea || !subjectLineIdea.trim()}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 transition-colors shadow-2xs whitespace-nowrap"
+                    onClick={() => setViewMode('compose')}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      viewMode === 'compose'
+                        ? 'bg-white text-zinc-900 shadow-2xs'
+                        : 'text-zinc-600 hover:text-zinc-900'
+                    }`}
                   >
-                    {isAnalyzingSubjectIdea ? (
-                      <>
-                        <RotateCw className="h-3 w-3 animate-spin text-amber-300" />
-                        <span>Analyzing Idea...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-3 w-3 text-amber-400" />
-                        <span>Suggest Subject Lines</span>
-                      </>
-                    )}
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Composer</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('breakdown')}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      viewMode === 'breakdown'
+                        ? 'bg-white text-zinc-900 shadow-2xs'
+                        : 'text-zinc-600 hover:text-zinc-900'
+                    }`}
+                  >
+                    <Layers className="h-3.5 w-3.5 text-amber-600" />
+                    <span>Structure Analysis</span>
                   </button>
                 </div>
 
-                {/* Quick Inspiration Angle Pills */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                  <span className="text-[10px] text-zinc-400 font-medium">Quick Inspiration:</span>
-                  {[
-                    'broker margin leak',
-                    '65 seat scale',
-                    'lead list fatigue',
-                    'rep freeze rate',
-                    'quick question',
-                    'direct contract win'
-                  ].map((pill, pIdx) => (
-                    <button
-                      key={pIdx}
-                      type="button"
-                      onClick={() => {
-                        setSubjectLineIdea(pill);
-                        handleAnalyzeSubjectIdea(pill);
-                      }}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 transition-colors font-mono"
-                    >
-                      {pill}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 3 Suggested Subject Line Variation Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {currentDraft.subjectLines.map((s, idx) => {
-                  const words = (s.text || '').trim().split(/\s+/).filter(Boolean);
-                  const wordCount = words.length;
-
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedSubjectIdx(idx)}
-                      className={`p-2.5 rounded-lg border text-left transition-all ${
-                        selectedSubjectIdx === idx
-                          ? 'bg-zinc-900 text-white border-zinc-900 shadow-2xs ring-2 ring-zinc-900/10'
-                          : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-800 border-zinc-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                          selectedSubjectIdx === idx ? 'text-amber-400' : 'text-zinc-500'
-                        }`}>
-                          {s.label}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <span className={`text-[9px] font-mono px-1 py-0.2 rounded font-bold ${
-                            wordCount <= 3 
-                              ? (selectedSubjectIdx === idx ? 'bg-emerald-950 text-emerald-300' : 'bg-emerald-100 text-emerald-800')
-                              : 'bg-rose-100 text-rose-800'
-                          }`}>
-                            {wordCount}/3 words
-                          </span>
-                          {selectedSubjectIdx === idx && (
-                            <CheckCircle2 className="h-3 w-3 text-amber-400" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="font-mono text-xs font-bold truncate">
-                        {s.text}
-                      </div>
-                      <div className={`text-[10px] mt-1 line-clamp-1 ${
-                        selectedSubjectIdx === idx ? 'text-zinc-300' : 'text-zinc-400'
-                      }`}>
-                        {s.angle}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* =================================================================== */}
-            {/* 2. EMAIL BODY CANVAS (EDITABLE & SANITIZED)                         */}
-            {/* =================================================================== */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-zinc-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5 text-zinc-600" />
-                  <span>Email Body Canvas</span>
-                </label>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleManualSanitize}
-                    className="text-[11px] text-zinc-500 hover:text-zinc-800 font-medium"
-                    title="Strip any accidental em dashes or emojis"
+                    className="text-[11px] text-zinc-500 hover:text-zinc-900 font-medium flex items-center gap-1"
+                    title="Scrub stray em dashes or emojis"
                   >
-                    Clean Formatting
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>Clean Formatting</span>
                   </button>
                   <button
                     onClick={() => copyToClipboard(editableBody, 'body')}
-                    className="text-[11px] text-zinc-600 hover:text-zinc-900 flex items-center gap-1 font-semibold"
+                    className="text-[11px] text-zinc-700 hover:text-zinc-950 font-semibold flex items-center gap-1"
                   >
                     {copiedKey === 'body' ? (
                       <>
                         <Check className="h-3 w-3 text-emerald-600" />
-                        <span className="text-emerald-600 font-bold">Copied!</span>
+                        <span className="text-emerald-600 font-bold">Body Copied!</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="h-3 w-3" />
+                        <Copy className="h-3 w-3 text-zinc-400" />
                         <span>Copy Body</span>
                       </>
                     )}
@@ -863,113 +919,156 @@ export default function ColdEmailStudio() {
                 </div>
               </div>
 
-              <div className="relative">
-                <textarea
-                  rows={8}
-                  value={editableBody}
-                  onChange={(e) => setEditableBody(e.target.value)}
-                  className="w-full text-xs font-sans rounded-xl border border-zinc-300 p-4 text-zinc-900 bg-zinc-50/50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-zinc-900 leading-relaxed tracking-normal"
-                />
-              </div>
-
-              {/* Structural Breakdown Chips */}
-              {currentDraft.structuralBreakdown && (
-                <div className="p-3 rounded-lg bg-zinc-50 border border-zinc-200/80 space-y-2 text-[11px]">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                    Structural Breakdown (Why this converts):
+              {/* View 1: Direct Clean Composer */}
+              {viewMode === 'compose' ? (
+                <div className="relative flex-1">
+                  <textarea
+                    rows={8}
+                    value={editableBody}
+                    onChange={(e) => setEditableBody(e.target.value)}
+                    className="w-full h-full min-h-[200px] text-sm font-sans rounded-xl border border-zinc-200/90 p-4 text-zinc-900 bg-zinc-50/30 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-zinc-900 leading-relaxed tracking-normal"
+                    placeholder="Synthesizing email body..."
+                  />
+                </div>
+              ) : (
+                /* View 2: Structural Breakdown / Why this converts */
+                <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-3 text-xs flex-1">
+                  <div className="flex items-center justify-between pb-2 border-b border-zinc-200/80">
+                    <span className="font-bold text-zinc-900 uppercase tracking-wider text-[11px]">
+                      Diagnostic Structural Breakdown ({activeFramework.name})
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      Psychological Hook Mechanics
+                    </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-zinc-600">
-                    <div>
-                      <strong className="text-zinc-800">Trigger:</strong> {currentDraft.structuralBreakdown.triggerOrHook}
+
+                  <div className="space-y-2.5">
+                    <div className="p-2.5 rounded-lg bg-white border border-blue-100 space-y-0.5">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1">
+                        <span>1. The Trigger / Intel Observation:</span>
+                      </div>
+                      <p className="text-zinc-700 text-xs">
+                        {currentDraft.structuralBreakdown?.triggerOrHook || 'Observes company tech stack or headcount scale.'}
+                      </p>
                     </div>
-                    <div>
-                      <strong className="text-zinc-800">Tension:</strong> {currentDraft.structuralBreakdown.tensionOrObservation}
+
+                    <div className="p-2.5 rounded-lg bg-white border border-amber-100 space-y-0.5">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1">
+                        <span>2. The Tension / Hidden Friction:</span>
+                      </div>
+                      <p className="text-zinc-700 text-xs">
+                        {currentDraft.structuralBreakdown?.tensionOrObservation || 'Exposes the margin loss or rep objection stall.'}
+                      </p>
                     </div>
-                    <div>
-                      <strong className="text-zinc-800">Truth:</strong> {currentDraft.structuralBreakdown.truthOrValue}
+
+                    <div className="p-2.5 rounded-lg bg-white border border-emerald-100 space-y-0.5">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1">
+                        <span>3. The Truth / Operational Reality:</span>
+                      </div>
+                      <p className="text-zinc-700 text-xs">
+                        {currentDraft.structuralBreakdown?.truthOrValue || 'Why old playbooks fail and what fixes it in 150ms live.'}
+                      </p>
                     </div>
-                    <div>
-                      <strong className="text-zinc-800">CTA:</strong> {currentDraft.structuralBreakdown.ctaSentence}
+
+                    <div className="p-2.5 rounded-lg bg-white border border-purple-100 space-y-0.5">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-purple-800 flex items-center gap-1">
+                        <span>4. The Anti-Sales CTA:</span>
+                      </div>
+                      <p className="text-zinc-700 text-xs">
+                        {currentDraft.structuralBreakdown?.ctaSentence || 'Permission-based low-friction ask giving an easy out.'}
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* =================================================================== */}
-            {/* 3. CTA VARIATIONS SELECTOR                                          */}
-            {/* =================================================================== */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                Anti-Sales CTA Variations (Click to insert into body):
-              </label>
-              <div className="grid grid-cols-1 gap-1.5">
-                {currentDraft.ctaVariations.map((cta, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setSelectedCtaIdx(idx);
-                      // Replace last sentence or append
-                      const sentences = editableBody.trim().split(/(?<=[.?!])\s+/);
-                      if (sentences.length > 1) {
-                        sentences[sentences.length - 1] = cta.text;
-                        setEditableBody(sentences.join('\n\n'));
-                      } else {
-                        setEditableBody(`${editableBody.trim()}\n\n${cta.text}`);
-                      }
-                    }}
-                    className={`p-2.5 rounded-lg border text-left transition-colors flex items-center justify-between text-xs ${
-                      selectedCtaIdx === idx
-                        ? 'bg-amber-50/70 border-amber-300 text-amber-950 font-medium'
-                        : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
-                    }`}
-                  >
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
-                        {cta.label} ({cta.style})
-                      </span>
-                      <p className="text-xs">{cta.text}</p>
-                    </div>
-                    <span className="text-[11px] text-zinc-400 font-mono shrink-0 ml-2">
-                      Use CTA ➔
-                    </span>
-                  </button>
-                ))}
+              {/* 1-Click Anti-Sales CTA Switcher */}
+              <div className="space-y-2 pt-2 border-t border-zinc-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Zap className="h-3 w-3 text-amber-500" />
+                    <span>Quick-Swap Closing CTA (Click to insert):</span>
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    Gives prospect easy out
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {currentDraft.ctaVariations.map((cta, idx) => {
+                    const isSelected = selectedCtaIdx === idx;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedCtaIdx(idx);
+                          // Replace last sentence or append
+                          const sentences = editableBody.trim().split(/(?<=[.?!])\s+/);
+                          if (sentences.length > 1) {
+                            sentences[sentences.length - 1] = cta.text;
+                            setEditableBody(sentences.join('\n\n'));
+                          } else {
+                            setEditableBody(`${editableBody.trim()}\n\n${cta.text}`);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'bg-amber-50/80 border-amber-300 text-amber-950 ring-1 ring-amber-300 shadow-2xs'
+                            : 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200 text-zinc-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                            {cta.label}
+                          </span>
+                          {isSelected && <Check className="h-3 w-3 text-amber-600" />}
+                        </div>
+                        <p className="text-[11px] line-clamp-2 leading-relaxed">
+                          {cta.text}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
             </div>
 
-            {/* =================================================================== */}
-            {/* 4. MASTER 1-CLICK ACTION CONTROLS                                   */}
-            {/* =================================================================== */}
-            <div className="pt-3 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+            {/* Master Action Dock (Sticky Bottom) */}
+            <div className="p-4 px-5 bg-zinc-50 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs text-zinc-500">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                <span>Audited for 0 em dashes, 0 emojis &amp; personal mailbox safety.</span>
+                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span className="text-[11px]">
+                  Audited: <strong>0 em dashes, 0 emojis</strong> • Safe send volume ceiling: 40/day
+                </span>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <button
                   onClick={handleOpenMailto}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 transition-colors border border-zinc-200"
-                  title="Open draft prefilled in your default email client"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-zinc-100 text-zinc-800 transition-colors border border-zinc-200 shadow-2xs"
+                  title="Open prefilled draft in your default email client"
                 >
-                  <ExternalLink className="h-3.5 w-3.5" />
+                  <ExternalLink className="h-3.5 w-3.5 text-zinc-500" />
                   <span>Open in Mail</span>
                 </button>
 
                 <button
                   onClick={handleCopyEntireEmail}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-zinc-900 hover:bg-zinc-800 text-white transition-colors shadow-2xs"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-zinc-950 hover:bg-zinc-800 text-white transition-all shadow-md group cursor-pointer"
                 >
                   {copiedKey === 'entire_email' ? (
                     <>
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      <Check className="h-4 w-4 text-emerald-400" />
                       <span>Copied Entire Email!</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="h-3.5 w-3.5" />
+                      <Copy className="h-4 w-4 text-zinc-300 group-hover:scale-110 transition-transform" />
                       <span>Copy Entire Email (Subject + Body)</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 ml-1">
+                        Ctrl+Shift+C
+                      </span>
                     </>
                   )}
                 </button>
@@ -978,13 +1077,15 @@ export default function ColdEmailStudio() {
 
           </div>
 
-          {/* Manual Sending Workflow Checklist */}
-          <div className="p-3.5 rounded-xl bg-zinc-100/70 border border-zinc-200 text-xs text-zinc-600 flex items-start gap-2.5">
-            <span className="text-base leading-none">📋</span>
-            <div className="space-y-1">
-              <strong className="text-zinc-900 font-semibold">Manual Send Workflow:</strong>
-              <p className="text-[11px] leading-relaxed">
-                1. Click <strong>Copy Entire Email</strong> • 2. Paste into Gmail or Outlook • 3. Stagger your manual send by <strong>2 to 4 minutes</strong> from the previous email • 4. Stay under <strong>40 emails per day</strong> per personal account to keep deliverability in the green.
+          {/* Manual Send Workflow Guideline */}
+          <div className="p-3.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs text-xs text-zinc-600 flex items-start gap-3">
+            <div className="h-7 w-7 rounded-lg bg-zinc-100 text-zinc-600 flex items-center justify-center shrink-0 mt-0.5">
+              <Compass className="h-4 w-4" />
+            </div>
+            <div className="space-y-0.5">
+              <strong className="text-zinc-900 font-semibold">Standard SDR Sending Sequence:</strong>
+              <p className="text-[11px] leading-relaxed text-zinc-500">
+                1. Copy Email • 2. Paste into Gmail or Outlook • 3. Stagger send by <strong>2 to 4 minutes</strong> from prior message • 4. Stay under <strong>40 manual sends/day</strong> to guarantee maximum domain reputation.
               </p>
             </div>
           </div>
@@ -992,6 +1093,292 @@ export default function ColdEmailStudio() {
         </div>
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* 3. DELIVERABILITY RADAR & SENDING PLAYBOOK DRAWER / MODAL                 */}
+      {/* ========================================================================= */}
+      {isPlaybookDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-zinc-200 flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-zinc-200 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center font-bold">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-zinc-900">
+                    Cold Email Deliverability Radar &amp; Playbook
+                  </h2>
+                  <p className="text-xs text-zinc-500">
+                    Timing science &amp; safe account sending volume to protect your personal domain health.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPlaybookDrawerOpen(false)}
+                className="h-8 w-8 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 flex items-center justify-center transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 text-xs text-zinc-700">
+              
+              {/* Live Recipient Timezone Hub Clocks */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold uppercase tracking-wider text-zinc-900 text-[11px] flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5 text-zinc-500" />
+                    <span>Global Recipient Timezone Clocks (Live)</span>
+                  </h3>
+                  <span className="text-[10px] text-zinc-400">
+                    Calculate recipient local time before sending
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {[
+                    { label: 'New York (EST)', tz: 'EST', note: 'US East Outbound' },
+                    { label: 'San Francisco (PST)', tz: 'PST', note: 'US West Tech' },
+                    { label: 'London (GMT)', tz: 'GMT', note: 'UK & Europe' },
+                    { label: 'Sydney (AEST)', tz: 'AEST', note: 'Australia' },
+                    { label: 'Manila (PHT)', tz: 'PHT', note: 'BPO Ops Floor' }
+                  ].map((hub) => (
+                    <div key={hub.tz} className="p-3 rounded-xl bg-zinc-50 border border-zinc-200 space-y-1">
+                      <div className="text-[10px] font-bold text-zinc-500 uppercase truncate">
+                        {hub.label}
+                      </div>
+                      <div className="text-base font-mono font-bold text-zinc-900">
+                        {currentTimes[hub.tz] || '--:--'}
+                      </div>
+                      <div className="text-[10px] text-zinc-400 truncate">
+                        {hub.note}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3 Pillars Grid: Days, Times, Limits */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                {/* 1. Best Days */}
+                <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200 space-y-2.5">
+                  <div className="flex items-center gap-1.5 font-bold text-zinc-900">
+                    <Calendar className="h-4 w-4 text-amber-600" />
+                    <span>Best Sending Days</span>
+                  </div>
+                  <div className="space-y-2 text-[11px]">
+                    <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200/80">
+                      <strong className="text-emerald-950 block">Tuesday - Thursday (Optimal)</strong>
+                      <span className="text-emerald-800">32% higher response rate. Execs have cleared Monday fire drills.</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-amber-50 border border-amber-200/80">
+                      <strong className="text-amber-950 block">Sunday Evening (Secret Window)</strong>
+                      <span className="text-amber-800">6:30 - 8:30 PM local. Execs review inbox before Monday with 0 competitor noise.</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-zinc-100 border border-zinc-200">
+                      <strong className="text-zinc-800 block">Monday / Friday (Avoid)</strong>
+                      <span className="text-zinc-500">Mon morning is triage overload; Friday afternoon emails get swept into trash.</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Best Times */}
+                <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200 space-y-2.5">
+                  <div className="flex items-center gap-1.5 font-bold text-zinc-900">
+                    <Clock className="h-4 w-4 text-amber-600" />
+                    <span>Peak Sending Times</span>
+                  </div>
+                  <div className="space-y-2 text-[11px]">
+                    <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200/80">
+                      <strong className="text-emerald-950 block">8:15 AM - 10:00 AM (Coffee Window)</strong>
+                      <span className="text-emerald-800">3.4x open rate when caught right as executives open laptop before meeting blocks.</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-blue-50 border border-blue-200/80">
+                      <strong className="text-blue-950 block">1:30 PM - 2:30 PM (Post-Lunch Lull)</strong>
+                      <span className="text-blue-800">Fast inbox check upon desk return before afternoon deep work.</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-zinc-100 border border-zinc-200">
+                      <strong className="text-zinc-800 block">Rule of Thumb</strong>
+                      <span className="text-zinc-500">Never send without confirming the recipient's local time zone.</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Account Safety */}
+                <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200 space-y-2.5">
+                  <div className="flex items-center gap-1.5 font-bold text-zinc-900">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                    <span>Safe Account Limits</span>
+                  </div>
+                  <div className="space-y-2 text-[11px]">
+                    <div className="p-2.5 rounded-lg bg-emerald-100/50 border border-emerald-300">
+                      <div className="font-bold text-emerald-950 text-xs">Safe Daily Manual Volume:</div>
+                      <div className="text-base font-mono font-bold text-emerald-800">30 - 50 emails/day</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-zinc-200">
+                      <strong className="text-zinc-900 block">Stagger Rule:</strong>
+                      <span className="text-zinc-600">Space manual sends by <strong>2 to 4 minutes</strong>. Never blast 10 in 60 seconds.</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-zinc-100 text-[10px] text-zinc-500">
+                      <strong>Ramp Plan:</strong> Wk 1: 10/day • Wk 2: 20/day • Wk 3: 35/day • Wk 4+: 45-50/day max.
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end">
+              <button
+                onClick={() => setIsPlaybookDrawerOpen(false)}
+                className="px-4 py-2 rounded-xl bg-zinc-900 text-white font-bold text-xs hover:bg-zinc-800 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. EDIT PROSPECT DETAILS MODAL                                            */}
+      {/* ========================================================================= */}
+      {isProspectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-zinc-200 flex flex-col">
+            
+            <div className="p-4 px-5 border-b border-zinc-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-zinc-600" />
+                <h3 className="text-sm font-bold text-zinc-900">
+                  Edit Target Prospect Context
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsProspectModalOpen(false)}
+                className="h-7 w-7 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 flex items-center justify-center transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                    Prospect Name
+                  </label>
+                  <input
+                    type="text"
+                    value={prospectName}
+                    onChange={(e) => setProspectName(e.target.value)}
+                    className="w-full text-xs rounded-lg border border-zinc-300 p-2 text-zinc-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={prospectCompany}
+                    onChange={(e) => setProspectCompany(e.target.value)}
+                    className="w-full text-xs rounded-lg border border-zinc-300 p-2 text-zinc-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                  Job Title / Seniority
+                </label>
+                <input
+                  type="text"
+                  value={prospectTitle}
+                  onChange={(e) => setProspectTitle(e.target.value)}
+                  className="w-full text-xs rounded-lg border border-zinc-300 p-2 text-zinc-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                    Work Email
+                  </label>
+                  <input
+                    type="email"
+                    value={prospectEmail}
+                    onChange={(e) => setProspectEmail(e.target.value)}
+                    className="w-full text-xs rounded-lg border border-zinc-300 p-2 text-zinc-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                    Seat Scale / Headcount
+                  </label>
+                  <input
+                    type="text"
+                    value={prospectHeadcount}
+                    onChange={(e) => setProspectHeadcount(e.target.value)}
+                    className="w-full text-xs rounded-lg border border-zinc-300 p-2 text-zinc-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                  Tech Stack (Optional Intelligence)
+                </label>
+                <input
+                  type="text"
+                  value={prospectTech}
+                  onChange={(e) => setProspectTech(e.target.value)}
+                  placeholder="e.g. Apollo.io & HubSpot"
+                  className="w-full text-xs rounded-lg border border-zinc-300 p-2 text-zinc-900"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                  Primary Pain Point / Operational Bottleneck
+                </label>
+                <textarea
+                  rows={2}
+                  value={prospectPain}
+                  onChange={(e) => setProspectPain(e.target.value)}
+                  className="w-full text-xs rounded-lg border border-zinc-300 p-2 text-zinc-900 resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end gap-2">
+              <button
+                onClick={() => setIsProspectModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-zinc-900 text-white font-bold text-xs hover:bg-zinc-800 transition-colors"
+              >
+                Apply Changes
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. UPLOAD CSV MODAL INTEGRATION                                           */}
+      {/* ========================================================================= */}
+      <UploadLeadsCsvModal
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        onLeadsImported={handleLeadsImported}
+      />
+
     </div>
   );
 }
