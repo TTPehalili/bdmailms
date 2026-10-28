@@ -45,11 +45,26 @@ export async function POST(req: NextRequest) {
           liveSendResult = await resendRes.json();
           provider = 'resend_live';
         } else {
-          const errText = await resendRes.text();
-          console.warn('[RESEND DISPATCH WARNING] Non-200 from Resend:', errText);
+          let errMessage = 'Resend API rejected the email';
+          try {
+            const errJson = await resendRes.json();
+            errMessage = errJson.message || errMessage;
+          } catch {
+            const errText = await resendRes.text();
+            if (errText) errMessage = errText;
+          }
+          console.error('[RESEND DISPATCH ERROR]', errMessage);
+          return NextResponse.json(
+            { error: errMessage },
+            { status: resendRes.status || 400 }
+          );
         }
       } catch (err: any) {
         console.error('[RESEND API ERROR]', err.message);
+        return NextResponse.json(
+          { error: err.message || 'Resend network error' },
+          { status: 500 }
+        );
       }
     }
 

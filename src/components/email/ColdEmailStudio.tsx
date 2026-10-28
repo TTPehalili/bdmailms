@@ -381,10 +381,11 @@ export default function ColdEmailStudio() {
         }
         setDirectSendStatus(`Dispatched via ${data.provider === 'resend_live' ? 'Resend Live API' : 'Resend API (Sandbox)'}`);
       } else {
-        setDirectSendStatus('Dispatched & logged in Unified Inbox');
+        const errData = await res.json().catch(() => ({}));
+        setDirectSendStatus(`Error: ${errData.error || 'Send failed'}`);
       }
     } catch (e: any) {
-      setDirectSendStatus('Dispatched & logged in Unified Inbox');
+      setDirectSendStatus(`Error: ${e.message || 'Network error'}`);
     } finally {
       setIsSendingDirectEmail(false);
       setTimeout(() => setDirectSendStatus(null), 6000);
@@ -1097,8 +1098,16 @@ export default function ColdEmailStudio() {
                   Audited: <strong>0 em dashes, 0 emojis</strong> • Safe send volume ceiling: 40/day
                 </span>
                 {directSendStatus && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-semibold border border-emerald-200">
-                    <Check className="h-3 w-3 text-emerald-600 shrink-0" />
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
+                    directSendStatus.startsWith('Error')
+                      ? 'bg-rose-50 text-rose-800 border-rose-200'
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  }`}>
+                    {directSendStatus.startsWith('Error') ? (
+                      <AlertTriangle className="h-3 w-3 text-rose-600 shrink-0" />
+                    ) : (
+                      <Check className="h-3 w-3 text-emerald-600 shrink-0" />
+                    )}
                     <span>{directSendStatus}</span>
                   </span>
                 )}

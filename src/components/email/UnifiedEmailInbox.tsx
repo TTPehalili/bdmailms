@@ -11,6 +11,7 @@ import {
   Clock, 
   CheckCircle2, 
   AlertCircle, 
+  AlertTriangle,
   ArrowUpRight, 
   ArrowDownLeft, 
   RotateCw, 
@@ -39,6 +40,7 @@ export default function UnifiedEmailInbox() {
   const [replyText, setReplyText] = useState<string>('');
   const [isSendingReply, setIsSendingReply] = useState<boolean>(false);
   const [sendSuccessKey, setSendSuccessKey] = useState<string | null>(null);
+  const [replyError, setReplyError] = useState<string | null>(null);
 
   // Load emails from localStorage or initial seeds
   useEffect(() => {
@@ -105,6 +107,7 @@ export default function UnifiedEmailInbox() {
   const handleSendReply = async () => {
     if (!replyText.trim() || !activeThreadLead) return;
     setIsSendingReply(true);
+    setReplyError(null);
     try {
       const res = await fetch('/api/email/send', {
         method: 'POST',
@@ -127,37 +130,20 @@ export default function UnifiedEmailInbox() {
           setEmails(updated);
           setReplyText('');
           setSendSuccessKey('reply_sent');
-          setTimeout(() => setSendSuccessKey(null), 3000);
+          setTimeout(() => setSendSuccessKey(null), 4000);
           return;
         }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setReplyError(errData.error || 'Failed to dispatch reply via Resend');
+        return;
       }
-
-      // Fallback local save
-      const fallbackMsg: EmailMessage = {
-        id: `msg_manual_${Date.now()}`,
-        threadId: selectedThreadId,
-        direction: 'outbound',
-        from: 'Emil Vance <emil@appointmentlyy.com>',
-        to: activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to,
-        subject: activeThreadLead.subject.startsWith('Re:') ? activeThreadLead.subject : `Re: ${activeThreadLead.subject}`,
-        body: replyText.trim(),
-        timestamp: new Date().toISOString(),
-        status: 'delivered',
-        leadName: activeThreadLead.leadName,
-        leadCompany: activeThreadLead.leadCompany,
-        leadTitle: activeThreadLead.leadTitle,
-        provider: 'resend_sandbox',
-        read: true
-      };
-      const updated = saveEmailToStore(fallbackMsg);
-      setEmails(updated);
-      setReplyText('');
-      setSendSuccessKey('reply_sent');
-      setTimeout(() => setSendSuccessKey(null), 3000);
-    } catch (err) {
-      console.error('Error sending reply:', err);
+    } catch (e: any) {
+      setReplyError(e.message || 'Network error');
+      return;
     } finally {
       setIsSendingReply(false);
+      setTimeout(() => setReplyError(null), 6000);
     }
   };
 
@@ -470,6 +456,11 @@ export default function UnifiedEmailInbox() {
                         <span className="text-emerald-600 font-bold flex items-center gap-1">
                           <Check className="h-3.5 w-3.5" />
                           Reply dispatched successfully via Resend API!
+                        </span>
+                      ) : replyError ? (
+                        <span className="text-rose-600 font-semibold flex items-center gap-1">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                          Error: {replyError}
                         </span>
                       ) : (
                         <span>Dispatches to: <strong>{activeThreadLead.leadName}</strong> &lt;{activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to}&gt;</span>
