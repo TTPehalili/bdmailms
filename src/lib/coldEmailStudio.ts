@@ -324,13 +324,14 @@ export function sanitizeColdEmail(text: string): { cleanText: string; emDashesCo
   const emDashMatches = cleanText.match(emDashRegex);
   const emDashesCount = emDashMatches ? emDashMatches.length : 0;
   
-  // Replace em dashes cleanly with comma or period
+  // Replace em dashes cleanly with comma or period without collapsing newlines
   cleanText = cleanText
-    .replace(/\s*[—–]\s*/g, ', ')
-    .replace(/\s*--\s*/g, ', ')
-    .replace(/,\s*,/g, ',')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([.,?!])/g, '$1')
+    .replace(/[ \t]*[—–][ \t]*/g, ', ')
+    .replace(/[ \t]*--[ \t]*/g, ', ')
+    .replace(/,[ \t]*,/g, ',')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+([.,?!])/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 
   return {

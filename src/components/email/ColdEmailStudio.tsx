@@ -397,13 +397,16 @@ export default function ColdEmailStudio() {
         setDirectSendStatus(`Dispatched from ${senderFrom} to ${prospectEmail.trim()}`);
       } else {
         const errData = await res.json().catch(() => ({}));
-        setDirectSendStatus(`Error: ${errData.error || 'Send failed'}`);
+        const errMsg = errData.error || `Send failed (${res.status} ${res.statusText})`;
+        console.error('[DIRECT SEND ERROR]', errMsg, errData);
+        setDirectSendStatus(`Error: ${errMsg}`);
       }
     } catch (e: any) {
+      console.error('[DIRECT SEND NETWORK ERROR]', e);
       setDirectSendStatus(`Error: ${e.message || 'Network error'}`);
     } finally {
       setIsSendingDirectEmail(false);
-      setTimeout(() => setDirectSendStatus(null), 8000);
+      setTimeout(() => setDirectSendStatus(null), 15000);
     }
   };
 
@@ -811,6 +814,51 @@ export default function ColdEmailStudio() {
                 }`}>
                   {wordCount} Words ({currentDraft.readingGradeLevel})
                 </span>
+              </div>
+            </div>
+
+            {/* Direct Recipient Station (Editable directly inside Composer) */}
+            <div className="px-4 py-2.5 bg-zinc-100/70 border-b border-zinc-200 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                <span className="text-xs font-bold text-zinc-600 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-zinc-500" />
+                  To:
+                </span>
+                <input
+                  type="email"
+                  value={prospectEmail}
+                  onChange={(e) => setProspectEmail(e.target.value)}
+                  placeholder="Enter prospect recipient email (e.g. emil@callview.ai)"
+                  className="w-full text-xs font-mono font-medium rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 shadow-2xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] text-zinc-400 font-semibold uppercase">Quick Fill:</span>
+                <button
+                  type="button"
+                  onClick={() => setProspectEmail('emil@callview.ai')}
+                  className={`text-[10px] font-mono px-2 py-1 rounded-md font-bold transition-all border cursor-pointer ${
+                    prospectEmail === 'emil@callview.ai'
+                      ? 'bg-zinc-900 text-white border-zinc-900 shadow-2xs'
+                      : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-100'
+                  }`}
+                  title="Target callview.ai test email"
+                >
+                  emil@callview.ai
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProspectEmail('emil@appointmentlyy.com')}
+                  className={`text-[10px] font-mono px-2 py-1 rounded-md font-bold transition-all border cursor-pointer ${
+                    prospectEmail === 'emil@appointmentlyy.com'
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  }`}
+                  title="Target GoDaddy inbox"
+                >
+                  emil@appointmentlyy.com
+                </button>
               </div>
             </div>
 

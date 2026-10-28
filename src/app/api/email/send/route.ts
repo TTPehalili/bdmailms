@@ -21,6 +21,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Escape HTML special characters to prevent malformed tags
+    const escapeHtml = (str: string) =>
+      str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
     // Format HTML paragraphs so email clients (Gmail, Outlook) do not collapse line breaks
     const paragraphs = body
       .split(/\n\s*\n/)
@@ -29,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const formattedHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #111827;">
-        ${paragraphs.map((p: string) => `<p style="margin: 0 0 16px 0; padding: 0;">${p.replace(/\n/g, '<br />')}</p>`).join('')}
+        ${paragraphs.map((p: string) => `<p style="margin: 0 0 16px 0; padding: 0; line-height: 1.6;">${escapeHtml(p).replace(/\n/g, '<br />')}</p>`).join('')}
       </div>
     `.trim();
 
