@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   Mail, 
@@ -9,8 +9,6 @@ import {
   Check, 
   Send, 
   RotateCw, 
-  User, 
-  Building, 
   Upload, 
   Inbox, 
   Loader2, 
@@ -20,24 +18,35 @@ import {
   PlusCircle, 
   ShieldCheck, 
   AlertTriangle,
-  Lightbulb,
-  BookOpen,
-  FileText
+  Clock,
+  Calendar,
+  Zap,
+  Eye,
+  Edit3,
+  FileText,
+  CheckCircle2,
+  Info,
+  HelpCircle
 } from 'lucide-react';
 import { saveEmailToStore, getConversationThreadKey } from '@/lib/emailStore';
 import { 
   COLD_EMAIL_FRAMEWORKS, 
   COLD_EMAIL_IDEA_PRESETS, 
-  ColdEmailGeneratedDraft, 
+  MANUAL_COLD_EMAIL_GUIDANCE,
   formatEmailToParagraphs, 
   getDeterministicColdEmail, 
-  enforceMaxThreeWords, 
-  suggestSubjectLinesFromIdea, 
   sanitizeColdEmail 
 } from '@/lib/coldEmailStudio';
 import { DEMO_CADENCE_LEADS, CadenceLeadRecord } from '@/lib/cadenceMaster';
 import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
 import { useSession } from '@/lib/session';
+
+// B2B spam trigger words list
+const COMMON_SPAM_WORDS = [
+  'guarantee', 'guaranteed', '100% free', 'risk-free', 'buy now', 
+  'cheap', 'discount', 'act now', 'limited time', 'winner', 'cash bonus', 
+  'miracle', 'no obligation', 'congratulations', 'pure profit', 'earn extra cash'
+];
 
 export default function ColdEmailStudio() {
   const { session } = useSession();
@@ -91,33 +100,6 @@ export default function ColdEmailStudio() {
     }
   }, []);
 
-  // AI Framework & Angle State
-  const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>('braun-poke-the-bear');
-  const [userIdea, setUserIdea] = useState<string>(
-    'Following up after our call. Saw you are scaling outbound reps—wanted to share how we feed consultative rebuttals in 150ms live on the dial without burning shared lead lists.'
-  );
-
-  // Subject Line State
-  const [subjectText, setSubjectText] = useState<string>('quick question');
-  const [showSubjectSuggestions, setShowSubjectSuggestions] = useState<boolean>(false);
-  const [subjectSuggestions, setSubjectSuggestions] = useState<string[]>([
-    'quick question',
-    'outbound hold rate',
-    'caller margin leak'
-  ]);
-
-  // Draft & Composer State
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [editableBody, setEditableBody] = useState<string>(() => 
-    `Hi Emil,\n\nFollowing up after our call. Saw Callview AI is scaling outbound seats. Typically when BPO leaders scale outbound, the hidden leak is not lead volume, it is callers getting chopped on price by commodity competitors.\n\nTraditional coaching fails when reps freeze in the first 20 seconds. We feed consultative rebuttals in 150 milliseconds live on the dial.\n\nOpen to a 2-minute video showing how we insulate margins, or totally off base?`
-  );
-
-  // Send & UI State
-  const [isSendingDirectEmail, setIsSendingDirectEmail] = useState<boolean>(false);
-  const [sendButtonState, setSendButtonState] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const [directSendStatus, setDirectSendStatus] = useState<string | null>(null);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
   // Sync stored CSV leads on mount
   useEffect(() => {
     try {
@@ -132,6 +114,41 @@ export default function ColdEmailStudio() {
       console.warn('Could not load stored CSV leads:', e);
     }
   }, []);
+
+  // Studio Mode: 'editor' | 'preview'
+  const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
+
+  // Subject Line State
+  const [subjectText, setSubjectText] = useState<string>('quick question');
+  const [showSubjectSuggestions, setShowSubjectSuggestions] = useState<boolean>(false);
+  const [subjectSuggestions, setSubjectSuggestions] = useState<string[]>([
+    'quick question',
+    'outbound hold rate',
+    'caller margin leak',
+    'rookie lead burn'
+  ]);
+
+  // Draft Body State
+  const [editableBody, setEditableBody] = useState<string>(() => 
+    `Hi Emil,\n\nFollowing up after our call. Saw Callview AI is scaling outbound seats. Typically when BPO leaders scale outbound, the hidden leak is not lead volume, it is callers getting chopped on price by commodity competitors.\n\nTraditional coaching fails when reps freeze in the first 20 seconds. We feed consultative rebuttals in 150 milliseconds live on the dial.\n\nOpen to a 2-minute video showing how we insulate margins, or totally off base?`
+  );
+
+  // AI Framework & Angle State (Optional Assistant)
+  const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>('braun-poke-the-bear');
+  const [userIdea, setUserIdea] = useState<string>(
+    'Following up after our call. Saw you are scaling outbound reps—wanted to share how we feed consultative rebuttals in 150ms live on the dial without burning shared lead lists.'
+  );
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [showAiAssistant, setShowAiAssistant] = useState<boolean>(false);
+
+  // Send & UI State
+  const [isSendingDirectEmail, setIsSendingDirectEmail] = useState<boolean>(false);
+  const [sendButtonState, setSendButtonState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [directSendStatus, setDirectSendStatus] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Deliverability Playbook Expansion State
+  const [showPlaybookDetails, setShowPlaybookDetails] = useState<boolean>(false);
 
   // Update recipient email free-hand & persist to lead record
   const handleRecipientEmailChange = (newEmail: string) => {
@@ -181,7 +198,7 @@ export default function ColdEmailStudio() {
     }
   };
 
-  // Start a blank fresh email for a new prospect confirmed on phone
+  // Start a fresh blank email
   const handleStartBlankEmail = () => {
     setProspectEmailState('');
     setProspectName('');
@@ -249,7 +266,7 @@ export default function ColdEmailStudio() {
     }
   };
 
-  // Format paragraphs cleanly
+  // Workshop Tool 1: Auto-Format Paragraphs
   const handleAutoFormat = () => {
     const { cleanText } = sanitizeColdEmail(editableBody);
     const formatted = formatEmailToParagraphs(cleanText).join('\n\n');
@@ -258,7 +275,33 @@ export default function ColdEmailStudio() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Copy helpers
+  // Workshop Tool 2: Sanitize (Strip em dashes and emojis strictly)
+  const handleSanitizeStrict = () => {
+    const { cleanText } = sanitizeColdEmail(editableBody);
+    setEditableBody(cleanText);
+    setCopiedKey('sanitized');
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Workshop Tool 3: Shorten Copy to < 65 Words
+  const handleShortenCopy = () => {
+    let text = editableBody
+      .replace(/I hope you are doing well[.,]?\s*/gi, '')
+      .replace(/I hope this email finds you well[.,]?\s*/gi, '')
+      .replace(/I wanted to reach out to you because\s*/gi, '')
+      .replace(/In case you were not already aware[.,]?\s*/gi, '')
+      .trim();
+
+    const paragraphs = formatEmailToParagraphs(text);
+    if (paragraphs.length > 3) {
+      text = [paragraphs[0], paragraphs[1], paragraphs[paragraphs.length - 1]].join('\n\n');
+    }
+    setEditableBody(text);
+    setCopiedKey('shortened');
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Copy Helpers
   const handleCopyBody = () => {
     navigator.clipboard.writeText(editableBody);
     setCopiedKey('body');
@@ -272,7 +315,7 @@ export default function ColdEmailStudio() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Direct Live Dispatch with strict double-send prevention
+  // Live Dispatch via Resend API
   const handleDirectSendEmail = async () => {
     if (sendButtonState === 'sent' || isSendingDirectEmail) {
       return;
@@ -344,16 +387,22 @@ export default function ColdEmailStudio() {
     }
   };
 
-  // Word count & metrics
+  // Word count & quality calculations
   const wordCount = editableBody.trim().split(/\s+/).filter(Boolean).length;
   const subjectWordCount = subjectText.trim().split(/\s+/).filter(Boolean).length;
   const activeFramework = COLD_EMAIL_FRAMEWORKS.find(f => f.id === selectedFrameworkId) || COLD_EMAIL_FRAMEWORKS[0];
 
+  // Spam Word Scanner
+  const detectedSpamTriggers = useMemo(() => {
+    const combined = `${subjectText} ${editableBody}`.toLowerCase();
+    return COMMON_SPAM_WORDS.filter(w => combined.includes(w));
+  }, [subjectText, editableBody]);
+
   return (
-    <div className="min-h-full bg-zinc-50/80 p-4 sm:p-6 lg:p-8 space-y-6 text-zinc-900">
+    <div className="min-h-full bg-zinc-50/80 p-4 sm:p-6 lg:p-8 space-y-6 text-zinc-900 font-sans">
       
       {/* ========================================================================= */}
-      {/* 1. TOP HEADER & QUEUE NAVIGATION                                          */}
+      {/* 1. TOP HEADER & WORKBENCH CONTROLS                                        */}
       {/* ========================================================================= */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
         <div>
@@ -370,19 +419,19 @@ export default function ColdEmailStudio() {
             </span>
           </div>
           <p className="text-xs text-zinc-500 mt-1">
-            Personalized outbound outreach with verified live deliverability and instant inbox threading.
+            Manual email drafting & workshopping laboratory with live deliverability guardrails.
           </p>
         </div>
 
-        {/* Lead Queue Switcher & Navigation */}
+        {/* Lead Queue Switcher & Standalone Actions */}
         <div className="flex items-center gap-2 flex-wrap">
           {leads.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-zinc-500 font-medium hidden md:inline">Lead:</span>
+              <span className="text-xs text-zinc-500 font-medium hidden md:inline">Queue:</span>
               <select
                 value={selectedLeadIndex}
                 onChange={(e) => handleSelectLeadFromQueue(Number(e.target.value))}
-                className="text-xs font-medium rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-800 shadow-2xs focus:ring-1 focus:ring-zinc-900"
+                className="text-xs font-medium rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-800 shadow-2xs focus:ring-1 focus:ring-zinc-900 cursor-pointer"
               >
                 {leads.map((l, idx) => (
                   <option key={idx} value={idx}>
@@ -394,17 +443,19 @@ export default function ColdEmailStudio() {
           )}
 
           <button
+            type="button"
             onClick={handleStartBlankEmail}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shadow-2xs"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shadow-2xs cursor-pointer"
             title="Start a fresh blank draft for a prospect you confirmed on the phone"
           >
             <PlusCircle className="h-3.5 w-3.5 text-zinc-500" />
-            <span>New Email</span>
+            <span>Blank Draft</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setIsCsvModalOpen(true)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shadow-2xs"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shadow-2xs cursor-pointer"
           >
             <Upload className="h-3.5 w-3.5 text-zinc-500" />
             <span>CSV Leads ({leads.length})</span>
@@ -421,76 +472,231 @@ export default function ColdEmailStudio() {
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. DUAL-PANE WORKSTATION                                                  */}
+      {/* 2. PROMINENT DELIVERABILITY & SENDING RULES PLAYBOOK (CARD SECTION)      */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* ======================================================================= */}
-        {/* LEFT COLUMN: AI DRAFT ASSISTANT & ANGLE ENGINE (4 COLS)                 */}
-        {/* ======================================================================= */}
-        <div className="lg:col-span-4 space-y-4">
-          
-          <div className="bg-white rounded-xl border border-zinc-200/90 shadow-2xs overflow-hidden">
-            <div className="p-3.5 px-4 bg-zinc-50 border-b border-zinc-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-900">
-                  AI Draft Generator
+      <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-100">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <ShieldCheck className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-900 font-mono flex items-center gap-2">
+                <span>Deliverability Radar & Safe Sending Limits</span>
+                <span className="text-[10px] font-normal px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  Strictly Enforced
                 </span>
-              </div>
-              <span className="text-[10px] font-mono text-zinc-400">
-                1-Click Synthesis
+              </h2>
+              <p className="text-xs text-zinc-500">
+                Follow these timing rules and daily sending ceilings to guarantee 99%+ inbox placement and avoid domain burn.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowPlaybookDetails(!showPlaybookDetails)}
+            className="text-xs font-semibold text-zinc-700 hover:text-zinc-950 flex items-center gap-1 underline cursor-pointer"
+          >
+            <span>{showPlaybookDetails ? 'Hide Full Breakdown' : 'View Full Schedule'}</span>
+            {showPlaybookDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+
+        {/* 3 Core Rule Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          
+          {/* Card 1: When to Send */}
+          <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-zinc-900 flex items-center gap-1.5 font-mono text-[11px] uppercase">
+                <Clock className="h-3.5 w-3.5 text-blue-600" />
+                <span>When to Send</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                Tue &bull; Wed &bull; Thu
               </span>
             </div>
+            <p className="text-zinc-600 text-[11px] leading-relaxed">
+              <strong>Peak Window:</strong> 8:15 AM – 10:00 AM &amp; 1:30 PM – 2:45 PM (Recipient's local time). Executives check inboxes at desk arrival and post-lunch.
+            </p>
+            <div className="pt-1 text-[10px] text-zinc-400">
+              ❌ <strong>Avoid:</strong> Monday mornings (triage chaos) and Friday afternoons (weekend mental checkout).
+            </div>
+          </div>
 
-            <div className="p-4 space-y-3.5">
-              {/* Pitch Angle or Post-Call Follow-up Prompt */}
+          {/* Card 2: Daily Sending Limits */}
+          <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-zinc-900 flex items-center gap-1.5 font-mono text-[11px] uppercase">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Daily Sending Ceilings</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                Max 40–50 / Day
+              </span>
+            </div>
+            <p className="text-zinc-600 text-[11px] leading-relaxed">
+              <strong>Safe Threshold:</strong> 40 to 50 cold emails per day per Google/Microsoft mailbox. Spammers blast 500; top SDRs send 45 tailored, high-converting notes.
+            </p>
+            <div className="pt-1 text-[10px] text-zinc-400">
+              ⚠️ <strong>Warning:</strong> Blasting &gt;50/day risks automated ML spam flagging and blacklisting your root domain.
+            </div>
+          </div>
+
+          {/* Card 3: Pacing & Anti-Spam Hygiene */}
+          <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-zinc-900 flex items-center gap-1.5 font-mono text-[11px] uppercase">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                <span>Pacing &amp; Anti-Spam</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                2–4 Min Stagger
+              </span>
+            </div>
+            <p className="text-zinc-600 text-[11px] leading-relaxed">
+              <strong>Stagger Rule:</strong> Space manual sends by 2 to 4 minutes. Never fire 10 emails in 60 seconds.
+            </p>
+            <div className="pt-1 text-[10px] text-zinc-400">
+              🔒 <strong>Format:</strong> Plain text, zero emojis, zero em-dashes, and under 75 words.
+            </div>
+          </div>
+
+        </div>
+
+        {/* Detailed Ramp Schedule & Day Breakdown (Collapsible) */}
+        {showPlaybookDetails && (
+          <div className="pt-3 border-t border-zinc-100 space-y-3 animate-in fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              
+              {/* Daily Ramp Schedule */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-700 flex items-center justify-between">
-                  <span>What is your offer or angle?</span>
-                </label>
-                <textarea
-                  rows={4}
-                  value={userIdea}
-                  onChange={(e) => setUserIdea(e.target.value)}
-                  placeholder="e.g. Following up after our call, wanted to share the 2-minute demo on live objection sparring for BPO setters..."
-                  className="w-full text-xs font-sans rounded-lg border border-zinc-300 p-2.5 text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:ring-1 focus:ring-zinc-900 leading-relaxed resize-none shadow-2xs"
-                />
-              </div>
-
-              {/* Quick Angle Starters */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                  Quick Angle Starters:
+                <span className="font-bold text-zinc-700 text-[11px] uppercase font-mono block">
+                  New Mailbox Warming &amp; Ramp Plan
                 </span>
-                <div className="flex flex-wrap gap-1">
-                  {[
-                    { label: 'Post-Call Invite', idea: 'Following up as promised on our call. Wanted to share the 2-minute video on how we feed consultative rebuttals in 150ms live on dials.' },
-                    { label: 'Quick Question', idea: 'Curious if you are seeing rep objection freeze on shared broker lists at your floor, or do callers hit quota in 72 hours?' },
-                    { label: 'Broker Margin Leak', idea: 'Noticed agencies scaling outbound take on broker lists where middleman takes 60% while you carry 100% OPEX risk.' },
-                    { label: 'Competitor Switch', idea: 'Saw you are running 50+ outbound seats on Apollo. Most BPO ops leaders tell us reps burn 400 contacts daily with zero live coaching.' }
-                  ].map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setUserIdea(preset.idea)}
-                      className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors border border-zinc-200/80 font-medium"
-                    >
-                      {preset.label}
-                    </button>
+                <div className="space-y-1">
+                  {MANUAL_COLD_EMAIL_GUIDANCE.personalAccountSafety.rampSchedule.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-zinc-50 border border-zinc-200/70 text-[11px]">
+                      <span className="font-bold text-zinc-800">{r.week}</span>
+                      <span className="font-mono text-zinc-600 font-semibold">{r.dailyLimit} emails/day</span>
+                      <span className="text-zinc-500 text-[10px]">{r.focus}</span>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              {/* Framework Style Selector */}
-              <div className="space-y-1.5 pt-1 border-t border-zinc-100">
-                <label className="text-xs font-semibold text-zinc-700">
-                  Framework Style:
+              {/* Day by Day Open Rate Intelligence */}
+              <div className="space-y-1.5">
+                <span className="font-bold text-zinc-700 text-[11px] uppercase font-mono block">
+                  Day-by-Day Effectiveness Index
+                </span>
+                <div className="space-y-1">
+                  {MANUAL_COLD_EMAIL_GUIDANCE.bestDays.slice(0, 4).map((d, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-zinc-50 border border-zinc-200/70 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-zinc-800">{d.day}:</span>
+                        <span className="text-zinc-600 truncate max-w-[220px]">{d.reason}</span>
+                      </div>
+                      <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 ${
+                        d.rating === 'Optimal' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {d.rating}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. THE EMAIL WORKSHOP & COMPOSER WORKSTATION                              */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-xs overflow-hidden flex flex-col">
+        
+        {/* Workshop Navigation Header */}
+        <div className="p-4 px-5 bg-zinc-50/80 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 font-mono">
+              Email Workshop &amp; Polish Bench
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-200/80 text-zinc-700 font-semibold">
+              Live Draft
+            </span>
+          </div>
+
+          {/* View Mode Toggle: [Editor] vs [Inbox Preview] */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center p-0.5 bg-zinc-200/70 rounded-lg text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setViewMode('editor')}
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === 'editor'
+                    ? 'bg-white text-zinc-950 shadow-2xs font-bold'
+                    : 'text-zinc-600 hover:text-zinc-950'
+                }`}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Workshop Editor</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('preview')}
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === 'preview'
+                    ? 'bg-white text-zinc-950 shadow-2xs font-bold'
+                    : 'text-zinc-600 hover:text-zinc-950'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Inbox Preview</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAiAssistant(!showAiAssistant)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                showAiAssistant 
+                  ? 'bg-amber-50 text-amber-900 border-amber-300 font-bold' 
+                  : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>{showAiAssistant ? 'Close AI Frameworks' : 'AI Angles & Frameworks'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* AI Framework Assistant Drawer (Optional, expands above composer) */}
+        {showAiAssistant && (
+          <div className="p-5 bg-amber-50/40 border-b border-amber-200/80 space-y-3 animate-in fade-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-amber-600" />
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-950 font-mono">
+                  B2B Angle &amp; Framework Engine
+                </span>
+              </div>
+              <span className="text-[10px] text-amber-800 font-mono">
+                Josh Braun 4T &bull; Chris Voss &bull; Allred 50-Word
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+              <div className="md:col-span-4 space-y-1">
+                <label className="text-[11px] font-bold text-zinc-700 block">
+                  Select Sales Framework:
                 </label>
                 <select
                   value={selectedFrameworkId}
                   onChange={(e) => setSelectedFrameworkId(e.target.value)}
-                  className="w-full text-xs font-semibold rounded-lg border border-zinc-300 bg-zinc-50/60 px-3 py-2 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
+                  className="w-full text-xs font-semibold rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-900 shadow-2xs"
                 >
                   {COLD_EMAIL_FRAMEWORKS.map(f => (
                     <option key={f.id} value={f.id}>
@@ -498,340 +704,396 @@ export default function ColdEmailStudio() {
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] text-zinc-500 leading-snug pt-0.5">
-                  {activeFramework.description}
-                </p>
               </div>
 
-              {/* Generate Button */}
+              <div className="md:col-span-6 space-y-1">
+                <label className="text-[11px] font-bold text-zinc-700 block">
+                  Custom Angle or Post-Call Focus:
+                </label>
+                <input
+                  type="text"
+                  value={userIdea}
+                  onChange={(e) => setUserIdea(e.target.value)}
+                  placeholder="e.g. Following up after our call regarding sub-150ms live objection sparring..."
+                  className="w-full text-xs rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-zinc-900 shadow-2xs"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <button
+                  type="button"
+                  onClick={handleGenerateDraft}
+                  disabled={isGenerating}
+                  className="w-full py-2 px-3 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isGenerating ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
+                  <span>Generate</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================================= */}
+        {/* RECIPIENT & SUBJECT WORKBENCH ROW (100% Free-hand editable)              */}
+        {/* ======================================================================= */}
+        <div className="p-4 px-5 bg-white border-b border-zinc-200/80 space-y-3">
+          
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+            
+            {/* To: Email Input */}
+            <div className="md:col-span-6 flex items-center gap-2">
+              <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider w-8 shrink-0 font-mono">
+                To:
+              </span>
+              <input
+                type="email"
+                value={prospectEmail}
+                onChange={(e) => handleRecipientEmailChange(e.target.value)}
+                placeholder="prospect@company.com"
+                className="w-full text-xs font-mono font-bold rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
+              />
+            </div>
+
+            {/* Contact Name Input */}
+            <div className="md:col-span-3 flex items-center gap-1.5">
+              <span className="text-xs font-medium text-zinc-400 shrink-0">Name:</span>
+              <input
+                type="text"
+                value={prospectName}
+                onChange={(e) => setProspectName(e.target.value)}
+                placeholder="Contact name"
+                className="w-full text-xs rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
+              />
+            </div>
+
+            {/* Company Name Input */}
+            <div className="md:col-span-3 flex items-center gap-1.5">
+              <span className="text-xs font-medium text-zinc-400 shrink-0">Company:</span>
+              <input
+                type="text"
+                value={prospectCompany}
+                onChange={(e) => setProspectCompany(e.target.value)}
+                placeholder="Company name"
+                className="w-full text-xs rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
+              />
+            </div>
+
+          </div>
+
+          {/* Subject Line Row */}
+          <div className="flex items-center gap-2 pt-2 border-t border-zinc-100">
+            <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider w-8 shrink-0 font-mono">
+              Subj:
+            </span>
+            <div className="relative flex-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={subjectText}
+                onChange={(e) => {
+                  setSubjectText(e.target.value);
+                  if (sendButtonState === 'sent') setSendButtonState('idle');
+                }}
+                placeholder="Subject line (strictly under 4 words, lowercase)"
+                className="w-full text-xs font-mono font-bold rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
+              />
+
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border shrink-0 ${
+                subjectWordCount <= 4 
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}>
+                {subjectWordCount}/3 words
+              </span>
+
               <button
                 type="button"
-                onClick={handleGenerateDraft}
-                disabled={isGenerating}
-                className="w-full py-2.5 px-4 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer mt-2"
+                onClick={() => setShowSubjectSuggestions(!showSubjectSuggestions)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-50 border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shrink-0 shadow-2xs cursor-pointer"
+                title="Toggle subject suggestions"
               >
-                {isGenerating ? (
-                  <>
-                    <RotateCw className="h-3.5 w-3.5 animate-spin text-amber-300" />
-                    <span>Generating Draft...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                    <span>Generate Email Draft</span>
-                  </>
-                )}
+                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                <span>Ideas</span>
+                {showSubjectSuggestions ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </button>
             </div>
           </div>
 
-          {/* Clean Deliverability Checklist Card */}
-          <div className="p-3.5 rounded-xl bg-white border border-zinc-200/90 shadow-2xs text-xs space-y-2">
-            <span className="font-bold text-zinc-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span>Deliverability Guardrails</span>
-            </span>
-            <ul className="text-[11px] text-zinc-500 space-y-1 leading-relaxed">
-              <li className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>Zero em dashes and zero emojis enforced.</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>Subject line strictly under 4 words lowercase.</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>Permission-based closing lines giving prospect an easy out.</span>
-              </li>
-            </ul>
-          </div>
+          {/* Subject Suggestions Dropdown */}
+          {showSubjectSuggestions && (
+            <div className="p-2.5 rounded-lg bg-amber-50/50 border border-amber-200 shadow-2xs flex flex-wrap items-center gap-2 animate-in fade-in">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono">Click to insert:</span>
+              {subjectSuggestions.map((s, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setSubjectText(s);
+                    setShowSubjectSuggestions(false);
+                    if (sendButtonState === 'sent') setSendButtonState('idle');
+                  }}
+                  className="text-xs font-mono font-semibold px-2.5 py-1 rounded-md bg-white hover:bg-zinc-100 text-zinc-800 transition-colors border border-zinc-200 shadow-2xs cursor-pointer"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
 
         </div>
 
         {/* ======================================================================= */}
-        {/* RIGHT COLUMN: EXECUTIVE EMAIL COMPOSER WORKSTATION (8 COLS)             */}
+        {/* WORKSHOP CANVAS: EDITOR MODE VS INBOX PREVIEW MODE                       */}
         {/* ======================================================================= */}
-        <div className="lg:col-span-8 space-y-4">
-          
-          <div className="bg-white rounded-xl border border-zinc-200/90 shadow-2xs overflow-hidden flex flex-col">
+        {viewMode === 'editor' ? (
+          <div className="p-5 space-y-4">
             
-            {/* 1. Recipient Dossier Station (Free-hand Editable) */}
-            <div className="p-4 bg-zinc-50/70 border-b border-zinc-200 space-y-3">
+            {/* Workshop Tool Bar (Shorten, Auto-format, Sanitize, Metrics) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs pb-1">
               
-              {/* To Email & Target Details Row */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                
-                {/* To: Email Input */}
-                <div className="md:col-span-6 flex items-center gap-2">
-                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider w-8 shrink-0">
-                    To:
+              {/* Live Quality Metrics */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2 py-0.5 rounded-md font-mono text-[11px] font-bold border ${
+                  wordCount >= 40 && wordCount <= 75
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : wordCount > 75
+                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                    : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                }`}>
+                  {wordCount} words {wordCount >= 40 && wordCount <= 75 ? '✓ (Sweet Spot)' : wordCount > 75 ? '⚠️ (Trim copy)' : ''}
+                </span>
+
+                <span className="px-2 py-0.5 rounded-md font-mono text-[11px] bg-zinc-100 text-zinc-700 border border-zinc-200">
+                  Grade 5 Conversational
+                </span>
+
+                {detectedSpamTriggers.length === 0 ? (
+                  <span className="px-2 py-0.5 rounded-md font-mono text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1 font-semibold">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    <span>0 Spam Triggers</span>
                   </span>
-                  <input
-                    type="email"
-                    value={prospectEmail}
-                    onChange={(e) => handleRecipientEmailChange(e.target.value)}
-                    placeholder="prospect@targetcompany.com"
-                    className="w-full text-xs font-mono font-bold rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
-                  />
-                </div>
-
-                {/* Contact Name Input */}
-                <div className="md:col-span-3 flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-zinc-400 shrink-0">Name:</span>
-                  <input
-                    type="text"
-                    value={prospectName}
-                    onChange={(e) => setProspectName(e.target.value)}
-                    placeholder="Contact name"
-                    className="w-full text-xs rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
-                  />
-                </div>
-
-                {/* Company Name Input */}
-                <div className="md:col-span-3 flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-zinc-400 shrink-0">Co:</span>
-                  <input
-                    type="text"
-                    value={prospectCompany}
-                    onChange={(e) => setProspectCompany(e.target.value)}
-                    placeholder="Company name"
-                    className="w-full text-xs rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
-                  />
-                </div>
-              </div>
-
-              {/* Subject Line Row */}
-              <div className="flex items-center gap-2 pt-1 border-t border-zinc-200/60">
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider w-8 shrink-0">
-                  Subj:
-                </span>
-                <div className="relative flex-1 flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={subjectText}
-                    onChange={(e) => {
-                      setSubjectText(e.target.value);
-                      if (sendButtonState === 'sent') setSendButtonState('idle');
-                    }}
-                    placeholder="Subject line (e.g. quick question)"
-                    className="w-full text-xs font-mono font-bold rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-2xs"
-                  />
-
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border shrink-0 ${
-                    subjectWordCount <= 4 
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                      : 'bg-amber-50 text-amber-800 border-amber-200'
-                  }`}>
-                    {subjectWordCount}/3 words
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowSubjectSuggestions(!showSubjectSuggestions)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shrink-0 shadow-2xs"
-                    title="Toggle AI subject suggestions"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                    <span>Ideas</span>
-                    {showSubjectSuggestions ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Subject Line Quick Suggestions Dropdown */}
-              {showSubjectSuggestions && (
-                <div className="p-2 rounded-lg bg-white border border-amber-200 shadow-2xs flex flex-wrap items-center gap-2 animate-in fade-in">
-                  <span className="text-[10px] text-zinc-400 font-bold uppercase">Click to apply:</span>
-                  {subjectSuggestions.map((s, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setSubjectText(s);
-                        setShowSubjectSuggestions(false);
-                        if (sendButtonState === 'sent') setSendButtonState('idle');
-                      }}
-                      className="text-xs font-mono font-semibold px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-800 transition-colors border border-zinc-200"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-            </div>
-
-            {/* 2. Email Body Editor Canvas */}
-            <div className="p-4 flex-1 flex flex-col space-y-3">
-              
-              <div className="flex items-center justify-between text-xs text-zinc-500">
-                <span className="font-semibold text-zinc-700 flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5 text-zinc-500" />
-                  <span>Email Content</span>
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleAutoFormat}
-                    className="px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] font-semibold flex items-center gap-1 border border-zinc-200 transition-colors shadow-2xs cursor-pointer"
-                    title="Auto-format spaced paragraphs"
-                  >
-                    <AlignLeft className="h-3 w-3 text-zinc-600" />
-                    <span>{copiedKey === 'formatted' ? '✓ Formatted' : 'Auto-Format'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleCopyBody}
-                    className="px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] font-semibold flex items-center gap-1 border border-zinc-200 transition-colors shadow-2xs cursor-pointer"
-                  >
-                    {copiedKey === 'body' ? (
-                      <>
-                        <Check className="h-3 w-3 text-emerald-600" />
-                        <span className="text-emerald-700 font-bold">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3 text-zinc-500" />
-                        <span>Copy Body</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Textarea Styled Like a Real Email */}
-              <textarea
-                rows={10}
-                value={editableBody}
-                onChange={(e) => {
-                  setEditableBody(e.target.value);
-                  if (sendButtonState === 'sent') setSendButtonState('idle');
-                }}
-                className="w-full flex-1 min-h-[220px] text-sm font-sans rounded-xl border border-zinc-300 p-4 text-zinc-900 bg-white focus:outline-hidden focus:ring-1 focus:ring-zinc-900 leading-relaxed shadow-2xs"
-                placeholder="Write your email here..."
-              />
-
-              {/* Quick Closing Lines (1-Click Insert) */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">
-                  <span>Insert Closing Sentence:</span>
-                  <span>Gives prospect easy out</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {[
-                    { label: 'Permission Video', text: 'Open to a 2-minute video showing how we insulate margins, or totally off base?' },
-                    { label: 'Compare Notes', text: 'Would it be a terrible idea to compare notes for 2 minutes Thursday?' },
-                    { label: 'Quick Question', text: 'Worth a quick 10-minute look, or is outbound already humming for you?' }
-                  ].map((cta, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        const sentences = editableBody.trim().split(/(?<=[.?!])\s+/);
-                        if (sentences.length > 1) {
-                          sentences[sentences.length - 1] = cta.text;
-                          setEditableBody(sentences.join('\n\n'));
-                        } else {
-                          setEditableBody(`${editableBody.trim()}\n\n${cta.text}`);
-                        }
-                        if (sendButtonState === 'sent') setSendButtonState('idle');
-                      }}
-                      className="p-2 rounded-lg bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-left transition-colors"
-                    >
-                      <div className="text-[10px] font-bold text-zinc-700 uppercase">{cta.label}</div>
-                      <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">{cta.text}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* 3. Action Dock (Bottom Bar) */}
-            <div className="p-4 px-5 bg-zinc-50 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-              
-              <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-                <span className="text-[11px]">
-                  Sending as: <strong className="text-zinc-800 font-mono">{senderFrom}</strong>
-                </span>
-                {directSendStatus && (
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
-                    directSendStatus.startsWith('Error')
-                      ? 'bg-rose-50 text-rose-800 border-rose-200'
-                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  }`}>
-                    {directSendStatus.startsWith('Error') ? (
-                      <AlertTriangle className="h-3 w-3 text-rose-600 shrink-0" />
-                    ) : (
-                      <Check className="h-3 w-3 text-emerald-600 shrink-0" />
-                    )}
-                    <span>{directSendStatus}</span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-md font-mono text-[11px] bg-rose-50 text-rose-800 border border-rose-200 flex items-center gap-1 font-bold">
+                    <AlertTriangle className="w-3 h-3 text-rose-600" />
+                    <span>Spam Trigger: "{detectedSpamTriggers[0]}"</span>
                   </span>
                 )}
               </div>
 
-              {/* Send Email and Copy Buttons */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Workshopping Quick Action Buttons */}
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   type="button"
-                  onClick={handleDirectSendEmail}
-                  disabled={isSendingDirectEmail || sendButtonState === 'sent'}
-                  className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md ${
-                    sendButtonState === 'sent'
-                      ? 'bg-emerald-800 text-emerald-100 border border-emerald-700 cursor-not-allowed opacity-90'
-                      : sendButtonState === 'sending'
-                      ? 'bg-emerald-700 text-emerald-100 cursor-wait opacity-80'
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer active:scale-98'
-                  }`}
-                  title={
-                    sendButtonState === 'sent'
-                      ? `Already dispatched to ${prospectEmail}. Edit draft or change recipient to send another.`
-                      : `Dispatch live email from ${senderFrom} to ${prospectEmail}`
-                  }
+                  onClick={handleAutoFormat}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold flex items-center gap-1 border border-zinc-200 transition-colors cursor-pointer"
+                  title="Format into clean spaced paragraphs"
                 >
-                  {sendButtonState === 'sending' ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Sending...</span>
-                    </>
-                  ) : sendButtonState === 'sent' ? (
-                    <>
-                      <Check className="h-4 w-4 text-emerald-300" />
-                      <span>Sent!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      <span>Send Email</span>
-                    </>
-                  )}
+                  <AlignLeft className="w-3.5 h-3.5 text-zinc-600" />
+                  <span>{copiedKey === 'formatted' ? '✓ Formatted' : 'Auto-Format'}</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleCopyEntireEmail}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-zinc-950 hover:bg-zinc-800 text-white transition-all shadow-md cursor-pointer"
+                  onClick={handleShortenCopy}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold flex items-center gap-1 border border-zinc-200 transition-colors cursor-pointer"
+                  title="Trim fluff words to reach under 65 words"
                 >
-                  {copiedKey === 'full' ? (
-                    <>
-                      <Check className="h-4 w-4 text-emerald-400" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 text-zinc-300" />
-                      <span>Copy Email</span>
-                    </>
-                  )}
+                  <Zap className="w-3.5 h-3.5 text-amber-600" />
+                  <span>{copiedKey === 'shortened' ? '✓ Shortened' : 'Make Shorter'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSanitizeStrict}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold flex items-center gap-1 border border-zinc-200 transition-colors cursor-pointer"
+                  title="Strip em-dashes and emojis"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{copiedKey === 'sanitized' ? '✓ Sanitized' : 'Sanitize'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyBody}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold flex items-center gap-1 border border-zinc-200 transition-colors cursor-pointer"
+                >
+                  {copiedKey === 'body' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-zinc-500" />}
+                  <span>Copy</span>
                 </button>
               </div>
 
             </div>
 
+            {/* Email Body Textarea */}
+            <textarea
+              rows={10}
+              value={editableBody}
+              onChange={(e) => {
+                setEditableBody(e.target.value);
+                if (sendButtonState === 'sent') setSendButtonState('idle');
+              }}
+              className="w-full min-h-[220px] text-sm font-sans rounded-xl border border-zinc-300 p-4 text-zinc-950 bg-white focus:outline-hidden focus:ring-1 focus:ring-zinc-900 leading-relaxed shadow-2xs"
+              placeholder="Write or workshop your cold email here..."
+            />
+
+            {/* 1-Click Closing CTA Swapper */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between text-[10px] text-zinc-400 font-bold uppercase tracking-wider font-mono">
+                <span>1-Click Closing Lines (Low-Friction Anti-Sales):</span>
+                <span>Give prospect an easy out</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                {[
+                  { label: 'Permission Video', text: 'Open to a 2-minute video showing how we insulate margins, or totally off base?' },
+                  { label: 'Compare Notes', text: 'Would it be a terrible idea to compare notes for 2 minutes Thursday?' },
+                  { label: 'Quick Question', text: 'Worth a quick 10-minute look, or is outbound already humming for you?' },
+                  { label: 'Negative Reverse', text: 'If this is completely off your radar right now, no worries at all.' }
+                ].map((cta, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      const sentences = editableBody.trim().split(/(?<=[.?!])\s+/);
+                      if (sentences.length > 1) {
+                        sentences[sentences.length - 1] = cta.text;
+                        setEditableBody(sentences.join('\n\n'));
+                      } else {
+                        setEditableBody(`${editableBody.trim()}\n\n${cta.text}`);
+                      }
+                      if (sendButtonState === 'sent') setSendButtonState('idle');
+                    }}
+                    className="p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-left transition-colors cursor-pointer"
+                  >
+                    <div className="text-[10px] font-bold text-zinc-800 uppercase font-mono">{cta.label}</div>
+                    <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">{cta.text}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        ) : (
+          /* INBOX PREVIEW MODE: Mock Real Gmail / Outlook View */
+          <div className="p-6 bg-zinc-100/60 flex justify-center">
+            <div className="max-w-2xl w-full bg-white rounded-2xl border border-zinc-300 shadow-md p-6 space-y-4">
+              
+              {/* Mock Inbox Header */}
+              <div className="border-b border-zinc-200 pb-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-zinc-900">
+                    {subjectText || '(No subject)'}
+                  </h3>
+                  <span className="text-[11px] font-mono text-zinc-400">
+                    Inbox &bull; Primary
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-zinc-600">
+                  <div>
+                    <strong className="text-zinc-900 font-bold">{senderDisplayName}</strong> &lt;{verifiedSenderEmail}&gt;
+                  </div>
+                  <span className="text-zinc-400">Just now</span>
+                </div>
+                <div className="text-xs text-zinc-500">
+                  to: <span className="font-mono">{prospectEmail}</span>
+                </div>
+              </div>
+
+              {/* Formatted Rendered Email Body */}
+              <div className="py-2 text-sm text-zinc-900 leading-relaxed font-sans space-y-3 whitespace-pre-wrap select-text">
+                {editableBody}
+              </div>
+
+              {/* Mock Signature */}
+              <div className="pt-4 border-t border-zinc-100 text-xs text-zinc-500 space-y-0.5">
+                <div className="font-bold text-zinc-800">{senderDisplayName}</div>
+                <div>Outbound Operations &bull; Appointmentlyy</div>
+                <div className="text-zinc-400 font-mono text-[11px]">appointmentlyy.com</div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================================= */}
+        {/* ACTION DOCK & SEND ENGINE                                               */}
+        {/* ======================================================================= */}
+        <div className="p-4 px-5 bg-zinc-50 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+          
+          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+            <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span className="text-[11px]">
+              Sending as: <strong className="text-zinc-900 font-mono">{senderFrom}</strong>
+            </span>
+            {directSendStatus && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
+                directSendStatus.startsWith('Error')
+                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              }`}>
+                {directSendStatus.startsWith('Error') ? (
+                  <AlertTriangle className="h-3 w-3 text-rose-600 shrink-0" />
+                ) : (
+                  <Check className="h-3 w-3 text-emerald-600 shrink-0" />
+                )}
+                <span>{directSendStatus}</span>
+              </span>
+            )}
+          </div>
+
+          {/* Send Email and Copy Entire Email Buttons */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleDirectSendEmail}
+              disabled={isSendingDirectEmail || sendButtonState === 'sent'}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md ${
+                sendButtonState === 'sent'
+                  ? 'bg-emerald-800 text-emerald-100 border border-emerald-700 cursor-not-allowed opacity-90'
+                  : sendButtonState === 'sending'
+                  ? 'bg-emerald-700 text-emerald-100 cursor-wait opacity-80'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer active:scale-98'
+              }`}
+              title={
+                sendButtonState === 'sent'
+                  ? `Already dispatched to ${prospectEmail}. Edit draft or change recipient to send another.`
+                  : `Dispatch live email from ${senderFrom} to ${prospectEmail}`
+              }
+            >
+              {sendButtonState === 'sending' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Sending...</span>
+                </>
+              ) : sendButtonState === 'sent' ? (
+                <>
+                  <Check className="h-4 w-4 text-emerald-300" />
+                  <span>Sent!</span>
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  <span>Send Email</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopyEntireEmail}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-zinc-950 hover:bg-zinc-800 text-white transition-all shadow-md cursor-pointer"
+            >
+              {copiedKey === 'full' ? (
+                <>
+                  <Check className="h-4 w-4 text-emerald-400" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 text-zinc-300" />
+                  <span>Copy Entire Email</span>
+                </>
+              )}
+            </button>
           </div>
 
         </div>
