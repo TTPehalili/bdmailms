@@ -24,10 +24,81 @@ export interface EmailMessage {
   starred?: boolean;
 }
 
+/**
+ * Extract clean email address from string or array (handles "Name <user@domain.com>" or "user@domain.com")
+ */
+export function extractCleanEmailAddress(raw: string | string[] | undefined): string {
+  if (!raw) return '';
+  let str = Array.isArray(raw) ? (raw[0] || '') : String(raw);
+  const match = str.match(/<([^>]+)>/);
+  if (match) return match[1].trim().toLowerCase();
+  const clean = str.trim().toLowerCase().split(',')[0].trim();
+  const spaceSplit = clean.split(/\s+/);
+  const found = spaceSplit.find(s => s.includes('@'));
+  return (found || clean).replace(/['"<>]/g, '');
+}
+
+/**
+ * Normalize subject line by stripping Re:, Fwd:, [External], and extra whitespace
+ */
+export function normalizeEmailSubject(subject: string | undefined): string {
+  if (!subject) return 'no_subject';
+  let norm = subject.trim();
+  // Strip prefixes like Re:, Fwd:, FW:, [External], etc.
+  const prefixRegex = /^(\s*(\[[^\]]+\]|\b(re|fwd|fw)\b\s*[:\-])\s*)+/i;
+  norm = norm.replace(prefixRegex, '').trim();
+  norm = norm.replace(/^(re|fwd|fw):\s*/i, '').trim();
+  return norm.toLowerCase() || 'no_subject';
+}
+
+/**
+ * Determine the prospect/counterpart email address for an outbound or inbound message
+ */
+export function getCounterpartEmail(msg: { direction?: string; to?: string | string[]; from?: string }): string {
+  if (msg.direction === 'inbound') {
+    return extractCleanEmailAddress(msg.from);
+  } else {
+    return extractCleanEmailAddress(msg.to);
+  }
+}
+
+/**
+ * Compute the deterministic conversation thread key for any email message.
+ * Outbound dispatches and their corresponding inbound replies share the same
+ * counterpart email and normalized subject, guaranteeing they share the same thread.
+ */
+export function getConversationThreadKey(msg: {
+  direction?: 'outbound' | 'inbound' | string;
+  to?: string | string[];
+  from?: string;
+  subject?: string;
+  threadId?: string;
+}): string {
+  const normSubject = normalizeEmailSubject(msg.subject || '');
+  const counterpart = getCounterpartEmail(msg);
+
+  if (counterpart && normSubject && normSubject !== 'no_subject') {
+    const cleanCounterpart = counterpart.replace(/[^a-z0-9]/g, '_');
+    const cleanSubject = normSubject.replace(/[^a-z0-9]/g, '_').slice(0, 40);
+    return `thread_${cleanCounterpart}_${cleanSubject}`;
+  }
+
+  if (counterpart) {
+    const cleanCounterpart = counterpart.replace(/[^a-z0-9]/g, '_');
+    return `thread_${cleanCounterpart}`;
+  }
+
+  if (msg.threadId && msg.threadId.trim()) {
+    return msg.threadId.trim();
+  }
+
+  return 'thread_default';
+}
+
 export const INITIAL_SEED_EMAILS: EmailMessage[] = [
   {
     id: 'msg_seed_001',
-    threadId: 'thread_julian_vance',
+    threadId: 'thread_julian_apexglobalbpo_com_apex_lead_burn',
     direction: 'outbound',
     from: 'Emil Halili <emil@appointmentlyy.com>',
     to: 'julian@apexglobalbpo.com',
@@ -44,7 +115,7 @@ export const INITIAL_SEED_EMAILS: EmailMessage[] = [
   },
   {
     id: 'msg_seed_002',
-    threadId: 'thread_julian_vance',
+    threadId: 'thread_julian_apexglobalbpo_com_apex_lead_burn',
     direction: 'inbound',
     from: 'Julian Vance <julian@apexglobalbpo.com>',
     to: 'Emil Halili <emil@appointmentlyy.com>',
@@ -70,7 +141,7 @@ Apex Global BPO`,
   },
   {
     id: 'msg_seed_003',
-    threadId: 'thread_marcus_brody',
+    threadId: 'thread_mbrody_nexuscall_com_quick_question_on_ramp_time',
     direction: 'outbound',
     from: 'Emil Halili <emil@appointmentlyy.com>',
     to: 'mbrody@nexuscall.com',
@@ -93,7 +164,7 @@ Emil`,
   },
   {
     id: 'msg_seed_004',
-    threadId: 'thread_marcus_brody',
+    threadId: 'thread_mbrody_nexuscall_com_quick_question_on_ramp_time',
     direction: 'inbound',
     from: 'Marcus Brody <mbrody@nexuscall.com>',
     to: 'Emil Halili <emil@appointmentlyy.com>',
@@ -114,7 +185,7 @@ Marcus`,
   },
   {
     id: 'msg_seed_005',
-    threadId: 'thread_sarah_jenkins',
+    threadId: 'thread_sjenkins_cloudstaffbpo_com_broker_margin_leak',
     direction: 'outbound',
     from: 'Emil Halili <emil@appointmentlyy.com>',
     to: 'sjenkins@cloudstaffbpo.com',
@@ -141,7 +212,6 @@ export function getStoredEmails(): EmailMessage[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return INITIAL_SEED_EMAILS;
 
-    // Migrate any legacy 'Emil Vance' or 'Alex Mercer' references in stored emails
     let hasChanges = false;
     const migrated = parsed.map((m: EmailMessage) => {
       let updatedFrom = m.from;
@@ -154,7 +224,50 @@ export function getStoredEmails(): EmailMessage[] {
         updatedTo = m.to.replace('Emil Vance', 'Emil Halili').replace('Alex Mercer', 'Emil Halili');
         hasChanges = true;
       }
-      return { ...m, from: updatedFrom, to: updatedTo };
+
+      // Canonicalize threadId so outbound and inbound share the exact same conversation key
+      const canonicalThreadId = getConversationThreadKey({
+        direction: m.direction,
+        to: updatedTo,
+        from: updatedFrom,
+        subject: m.subject,
+        threadId: m.threadId
+      });
+
+      if (m.threadId !== canonicalThreadId) {
+        hasChanges = true;
+      }
+
+      let updatedLeadName = m.leadName;
+      let updatedLeadCompany = m.leadCompany;
+      let updatedLeadTitle = m.leadTitle;
+
+      // Smart enrichment for callview.ai prospect
+      const counterpart = getCounterpartEmail({ direction: m.direction, to: updatedTo, from: updatedFrom });
+      if (counterpart.includes('callview.ai')) {
+        if (!updatedLeadName || updatedLeadName === 'emil' || updatedLeadName === 'Julian Vance' || updatedLeadName === 'Prospect') {
+          updatedLeadName = 'Emil Halili';
+          hasChanges = true;
+        }
+        if (!updatedLeadCompany || updatedLeadCompany === 'Callview' || updatedLeadCompany === 'Apex Global BPO' || updatedLeadCompany === 'Target Company') {
+          updatedLeadCompany = 'Callview AI';
+          hasChanges = true;
+        }
+        if (!updatedLeadTitle || updatedLeadTitle === 'Director of Outbound Operations') {
+          updatedLeadTitle = 'Founder / Decision Maker';
+          hasChanges = true;
+        }
+      }
+
+      return {
+        ...m,
+        from: updatedFrom,
+        to: updatedTo,
+        threadId: canonicalThreadId,
+        leadName: updatedLeadName,
+        leadCompany: updatedLeadCompany,
+        leadTitle: updatedLeadTitle
+      };
     });
 
     if (hasChanges) {
@@ -170,8 +283,41 @@ export function getStoredEmails(): EmailMessage[] {
 export function saveEmailToStore(email: EmailMessage): EmailMessage[] {
   if (typeof window === 'undefined') return [email, ...INITIAL_SEED_EMAILS];
   try {
+    const canonicalThreadId = getConversationThreadKey(email);
+    const enrichedEmail: EmailMessage = {
+      ...email,
+      threadId: canonicalThreadId
+    };
+
+    const cleanCounterpart = getCounterpartEmail(enrichedEmail);
+    if (cleanCounterpart.includes('callview.ai')) {
+      if (!enrichedEmail.leadName || enrichedEmail.leadName === 'emil' || enrichedEmail.leadName === 'Julian Vance' || enrichedEmail.leadName === 'Prospect') {
+        enrichedEmail.leadName = 'Emil Halili';
+      }
+      if (!enrichedEmail.leadCompany || enrichedEmail.leadCompany === 'Callview' || enrichedEmail.leadCompany === 'Apex Global BPO' || enrichedEmail.leadCompany === 'Target Company') {
+        enrichedEmail.leadCompany = 'Callview AI';
+      }
+      if (!enrichedEmail.leadTitle || enrichedEmail.leadTitle === 'Director of Outbound Operations') {
+        enrichedEmail.leadTitle = 'Founder / Decision Maker';
+      }
+    }
+
     const current = getStoredEmails();
-    const updated = [email, ...current.filter(m => m.id !== email.id)];
+    // Save email and align thread peers
+    const updated = [
+      enrichedEmail,
+      ...current.filter(m => m.id !== enrichedEmail.id).map(m => {
+        if (getConversationThreadKey(m) === canonicalThreadId) {
+          return {
+            ...m,
+            threadId: canonicalThreadId,
+            leadName: m.leadName === 'emil' || m.leadName === 'Julian Vance' ? enrichedEmail.leadName : m.leadName,
+            leadCompany: m.leadCompany === 'Callview' || m.leadCompany === 'Apex Global BPO' ? enrichedEmail.leadCompany : m.leadCompany
+          };
+        }
+        return m;
+      })
+    ];
     localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify(updated));
     return updated;
   } catch (e) {
@@ -197,7 +343,7 @@ export function deleteThreadById(threadId: string): EmailMessage[] {
   if (typeof window === 'undefined') return [];
   try {
     const current = getStoredEmails();
-    const updated = current.filter(m => m.threadId !== threadId);
+    const updated = current.filter(m => m.threadId !== threadId && getConversationThreadKey(m) !== threadId);
     localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify(updated));
     return updated;
   } catch (e) {

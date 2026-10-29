@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { getResendApiKey } from '@/lib/resendConfig';
+import { getConversationThreadKey, extractCleanEmailAddress } from '@/lib/emailStore';
 
 const INBOUND_STORE_FILE = path.join(process.cwd(), '.inbound_emails.json');
 
@@ -69,20 +70,36 @@ async function syncFromResendReceiving(): Promise<any[]> {
         const detail = await detailRes.json();
 
         const rawFrom = detail.from || item.from || 'prospect@targetcompany.com';
+        const cleanFrom = extractCleanEmailAddress(rawFrom);
         const nameMatch = rawFrom.match(/^([^<]+)<([^>]+)>/);
-        const leadName = nameMatch ? nameMatch[1].trim() : rawFrom.split('@')[0];
+        let leadName = nameMatch ? nameMatch[1].trim() : rawFrom.split('@')[0];
         const companyDomain = rawFrom.includes('@') ? rawFrom.split('@')[1].split('.')[0] : 'Prospect';
-        const leadCompany = companyDomain.charAt(0).toUpperCase() + companyDomain.slice(1);
+        let leadCompany = companyDomain.charAt(0).toUpperCase() + companyDomain.slice(1);
 
-        const threadId = `thread_${leadName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        if (cleanFrom.includes('callview.ai')) {
+          leadName = 'Emil Halili';
+          leadCompany = 'Callview AI';
+        } else if (leadName.length > 0) {
+          leadName = leadName.charAt(0).toUpperCase() + leadName.slice(1);
+        }
+
+        const msgSubject = detail.subject || item.subject || 'Re: apex lead burn';
+        const msgTo = Array.isArray(detail.to) ? detail.to[0] : (detail.to || 'reply@estuegai.resend.app');
+
+        const threadId = getConversationThreadKey({
+          direction: 'inbound',
+          from: rawFrom,
+          to: msgTo,
+          subject: msgSubject
+        });
 
         const messageRecord = {
           id: item.id,
           threadId: threadId,
           direction: 'inbound',
           from: rawFrom,
-          to: Array.isArray(detail.to) ? detail.to[0] : (detail.to || 'emil@appointmentlyy.com'),
-          subject: detail.subject || item.subject || 'Re: apex lead burn',
+          to: msgTo,
+          subject: msgSubject,
           body: (detail.text || detail.html || 'Received reply.').trim(),
           timestamp: detail.created_at || item.created_at || new Date().toISOString(),
           status: 'delivered',
@@ -119,8 +136,44 @@ export async function GET() {
     // 1. Sync from Resend Receiving API
     await syncFromResendReceiving();
 
-    // 2. Return all stored inbound messages
-    const emails = readStoredInboundEmails();
+    // 2. Read and normalize all stored inbound messages with canonical thread keys
+    const rawEmails = readStoredInboundEmails();
+    let hasChanges = false;
+    const emails = rawEmails.map((m: any) => {
+      const canonicalThreadId = getConversationThreadKey({
+        direction: 'inbound',
+        from: m.from,
+        to: m.to,
+        subject: m.subject,
+        threadId: m.threadId
+      });
+      let updatedLeadName = m.leadName;
+      let updatedLeadCompany = m.leadCompany;
+      const cleanFrom = extractCleanEmailAddress(m.from);
+      if (cleanFrom.includes('callview.ai')) {
+        if (!updatedLeadName || updatedLeadName === 'emil' || updatedLeadName === 'Prospect') {
+          updatedLeadName = 'Emil Halili';
+        }
+        if (!updatedLeadCompany || updatedLeadCompany === 'Callview' || updatedLeadCompany === 'Prospect') {
+          updatedLeadCompany = 'Callview AI';
+        }
+      }
+      if (m.threadId !== canonicalThreadId || m.leadName !== updatedLeadName || m.leadCompany !== updatedLeadCompany) {
+        hasChanges = true;
+        return {
+          ...m,
+          threadId: canonicalThreadId,
+          leadName: updatedLeadName,
+          leadCompany: updatedLeadCompany
+        };
+      }
+      return m;
+    });
+
+    if (hasChanges) {
+      writeStoredInboundEmails(emails);
+    }
+
     return NextResponse.json({
       success: true,
       count: emails.length,
@@ -151,12 +204,25 @@ export async function POST(req: NextRequest) {
     const body = payload.body || payload.text || payload.plain_text || payload.html || 'Thank you for reaching out.';
     
     // Extract lead name from "Name <email>" format if present
+    const cleanFrom = extractCleanEmailAddress(from);
     const nameMatch = from.match(/^([^<]+)<([^>]+)>/);
-    const leadName = payload.leadName || (nameMatch ? nameMatch[1].trim() : from.split('@')[0]);
+    let leadName = payload.leadName || (nameMatch ? nameMatch[1].trim() : from.split('@')[0]);
     const companyDomain = from.includes('@') ? from.split('@')[1].split('.')[0] : 'Prospect Company';
-    const leadCompany = payload.leadCompany || (companyDomain.charAt(0).toUpperCase() + companyDomain.slice(1));
+    let leadCompany = payload.leadCompany || (companyDomain.charAt(0).toUpperCase() + companyDomain.slice(1));
 
-    const threadId = payload.thread_id || payload.threadId || `thread_${leadName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    if (cleanFrom.includes('callview.ai')) {
+      leadName = 'Emil Halili';
+      leadCompany = 'Callview AI';
+    } else if (leadName.length > 0) {
+      leadName = leadName.charAt(0).toUpperCase() + leadName.slice(1);
+    }
+
+    const threadId = payload.thread_id || payload.threadId || getConversationThreadKey({
+      direction: 'inbound',
+      from: from,
+      to: to,
+      subject: subject
+    });
 
     const inboundMessage = {
       id: payload.id || `inbound_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,

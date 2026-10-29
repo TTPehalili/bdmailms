@@ -35,7 +35,9 @@ import {
   deleteEmailById, 
   deleteThreadById, 
   clearAllEmails, 
-  resetToInitialSeeds 
+  resetToInitialSeeds,
+  getConversationThreadKey,
+  extractCleanEmailAddress
 } from '@/lib/emailStore';
 import { useSession } from '@/lib/session';
 
@@ -77,14 +79,29 @@ export default function UnifiedEmailInbox() {
         if (Array.isArray(data.emails) && data.emails.length > 0) {
           let updated = getStoredEmails();
           let countAdded = 0;
+          let changed = false;
           for (const item of data.emails) {
-            if (!updated.some(m => m.id === item.id)) {
+            const existingIdx = updated.findIndex(m => m.id === item.id);
+            if (existingIdx === -1) {
               updated = saveEmailToStore(item);
               countAdded++;
+            } else if (
+              updated[existingIdx].threadId !== item.threadId || 
+              updated[existingIdx].leadName !== item.leadName ||
+              updated[existingIdx].leadCompany !== item.leadCompany
+            ) {
+              updated[existingIdx] = { ...updated[existingIdx], ...item };
+              changed = true;
             }
           }
-          if (countAdded > 0) {
+          if (changed) {
+            localStorage.setItem('sdr_unified_inbox_emails', JSON.stringify(updated));
             setEmails(updated);
+          } else if (countAdded > 0) {
+            setEmails(updated);
+          }
+
+          if (countAdded > 0) {
             setLastSyncStatus(`+${countAdded} new reply`);
             setTimeout(() => setLastSyncStatus(null), 4000);
           } else {
@@ -109,7 +126,7 @@ export default function UnifiedEmailInbox() {
     const loaded = getStoredEmails();
     setEmails(loaded);
     if (loaded.length > 0 && !selectedThreadId) {
-      setSelectedThreadId(loaded[0].threadId);
+      setSelectedThreadId(getConversationThreadKey(loaded[0]));
     }
     handleSyncInbound();
     const interval = setInterval(handleSyncInbound, 12000);
@@ -135,12 +152,13 @@ export default function UnifiedEmailInbox() {
     return true;
   });
 
-  // Group emails by threadId
+  // Group emails by canonical conversation thread key
   const threadMap = new Map<string, EmailMessage[]>();
   emails.forEach(email => {
-    const list = threadMap.get(email.threadId) || [];
-    list.push(email);
-    threadMap.set(email.threadId, list);
+    const threadKey = getConversationThreadKey(email);
+    const list = threadMap.get(threadKey) || [];
+    list.push({ ...email, threadId: threadKey });
+    threadMap.set(threadKey, list);
   });
 
   // Distinct thread summaries for left rail
@@ -148,13 +166,14 @@ export default function UnifiedEmailInbox() {
   const seenThreads = new Set<string>();
 
   filteredEmails.forEach(email => {
-    if (!seenThreads.has(email.threadId)) {
-      seenThreads.add(email.threadId);
-      const allInThread = (threadMap.get(email.threadId) || []).sort(
+    const threadKey = getConversationThreadKey(email);
+    if (!seenThreads.has(threadKey)) {
+      seenThreads.add(threadKey);
+      const allInThread = (threadMap.get(threadKey) || []).sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       threadSummaries.push({
-        threadId: email.threadId,
+        threadId: threadKey,
         latestEmail: allInThread[0],
         messageCount: allInThread.length
       });
@@ -174,11 +193,14 @@ export default function UnifiedEmailInbox() {
     setIsSendingReply(true);
     setReplyError(null);
     try {
+      const targetTo = extractCleanEmailAddress(
+        activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to
+      );
       const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: activeThreadLead.direction === 'inbound' ? activeThreadLead.from : activeThreadLead.to,
+          to: targetTo,
           from: senderFrom,
           subject: activeThreadLead.subject.startsWith('Re:') ? activeThreadLead.subject : `Re: ${activeThreadLead.subject}`,
           body: replyText.trim(),

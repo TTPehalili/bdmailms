@@ -42,7 +42,7 @@ import {
   Loader2,
   AlignLeft
 } from 'lucide-react';
-import { saveEmailToStore } from '@/lib/emailStore';
+import { saveEmailToStore, getConversationThreadKey } from '@/lib/emailStore';
 import { 
   COLD_EMAIL_FRAMEWORKS, 
   COLD_EMAIL_IDEA_PRESETS, 
@@ -83,11 +83,7 @@ export default function ColdEmailStudio() {
   // Prospect Context State
   const [leads, setLeads] = useState<CadenceLeadRecord[]>(DEMO_CADENCE_LEADS);
   const [selectedLeadIndex, setSelectedLeadIndex] = useState<number>(0);
-  const [prospectName, setProspectName] = useState<string>('Julian Vance');
-  const [prospectCompany, setProspectCompany] = useState<string>('Apex Global BPO');
-  const [prospectTitle, setProspectTitle] = useState<string>('Director of Outbound Operations');
-  const [prospectTech, setProspectTech] = useState<string>('Apollo.io & HubSpot');
-  const [prospectPain, setProspectPain] = useState<string>('outbound hold rate and objection hesitation on shared lead lists');
+
   const [prospectEmail, setProspectEmailState] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('sdr_target_recipient_email');
@@ -96,10 +92,25 @@ export default function ColdEmailStudio() {
     return 'emil@callview.ai';
   });
 
+  const isCallviewTarget = prospectEmail.toLowerCase().includes('callview.ai');
+  const [prospectName, setProspectName] = useState<string>(isCallviewTarget ? 'Emil Halili' : 'Julian Vance');
+  const [prospectCompany, setProspectCompany] = useState<string>(isCallviewTarget ? 'Callview AI' : 'Apex Global BPO');
+  const [prospectTitle, setProspectTitle] = useState<string>(isCallviewTarget ? 'Founder / Decision Maker' : 'Director of Outbound Operations');
+  const [prospectTech, setProspectTech] = useState<string>('Apollo.io & HubSpot');
+  const [prospectPain, setProspectPain] = useState<string>('outbound hold rate and objection hesitation on shared lead lists');
+
+  const [sendButtonState, setSendButtonState] = useState<'idle' | 'sending' | 'sent'>('idle');
+
   const setProspectEmail = (email: string) => {
     setProspectEmailState(email);
+    setSendButtonState('idle');
     if (typeof window !== 'undefined') {
       localStorage.setItem('sdr_target_recipient_email', email);
+    }
+    if (email.toLowerCase().includes('callview.ai')) {
+      setProspectName('Emil Halili');
+      setProspectCompany('Callview AI');
+      setProspectTitle('Founder / Decision Maker');
     }
   };
   const [prospectHeadcount, setProspectHeadcount] = useState<string>('65 seats');
@@ -107,12 +118,18 @@ export default function ColdEmailStudio() {
   // Generation & Draft State
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [currentDraft, setCurrentDraft] = useState<ColdEmailGeneratedDraft>(() => 
-    getDeterministicColdEmail('braun-poke-the-bear', undefined, { name: 'Julian Vance', company: 'Apex Global BPO' })
+    getDeterministicColdEmail('braun-poke-the-bear', undefined, { 
+      name: isCallviewTarget ? 'Emil Halili' : 'Julian Vance', 
+      company: isCallviewTarget ? 'Callview AI' : 'Apex Global BPO' 
+    })
   );
   const [selectedSubjectIdx, setSelectedSubjectIdx] = useState<number>(0);
   const [selectedCtaIdx, setSelectedCtaIdx] = useState<number>(0);
   const [editableBody, setEditableBody] = useState<string>(() => 
-    formatEmailToParagraphs(getDeterministicColdEmail('braun-poke-the-bear', undefined, { name: 'Julian Vance', company: 'Apex Global BPO' }).body).join('\n\n')
+    formatEmailToParagraphs(getDeterministicColdEmail('braun-poke-the-bear', undefined, { 
+      name: isCallviewTarget ? 'Emil Halili' : 'Julian Vance', 
+      company: isCallviewTarget ? 'Callview AI' : 'Apex Global BPO' 
+    }).body).join('\n\n')
   );
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isSendingDirectEmail, setIsSendingDirectEmail] = useState<boolean>(false);
@@ -234,6 +251,7 @@ export default function ColdEmailStudio() {
   // Generate / Synthesize Handler
   const handleSynthesizeEmail = async () => {
     setIsGenerating(true);
+    setSendButtonState('idle');
     try {
       const res = await fetch('/api/ai/cold-email', {
         method: 'POST',
@@ -376,23 +394,41 @@ export default function ColdEmailStudio() {
     copyToClipboard(fullText, 'entire_email');
   };
 
-  // Open in default mail client (mailto:)
-  const handleOpenMailto = () => {
-    const activeSubject = encodeURIComponent(currentDraft.subjectLines[selectedSubjectIdx]?.text || 'quick question');
-    const bodyEncoded = encodeURIComponent(editableBody);
-    window.open(`mailto:${prospectEmail}?subject=${activeSubject}&body=${bodyEncoded}`, '_blank');
-  };
-
   // Direct Send Email via Resend API
   const handleDirectSendEmail = async () => {
+    // Avoid double sending to prospects
+    if (sendButtonState === 'sent' || isSendingDirectEmail) {
+      return;
+    }
+
     if (!prospectEmail || !prospectEmail.includes('@')) {
       setDirectSendStatus('Error: Please enter a valid recipient email (To:)');
       return;
     }
+
     setIsSendingDirectEmail(true);
+    setSendButtonState('sending');
     setDirectSendStatus(null);
     const activeSubject = currentDraft.subjectLines[selectedSubjectIdx]?.text || 'quick question';
     const bodyToSend = formatEmailToParagraphs(editableBody).join('\n\n');
+
+    let effectiveLeadName = prospectName;
+    let effectiveLeadCompany = prospectCompany;
+    let effectiveLeadTitle = prospectTitle;
+
+    if (prospectEmail.trim().toLowerCase().includes('callview.ai')) {
+      effectiveLeadName = 'Emil Halili';
+      effectiveLeadCompany = 'Callview AI';
+      effectiveLeadTitle = 'Founder / Decision Maker';
+    }
+
+    const computedThreadId = getConversationThreadKey({
+      direction: 'outbound',
+      to: prospectEmail.trim(),
+      from: senderFrom,
+      subject: activeSubject
+    });
+
     try {
       const res = await fetch('/api/email/send', {
         method: 'POST',
@@ -402,10 +438,10 @@ export default function ColdEmailStudio() {
           from: senderFrom,
           subject: activeSubject,
           body: bodyToSend,
-          leadName: prospectName,
-          leadCompany: prospectCompany,
-          leadTitle: prospectTitle,
-          threadId: `thread_${prospectName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+          leadName: effectiveLeadName,
+          leadCompany: effectiveLeadCompany,
+          leadTitle: effectiveLeadTitle,
+          threadId: computedThreadId
         })
       });
 
@@ -414,19 +450,21 @@ export default function ColdEmailStudio() {
         if (data.email) {
           saveEmailToStore(data.email);
         }
+        setSendButtonState('sent');
         setDirectSendStatus(`Dispatched from ${senderFrom} to ${prospectEmail.trim()}`);
       } else {
         const errData = await res.json().catch(() => ({}));
         const errMsg = errData.error || `Send failed (${res.status} ${res.statusText})`;
         console.error('[DIRECT SEND ERROR]', errMsg, errData);
+        setSendButtonState('idle');
         setDirectSendStatus(`Error: ${errMsg}`);
       }
     } catch (e: any) {
       console.error('[DIRECT SEND NETWORK ERROR]', e);
+      setSendButtonState('idle');
       setDirectSendStatus(`Error: ${e.message || 'Network error'}`);
     } finally {
       setIsSendingDirectEmail(false);
-      setTimeout(() => setDirectSendStatus(null), 15000);
     }
   };
 
@@ -631,39 +669,17 @@ export default function ColdEmailStudio() {
                 </div>
               </div>
 
-              {/* Verified Sender Info */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-zinc-600 text-[11px] font-medium">From:</span>
-                  <strong className="text-zinc-900 font-mono text-[11px]">{senderFrom}</strong>
+              {/* Verified Sender & Lead Target Pill */}
+              <div className="p-2.5 rounded-xl bg-zinc-50/90 border border-zinc-200/70 text-xs space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-500 font-medium">Sending Account:</span>
+                  <strong className="text-zinc-900 font-mono text-[10px]">{senderFrom}</strong>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
-                  GoDaddy Live
-                </span>
-              </div>
-
-              {/* Recipient Target Email (To:) with 1-click test button */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-500">
-                  <span className="uppercase tracking-wider">Prospect Recipient (To:):</span>
-                  <button
-                    type="button"
-                    onClick={() => setProspectEmail('emil@appointmentlyy.com')}
-                    className="text-emerald-700 hover:text-emerald-950 font-bold hover:underline"
-                    title="Quickly fill with emil@appointmentlyy.com to test deliverability directly to your GoDaddy inbox"
-                  >
-                    Test Send to My Inbox
-                  </button>
-                </div>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={prospectEmail}
-                    onChange={(e) => setProspectEmail(e.target.value)}
-                    placeholder="prospect@company.com or your test email"
-                    className="w-full text-xs font-mono font-medium rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-zinc-900 shadow-2xs"
-                  />
+                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-zinc-200/50">
+                  <span className="text-zinc-500 font-medium">Active Recipient:</span>
+                  <span className="font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 truncate max-w-[180px]">
+                    {prospectEmail}
+                  </span>
                 </div>
               </div>
             </div>
@@ -937,7 +953,10 @@ export default function ColdEmailStudio() {
                   return (
                     <button
                       key={idx}
-                      onClick={() => setSelectedSubjectIdx(idx)}
+                      onClick={() => {
+                        setSelectedSubjectIdx(idx);
+                        if (sendButtonState === 'sent') setSendButtonState('idle');
+                      }}
                       className={`p-2.5 rounded-xl border text-left transition-all ${
                         isSelected
                           ? 'bg-zinc-900 text-white border-zinc-900 shadow-2xs ring-1 ring-zinc-900'
@@ -1112,7 +1131,10 @@ export default function ColdEmailStudio() {
                   <textarea
                     rows={8}
                     value={editableBody}
-                    onChange={(e) => setEditableBody(e.target.value)}
+                    onChange={(e) => {
+                      setEditableBody(e.target.value);
+                      if (sendButtonState === 'sent') setSendButtonState('idle');
+                    }}
                     className="w-full h-full min-h-[200px] text-sm font-sans rounded-xl border border-zinc-200/90 p-4 text-zinc-900 bg-zinc-50/30 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-zinc-900 leading-relaxed tracking-normal"
                     placeholder="Synthesizing email body..."
                   />
@@ -1189,6 +1211,7 @@ export default function ColdEmailStudio() {
                         key={idx}
                         onClick={() => {
                           setSelectedCtaIdx(idx);
+                          if (sendButtonState === 'sent') setSendButtonState('idle');
                           // Replace last sentence or append
                           const sentences = editableBody.trim().split(/(?<=[.?!])\s+/);
                           if (sentences.length > 1) {
@@ -1247,46 +1270,52 @@ export default function ColdEmailStudio() {
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={handleDirectSendEmail}
-                  disabled={isSendingDirectEmail}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
-                  title={`Dispatch live email from ${senderFrom} to ${prospectEmail}`}
+                  disabled={isSendingDirectEmail || sendButtonState === 'sent'}
+                  className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-2xs ${
+                    sendButtonState === 'sent'
+                      ? 'bg-emerald-800 text-emerald-100 border border-emerald-700 cursor-not-allowed opacity-90'
+                      : sendButtonState === 'sending'
+                      ? 'bg-emerald-700 text-emerald-100 cursor-wait opacity-80'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer active:scale-98'
+                  }`}
+                  title={
+                    sendButtonState === 'sent'
+                      ? `Already dispatched to ${prospectEmail}. Edit draft or change recipient to send another.`
+                      : `Dispatch live email from ${senderFrom} to ${prospectEmail}`
+                  }
                 >
-                  {isSendingDirectEmail ? (
+                  {sendButtonState === 'sending' ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       <span>Sending...</span>
                     </>
+                  ) : sendButtonState === 'sent' ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-300" />
+                      <span>Sent!</span>
+                    </>
                   ) : (
                     <>
                       <Send className="h-3.5 w-3.5" />
-                      <span>Send as {senderDisplayName}</span>
+                      <span>Send Email</span>
                     </>
                   )}
                 </button>
 
                 <button
-                  onClick={handleOpenMailto}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-zinc-100 text-zinc-800 transition-colors border border-zinc-200 shadow-2xs"
-                  title="Open prefilled draft in your default email client"
-                >
-                  <ExternalLink className="h-3.5 w-3.5 text-zinc-500" />
-                  <span>Open in Mail</span>
-                </button>
-
-                <button
                   onClick={handleCopyEntireEmail}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-zinc-950 hover:bg-zinc-800 text-white transition-all shadow-md group cursor-pointer"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-zinc-950 hover:bg-zinc-800 text-white transition-all shadow-2xs group cursor-pointer"
                 >
                   {copiedKey === 'entire_email' ? (
                     <>
-                      <Check className="h-4 w-4 text-emerald-400" />
+                      <Check className="h-3.5 w-3.5 text-emerald-400" />
                       <span>Copied!</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="h-4 w-4 text-zinc-300 group-hover:scale-110 transition-transform" />
+                      <Copy className="h-3.5 w-3.5 text-zinc-300 group-hover:scale-110 transition-transform" />
                       <span>Copy All</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 ml-1">
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 ml-1">
                         Ctrl+Shift+C
                       </span>
                     </>

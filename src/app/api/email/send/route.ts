@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formatEmailToParagraphs } from '@/lib/coldEmailStudio';
 import { getResendApiKey, getResendInboundEmail, getResendFromEmail } from '@/lib/resendConfig';
+import { getConversationThreadKey, extractCleanEmailAddress } from '@/lib/emailStore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -116,7 +117,31 @@ export async function POST(req: NextRequest) {
     }
 
     const messageId = liveSendResult?.id;
-    const finalThreadId = threadId || `thread_${leadName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const cleanTo = extractCleanEmailAddress(Array.isArray(to) ? to[0] : to);
+
+    let finalLeadName = leadName;
+    let finalLeadCompany = leadCompany;
+    let finalLeadTitle = leadTitle;
+
+    if (cleanTo.includes('callview.ai')) {
+      if (finalLeadName === 'Julian Vance' || finalLeadName === 'Prospect') {
+        finalLeadName = 'Emil Halili';
+      }
+      if (finalLeadCompany === 'Apex Global BPO' || finalLeadCompany === 'Target Company') {
+        finalLeadCompany = 'Callview AI';
+      }
+      if (finalLeadTitle === 'Decision Maker' || finalLeadTitle === 'Director of Outbound Operations') {
+        finalLeadTitle = 'Founder / Decision Maker';
+      }
+    }
+
+    const finalThreadId = threadId || getConversationThreadKey({
+      direction: 'outbound',
+      to: cleanTo,
+      from: sanitizedFrom,
+      subject: subject,
+      threadId: threadId
+    });
 
     const provider: 'resend_live' = 'resend_live';
     const emailRecord = {
@@ -124,14 +149,14 @@ export async function POST(req: NextRequest) {
       threadId: finalThreadId,
       direction: 'outbound' as const,
       from: sanitizedFrom,
-      to: Array.isArray(to) ? to[0] : to,
+      to: cleanTo,
       subject: subject,
       body: formattedText,
       timestamp: new Date().toISOString(),
       status: 'delivered' as const,
-      leadName: leadName,
-      leadCompany: leadCompany,
-      leadTitle: leadTitle,
+      leadName: finalLeadName,
+      leadCompany: finalLeadCompany,
+      leadTitle: finalLeadTitle,
       provider: provider,
       read: true
     };
