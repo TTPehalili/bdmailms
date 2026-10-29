@@ -9,7 +9,6 @@ import {
   Check, 
   Send, 
   RotateCw, 
-  Upload, 
   Inbox, 
   Loader2, 
   AlignLeft, 
@@ -37,8 +36,6 @@ import {
   getDeterministicColdEmail, 
   sanitizeColdEmail 
 } from '@/lib/coldEmailStudio';
-import { DEMO_CADENCE_LEADS, CadenceLeadRecord } from '@/lib/cadenceMaster';
-import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
 import { useSession } from '@/lib/session';
 
 // B2B spam trigger words list
@@ -58,11 +55,6 @@ export default function ColdEmailStudio() {
     ? senderEmailRaw
     : 'emil@appointmentlyy.com';
   const senderFrom = `${senderDisplayName} <${verifiedSenderEmail}>`;
-
-  // Leads & Cadence Queue State
-  const [leads, setLeads] = useState<CadenceLeadRecord[]>(DEMO_CADENCE_LEADS);
-  const [selectedLeadIndex, setSelectedLeadIndex] = useState<number>(0);
-  const [isCsvModalOpen, setIsCsvModalOpen] = useState<boolean>(false);
 
   // Recipient / Prospect Free-Hand Inputs
   const [prospectEmail, setProspectEmailState] = useState<string>(() => {
@@ -97,21 +89,6 @@ export default function ColdEmailStudio() {
       }
     } catch (e) {
       console.warn('Could not read URL params:', e);
-    }
-  }, []);
-
-  // Sync stored CSV leads on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('sdr_active_csv_leads');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setLeads(parsed);
-        }
-      }
-    } catch (e) {
-      console.warn('Could not load stored CSV leads:', e);
     }
   }, []);
 
@@ -163,38 +140,6 @@ export default function ColdEmailStudio() {
       setProspectName('Emil Halili');
       setProspectCompany('Callview AI');
       setProspectTitle('Founder / CEO');
-    }
-
-    // Persist confirmed email back to active lead record globally
-    if (leads.length > 0 && selectedLeadIndex >= 0 && selectedLeadIndex < leads.length) {
-      const updated = [...leads];
-      updated[selectedLeadIndex] = {
-        ...updated[selectedLeadIndex],
-        email: newEmail
-      };
-      setLeads(updated);
-      try {
-        localStorage.setItem('sdr_active_csv_leads', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Could not persist lead email update:', e);
-      }
-    }
-  };
-
-  // Switch prospect from lead queue
-  const handleSelectLeadFromQueue = (index: number) => {
-    setSelectedLeadIndex(index);
-    if (index >= 0 && leads[index]) {
-      const l = leads[index];
-      const leadEmail = l.email || `${(l.name || 'contact').toLowerCase().replace(/\s+/g, '.')}@${(l.company || 'company').toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
-      setProspectEmailState(leadEmail);
-      setProspectName(l.name || 'Decision Maker');
-      setProspectCompany(l.company || 'Target Company');
-      setProspectTitle(l.title || 'Director of Operations');
-      setSendButtonState('idle');
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('sdr_target_recipient_email', leadEmail);
-      }
     }
   };
 
@@ -423,42 +368,16 @@ export default function ColdEmailStudio() {
           </p>
         </div>
 
-        {/* Lead Queue Switcher & Standalone Actions */}
+        {/* Standalone Workshop Actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          {leads.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-zinc-500 font-medium hidden md:inline">Queue:</span>
-              <select
-                value={selectedLeadIndex}
-                onChange={(e) => handleSelectLeadFromQueue(Number(e.target.value))}
-                className="text-xs font-medium rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-zinc-800 shadow-2xs focus:ring-1 focus:ring-zinc-900 cursor-pointer"
-              >
-                {leads.map((l, idx) => (
-                  <option key={idx} value={idx}>
-                    {l.name} &bull; {l.company}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           <button
             type="button"
             onClick={handleStartBlankEmail}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shadow-2xs cursor-pointer"
-            title="Start a fresh blank draft for a prospect you confirmed on the phone"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shadow-2xs cursor-pointer"
+            title="Start a fresh blank draft"
           >
             <PlusCircle className="h-3.5 w-3.5 text-zinc-500" />
             <span>Blank Draft</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsCsvModalOpen(true)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-zinc-300 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors shadow-2xs cursor-pointer"
-          >
-            <Upload className="h-3.5 w-3.5 text-zinc-500" />
-            <span>CSV Leads ({leads.length})</span>
           </button>
 
           <Link
@@ -1099,30 +1018,6 @@ export default function ColdEmailStudio() {
         </div>
 
       </div>
-
-      {/* Upload CSV Leads Modal */}
-      {isCsvModalOpen && (
-        <UploadLeadsCsvModal
-          isOpen={isCsvModalOpen}
-          onClose={() => setIsCsvModalOpen(false)}
-          onLeadsImported={(imported) => {
-            if (imported.length > 0) {
-              setLeads(imported);
-              setSelectedLeadIndex(0);
-              const first = imported[0];
-              setProspectEmailState(first.email || 'prospect@targetcompany.com');
-              setProspectName(first.name || 'Decision Maker');
-              setProspectCompany(first.company || 'Target Company');
-              setProspectTitle(first.title || 'Director of Operations');
-              try {
-                localStorage.setItem('sdr_active_csv_leads', JSON.stringify(imported));
-              } catch (e) {
-                console.warn('Could not cache CSV leads:', e);
-              }
-            }
-          }}
-        />
-      )}
 
     </div>
   );

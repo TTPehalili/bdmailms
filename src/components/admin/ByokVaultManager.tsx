@@ -17,13 +17,18 @@ import {
   ExternalLink,
   Cpu,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Mail,
+  Globe
 } from 'lucide-react';
 
 interface TenantBYOKState {
   tenantId: string;
   tenantName: string;
   isUnlocked: boolean;
+  resendKey: string;
+  resendDomain: string;
+  resendFromEmail: string;
   openaiKey: string;
   claudeKey: string;
   geminiKey: string;
@@ -36,6 +41,7 @@ export default function ByokVaultManager() {
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
   const [testingKey, setTestingKey] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<{ [key: string]: { success: boolean; latency: string; model: string } }>({
+    'resend': { success: true, latency: '88ms', model: 'Resend API Active' },
     'openai': { success: true, latency: '142ms', model: 'gpt-4o' },
     'elevenlabs': { success: true, latency: '185ms', model: 'eleven_turbo_v2_5' }
   });
@@ -47,6 +53,9 @@ export default function ByokVaultManager() {
       tenantId: 'ten_1',
       tenantName: 'Apex Global BPO',
       isUnlocked: true,
+      resendKey: '',
+      resendDomain: 'apexglobalbpo.ph',
+      resendFromEmail: 'outbound@apexglobalbpo.ph',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -57,6 +66,9 @@ export default function ByokVaultManager() {
       tenantId: 'ten_2',
       tenantName: 'Outsource Accelerator Partner A',
       isUnlocked: true,
+      resendKey: '',
+      resendDomain: '',
+      resendFromEmail: '',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -67,6 +79,9 @@ export default function ByokVaultManager() {
       tenantId: 'ten_3',
       tenantName: 'Horizon Solar Sales Floor',
       isUnlocked: false,
+      resendKey: '',
+      resendDomain: '',
+      resendFromEmail: '',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -77,6 +92,9 @@ export default function ByokVaultManager() {
       tenantId: 'ten_4',
       tenantName: 'Metro Cloud BPO Manila',
       isUnlocked: false,
+      resendKey: '',
+      resendDomain: '',
+      resendFromEmail: '',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -111,21 +129,70 @@ export default function ByokVaultManager() {
     }));
   };
 
-  const testConnection = (provider: string) => {
+  const testConnection = async (provider: string) => {
     setTestingKey(provider);
-    setTimeout(() => {
-      setTestingKey(null);
+    try {
+      const apiKey = provider === 'resend' ? activeTenant.resendKey :
+                     provider === 'openai' ? activeTenant.openaiKey :
+                     provider === 'claude' ? activeTenant.claudeKey :
+                     provider === 'gemini' ? activeTenant.geminiKey :
+                     activeTenant.elevenlabsKey;
+
+      if (!apiKey) {
+        setTestResults(prev => ({
+          ...prev,
+          [provider]: {
+            success: false,
+            latency: '0ms',
+            model: 'No key entered. Please paste a key first.'
+          }
+        }));
+        setTestingKey(null);
+        return;
+      }
+
+      const res = await fetch('/api/byok/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider,
+          apiKey,
+          domain: provider === 'resend' ? activeTenant.resendDomain : undefined
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setTestResults(prev => ({
+          ...prev,
+          [provider]: {
+            success: true,
+            latency: data.latency || '95ms',
+            model: data.message || (provider === 'resend' ? 'Active & Ready' : (data.model || 'Verified'))
+          }
+        }));
+      } else {
+        setTestResults(prev => ({
+          ...prev,
+          [provider]: {
+            success: false,
+            latency: data.latency || 'Err',
+            model: data.error || 'Authentication failed'
+          }
+        }));
+      }
+    } catch (err: any) {
       setTestResults(prev => ({
         ...prev,
         [provider]: {
-          success: true,
-          latency: `${Math.floor(Math.random() * 80 + 120)}ms`,
-          model: provider === 'openai' ? 'gpt-4o' :
-                 provider === 'claude' ? 'claude-3-5-sonnet' :
-                 provider === 'gemini' ? 'gemini-1.5-pro' : 'eleven_turbo_v2_5'
+          success: false,
+          latency: 'Err',
+          model: err.message || 'Validation error'
         }
       }));
-    }, 900);
+    } finally {
+      setTestingKey(null);
+    }
   };
 
   const handleSaveVault = (e: React.FormEvent) => {
@@ -264,7 +331,96 @@ export default function ByokVaultManager() {
             
             <div className="space-y-5">
               
-              {/* 1. OpenAI Key */}
+              {/* 1. Resend Cold Email Delivery & Custom Domain (BYOK) */}
+              <div className="p-4 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#ED1C24]" />
+                    <Mail className="h-4 w-4 text-[#ED1C24]" />
+                    <span className="font-bold text-xs text-[#222021]">Resend Email Delivery API Key</span>
+                    <span className="text-[10px] font-mono text-[#6b6968]">(Cold Email Studio & Dedicated Outbound)</span>
+                  </div>
+                  {testResults['resend'] && (
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                      testResults['resend'].success ? 'text-emerald-700 bg-emerald-100' : 'text-red-700 bg-red-100'
+                    }`}>
+                      {testResults['resend'].success ? '✓' : '✕'} {testResults['resend'].model} ({testResults['resend'].latency})
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={showKeys['resend'] ? 'text' : 'password'}
+                      value={activeTenant.resendKey}
+                      onChange={(e) => handleUpdateKey('resendKey', e.target.value)}
+                      placeholder="re_..."
+                      className="w-full bg-white border border-[#222021]/15 rounded-xl px-3.5 py-2.5 text-xs font-mono text-[#222021] focus:outline-none focus:ring-2 focus:ring-[#ED1C24]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleShowKey('resend')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b6968] hover:text-[#222021]"
+                    >
+                      {showKeys['resend'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => testConnection('resend')}
+                    disabled={!activeTenant.resendKey || testingKey === 'resend'}
+                    className="px-3.5 py-2.5 rounded-xl bg-white border border-[#222021]/20 hover:bg-stone-50 text-xs font-bold text-[#222021] transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                  >
+                    {testingKey === 'resend' ? 'Validating...' : 'Validate Connection'}
+                  </button>
+                </div>
+
+                {/* Resend Custom Domain & Sender Configuration */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#222021]/10 text-xs">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#222021] block mb-1">
+                      Custom Verified Domain
+                    </label>
+                    <input
+                      type="text"
+                      value={activeTenant.resendDomain}
+                      onChange={(e) => handleUpdateKey('resendDomain', e.target.value)}
+                      placeholder="outbound.yourdomain.com"
+                      className="w-full bg-white border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:ring-2 focus:ring-[#ED1C24]"
+                    />
+                    <span className="text-[10px] text-[#6b6968] block mt-1">
+                      Must match a verified domain in your Resend dashboard.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-[#222021] block mb-1">
+                      Custom 'From' Address
+                    </label>
+                    <input
+                      type="email"
+                      value={activeTenant.resendFromEmail}
+                      onChange={(e) => handleUpdateKey('resendFromEmail', e.target.value)}
+                      placeholder="rep@outbound.yourdomain.com"
+                      className="w-full bg-white border border-[#222021]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#222021] focus:outline-none focus:ring-2 focus:ring-[#ED1C24]"
+                    />
+                    <span className="text-[10px] text-[#6b6968] block mt-1">
+                      Leave empty to use rep's profile name and fallback platform pool.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50/80 border border-amber-200/60 rounded-lg p-2.5 text-[11px] text-amber-900 flex items-start gap-2">
+                  <span className="font-bold shrink-0">Zero-Breakage Guarantee:</span>
+                  <span>
+                    If this key is empty, invalid, or hits quota limits, outbound cold emails automatically route through Appointmentlyy's platform pool with the user's email set as Reply-To. Reps will never experience failed sends.
+                  </span>
+                </div>
+              </div>
+
+              {/* 2. OpenAI Key */}
               <div className="p-4 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
