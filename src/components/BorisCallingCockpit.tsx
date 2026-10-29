@@ -29,7 +29,8 @@ import {
   Building2,
   Briefcase,
   RotateCcw,
-  FileText
+  FileText,
+  UploadCloud
 } from 'lucide-react';
 import Link from 'next/link';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
@@ -1103,10 +1104,20 @@ export default function BorisCallingCockpit() {
             <div className="lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-4">
               
               {/* Step Navigation Tabs */}
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 font-mono">
-                  SPOKEN CALL FLOW
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-100 gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 font-mono">
+                    SPOKEN CALL FLOW
+                  </span>
+                  <Link
+                    href="/admin/frameworks"
+                    className="text-[10px] font-mono font-semibold text-[#0a66c2] hover:underline flex items-center gap-1 bg-sky-50 px-2 py-0.5 rounded border border-sky-200"
+                    title="Upload custom sales playbook to personalize this teleprompter"
+                  >
+                    <UploadCloud className="h-3 w-3 text-sky-600" />
+                    <span>Upload/Edit Playbook ↗</span>
+                  </Link>
+                </div>
                 <div className="flex items-center gap-1">
                   {scriptSteps.map((st) => (
                     <button

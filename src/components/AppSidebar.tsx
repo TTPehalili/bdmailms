@@ -19,7 +19,8 @@ import {
   Lock,
   Mail,
   Inbox,
-  Users
+  Users,
+  UploadCloud
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
@@ -57,6 +58,7 @@ export default function AppSidebar() {
   ];
 
   const managementItems = [
+    { label: 'Upload Playbook', href: '/admin/frameworks', icon: UploadCloud },
     { label: 'Floor Monitor', href: '/monitoring', icon: Radio },
     { label: 'Workflow Studio', href: '/workflows', icon: Workflow },
     { label: 'Operations Intel', href: '/assistant', icon: Bot },

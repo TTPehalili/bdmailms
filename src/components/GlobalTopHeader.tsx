@@ -20,7 +20,8 @@ import {
   Radio,
   Workflow,
   BarChart3,
-  Check
+  Check,
+  UploadCloud
 } from 'lucide-react';
 import { useSession, UserRole } from '@/lib/session';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
@@ -33,6 +34,7 @@ interface NavCommand {
 }
 
 const COMMANDS: NavCommand[] = [
+  { title: 'Playbook Ingestion & Script Customizer (AI)', category: 'Administration', href: '/admin/frameworks', icon: UploadCloud },
   { title: 'AI Boris Calling Cockpit', category: 'Calling Floor', href: '/cockpit', icon: Swords },
   { title: 'AI Sparring Arena', category: 'Training', href: '/sparring', icon: Headphones },
   { title: 'LinkedIn Thought Leadership & Viral Studio', category: 'Social Outbound', href: '/linkedin', icon: LinkedinIcon },

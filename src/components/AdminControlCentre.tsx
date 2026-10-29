@@ -494,18 +494,28 @@ export default function AdminControlCentre() {
               </p>
             </div>
 
-            {/* Tenant Selector Dropdown */}
-            <div className="relative">
-              <select
-                value={tenantFilter}
-                onChange={(e) => setTenantFilter(e.target.value)}
-                className="px-4 py-2 rounded-xl bg-white border border-[#222021]/15 text-xs font-semibold text-[#222021] shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#ED1C24] cursor-pointer"
+            <div className="flex items-center gap-2.5">
+              <Link
+                href="/admin/frameworks"
+                className="px-3.5 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
-                <option value="all">All tenants (global view)</option>
-                <option value="Enterprise Outbound Q4">Enterprise Outbound Q4</option>
-                <option value="Fintech Scaleups">Fintech Scaleups</option>
-                <option value="SaaS SMB Pipeline">SaaS SMB Pipeline</option>
-              </select>
+                <UploadCloud className="h-4 w-4 text-emerald-400" />
+                <span>Upload Playbook (AI Vectorizer)</span>
+              </Link>
+
+              {/* Tenant Selector Dropdown */}
+              <div className="relative">
+                <select
+                  value={tenantFilter}
+                  onChange={(e) => setTenantFilter(e.target.value)}
+                  className="px-4 py-2 rounded-xl bg-white border border-[#222021]/15 text-xs font-semibold text-[#222021] shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#ED1C24] cursor-pointer"
+                >
+                  <option value="all">All tenants (global view)</option>
+                  <option value="Enterprise Outbound Q4">Enterprise Outbound Q4</option>
+                  <option value="Fintech Scaleups">Fintech Scaleups</option>
+                  <option value="SaaS SMB Pipeline">SaaS SMB Pipeline</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -513,6 +523,7 @@ export default function AdminControlCentre() {
           <div className="flex items-center gap-6 border-b border-[#222021]/10 text-sm font-semibold overflow-x-auto scrollbar-none">
             {[
               { id: 'tenants', label: 'Tenants & Client Access' },
+              { id: 'playbooks', label: 'Playbook Ingestion & AI' },
               { id: 'dispositions', label: 'Call Dispositions' },
               { id: 'byok', label: 'BYOK AI Vault' },
               { id: 'crm', label: 'Universal CRM & Mapper' },
@@ -525,20 +536,31 @@ export default function AdminControlCentre() {
               { id: 'reps', label: 'Sales Reps' },
               { id: 'audit', label: 'Audit Log' },
             ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`pb-3 transition-colors relative whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'text-[#222021] font-bold'
-                    : 'text-[#6b6968] hover:text-[#222021]'
-                }`}
-              >
-                <span>{tab.label}</span>
-                {activeTab === tab.id && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#ED1C24]" />
-                )}
-              </button>
+              tab.id === 'playbooks' ? (
+                <Link
+                  key={tab.id}
+                  href="/admin/frameworks"
+                  className="pb-3 transition-colors relative whitespace-nowrap text-zinc-900 font-bold hover:text-[#ED1C24] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>{tab.label} ↗</span>
+                </Link>
+              ) : (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`pb-3 transition-colors relative whitespace-nowrap cursor-pointer ${
+                    activeTab === tab.id
+                      ? 'text-[#222021] font-bold'
+                      : 'text-[#6b6968] hover:text-[#222021]'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  {activeTab === tab.id && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#ED1C24]" />
+                  )}
+                </button>
+              )
             ))}
           </div>
 
