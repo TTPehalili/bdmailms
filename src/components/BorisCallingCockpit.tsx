@@ -219,8 +219,8 @@ export default function BorisCallingCockpit() {
   const [directMobileInput, setDirectMobileInput] = useState<string>('');
   const [customRepNotes, setCustomRepNotes] = useState<string>('');
 
-  // Spoken Steps Definitions
-  const scriptSteps = [
+  // Spoken Steps Definitions (Dynamically hydrated from synthesized playbook or system default)
+  const DEFAULT_SCRIPT_STEPS = [
     {
       step: 1,
       name: '1. The Opener',
@@ -250,6 +250,32 @@ export default function BorisCallingCockpit() {
       deliveryTip: 'Offer a binary time choice (Thursday 2pm vs Friday morning) to make scheduling effortless.'
     }
   ];
+
+  const [scriptSteps, setScriptSteps] = useState(DEFAULT_SCRIPT_STEPS);
+
+  useEffect(() => {
+    const loadTenantScripts = () => {
+      try {
+        const saved = localStorage.getItem('tenant_phone_scripts');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setScriptSteps(parsed);
+          }
+        }
+      } catch (err) {
+        console.warn('[Cockpit] Failed to load tenant phone scripts:', err);
+      }
+    };
+
+    loadTenantScripts();
+    window.addEventListener('storage', loadTenantScripts);
+    window.addEventListener('appointmentlyy_playbook_updated', loadTenantScripts);
+    return () => {
+      window.removeEventListener('storage', loadTenantScripts);
+      window.removeEventListener('appointmentlyy_playbook_updated', loadTenantScripts);
+    };
+  }, []);
 
   const activeStepData = scriptSteps[currentStep - 1] || scriptSteps[0];
 

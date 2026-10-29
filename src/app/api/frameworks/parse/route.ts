@@ -40,8 +40,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Extract structured ARM entries and vector embeddings
-    const armEntries = await ArmExtractor.extractArmFromText(text);
+    // 1. Synthesize complete playbook across Phone Scripts, ARM entries, and Cadence
+    const synthesized = await ArmExtractor.synthesizeGlobalPlaybookFromText(text);
+    const armEntries = synthesized.armEntries;
 
     // 2. Persist to Supabase if connected
     const supabase = getServiceSupabase();
@@ -89,7 +90,8 @@ export async function POST(req: NextRequest) {
       fileName,
       fileType,
       extractedCount: armEntries.length,
-      entries: armEntries
+      entries: armEntries,
+      synthesized: synthesized
     });
 
   } catch (error: any) {

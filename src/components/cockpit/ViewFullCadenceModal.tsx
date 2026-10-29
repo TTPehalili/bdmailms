@@ -60,7 +60,32 @@ export default function ViewFullCadenceModal({
     setTimeout(() => setCopiedIndex(null), 1800);
   };
 
-  const filteredTouches = CADENCE_TOUCHES.filter(t => {
+  const [activeTouches, setActiveTouches] = useState<CadenceTouch[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('tenant_cadence_touches');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((item: any, idx: number) => ({
+              day: item.day || idx + 1,
+              stepName: item.stepName || `Touch #${idx + 1}`,
+              touchNumber: item.touchNumber || idx + 1,
+              channel: item.channel || 'Email',
+              mechanism: item.mechanism || 'Outbound campaign dispatch',
+              timingRule: item.timingRule || 'Sub-65 words; laser-focused on value proposition.',
+              subject: item.subject,
+              body: item.body,
+              spokenOpener: item.spokenOpener
+            }));
+          }
+        }
+      } catch {}
+    }
+    return CADENCE_TOUCHES;
+  });
+
+  const filteredTouches = activeTouches.filter(t => {
     if (filterChannel === 'All') return true;
     return t.channel === filterChannel;
   });
