@@ -31,6 +31,7 @@ import {
   RotateCcw,
   FileText
 } from 'lucide-react';
+import Link from 'next/link';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
 import AppSidebar from '@/components/AppSidebar';
 import GlobalTopHeader from '@/components/GlobalTopHeader';
@@ -45,12 +46,21 @@ import DailyActivityReportModal from '@/components/cockpit/DailyActivityReportMo
 import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
 import { logCadenceActivity, getDailyActivitySummary, subscribeToActivities } from '@/lib/activityStore';
 import { getStoredDispositions, subscribeToDispositions, CallDisposition } from '@/lib/dispositionStore';
-import { useSession } from '@/lib/session';
+import { useSession, isRoleAdmin } from '@/lib/session';
 import { 
   CallTelemetryState, 
   INITIAL_TELEMETRY_STATE, 
   synthesizeCrmNotes 
 } from '@/lib/callTelemetry';
+import {
+  ContactRecord,
+  LeadFootprintItem,
+  getStoredContacts,
+  saveStoredContacts,
+  addContactNote,
+  recordContactTouch,
+  subscribeToContacts
+} from '@/lib/leadStore';
 
 interface ARMRebuttal {
   id: string;
@@ -120,16 +130,36 @@ const PRESET_REBUTTALS: ARMRebuttal[] = [
 ];
 
 export default function BorisCallingCockpit() {
-  const { session, tenantName: sessionTenant, repName: sessionRep } = useSession();
+  const { session, role, isAdmin, tenantName: sessionTenant, repName: sessionRep } = useSession();
   const repName = sessionRep || 'Emil Halili';
+  const adminClearance = isRoleAdmin(role);
+
+  // Tab State for Right Column: 'notes' | 'footprint' | 'objections'
+  const [activeRightTab, setActiveRightTab] = useState<'notes' | 'footprint' | 'objections'>('notes');
+
+  // Direct Lead Notes State (For non-CRM paying clients)
+  const [leadNoteInput, setLeadNoteInput] = useState<string>('');
+  const [leadNoteSavedToast, setLeadNoteSavedToast] = useState<boolean>(false);
 
   // Queue & Leads State
-  const [leadsQueue, setLeadsQueue] = useState<CadenceLeadRecord[]>(DEMO_CADENCE_LEADS);
+  const [leadsQueue, setLeadsQueue] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = getStoredContacts();
+      if (stored && stored.length > 0) return stored;
+    }
+    return DEMO_CADENCE_LEADS;
+  });
   const [currentLeadIndex, setCurrentLeadIndex] = useState<number>(0);
 
   // Active Lead Object
   const activeLead = leadsQueue[currentLeadIndex] || DEMO_CADENCE_LEADS[0];
   const nextLeadCandidate = leadsQueue[(currentLeadIndex + 1) % leadsQueue.length];
+
+  // Active Contact with live footprint & direct notes
+  const activeContact = useMemo(() => {
+    const contacts = getStoredContacts();
+    return contacts.find(c => c.id === activeLead.id || c.email?.toLowerCase() === (activeLead.email || '').toLowerCase()) || (activeLead as any);
+  }, [activeLead, leadsQueue, leadNoteSavedToast]);
 
   // Lead Fields
   const [customerName, setCustomerName] = useState<string>(activeLead.name);
@@ -566,13 +596,43 @@ export default function BorisCallingCockpit() {
     return PRESET_REBUTTALS.find(r => r.id === selectedRebuttalId) || PRESET_REBUTTALS[0];
   }, [selectedRebuttalId]);
 
+  // Save Direct Note on Lead Record (For Non-CRM Customers)
+  const handleSaveLeadNote = () => {
+    if (!leadNoteInput.trim()) return;
+    const targetId = activeLead.id || directEmail;
+    const updated = addContactNote(targetId, leadNoteInput.trim(), repName);
+    setLeadNoteInput('');
+    setLeadNoteSavedToast(true);
+    setTimeout(() => setLeadNoteSavedToast(false), 3000);
+
+    if (updated) {
+      setLeadsQueue(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
+      setActivityToast('✓ Direct lead note saved & appended to historical footprint');
+      setTimeout(() => setActivityToast(null), 3000);
+    }
+  };
+
   // Handle Call Outcome / Disposition Selection
   const handleSelectDisposition = (dispName: string) => {
+    if (!dispName) return;
     setDisposition(dispName);
     setIsCallingActive(false);
 
     const updatedNotes = buildNotes({ disp: dispName });
     setNotesDraft(updatedNotes);
+
+    const targetId = activeLead.id || directEmail;
+    const updated = recordContactTouch(targetId, {
+      type: 'call',
+      title: `Call Note • ${dispName}`,
+      summary: updatedNotes,
+      repName,
+      disposition: dispName
+    });
+
+    if (updated) {
+      setLeadsQueue(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
+    }
 
     // Log Cadence Activity with full synthesized CRM call notes
     try {
@@ -591,7 +651,7 @@ export default function BorisCallingCockpit() {
         linkedinUrl: leadLinkedinUrl
       });
       setCompletedActivityCount(prev => prev + 1);
-      setActivityToast(`✓ Call logged: ${dispName} • CRM Notes Synced`);
+      setActivityToast(`✓ Call logged: ${dispName} • Footprint & CRM Synced`);
       setTimeout(() => setActivityToast(null), 3500);
     } catch (err) {
       console.warn('Activity logging notice:', err);
@@ -646,6 +706,18 @@ export default function BorisCallingCockpit() {
       const data = await res.json();
       if (res.ok && data.status === 'success') {
         setQuickEmailSuccess('Email dispatched successfully via Resend!');
+        
+        const targetId = activeLead.id || directEmail;
+        const updated = recordContactTouch(targetId, {
+          type: 'email',
+          title: `Email Dispatched: ${quickEmailSubject}`,
+          summary: quickEmailBody,
+          repName
+        });
+        if (updated) {
+          setLeadsQueue(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
+        }
+
         setTimeout(() => {
           setIsQuickEmailOpen(false);
           setQuickEmailSuccess(null);
@@ -698,15 +770,26 @@ export default function BorisCallingCockpit() {
 
             {/* Quick Action Buttons */}
             <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setIsCsvModalOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 font-medium text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                title="Upload custom .csv file of leads"
+              <Link
+                href="/contacts"
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 font-semibold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
+                title="View all tenant contacts & multi-touch footprints"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-zinc-600" />
-                <span>Upload CSV Leads</span>
-              </button>
+                <Users className="w-3.5 h-3.5 text-zinc-600" />
+                <span>Global Contacts</span>
+              </Link>
+
+              {adminClearance && (
+                <button
+                  type="button"
+                  onClick={() => setIsCsvModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 font-medium text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  title="Upload custom .csv file of leads (Admin only)"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-zinc-600" />
+                  <span>Upload CSV Leads</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -929,6 +1012,60 @@ export default function BorisCallingCockpit() {
               </div>
 
             </div>
+
+            {/* CALL DISPOSITION DROPDOWN & PROGRESSION BAR */}
+            <div className="pt-3 border-t border-zinc-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-50/80 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+                  <span>📋 Call Disposition:</span>
+                </span>
+                {disposition ? (
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100/70 px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1 shadow-2xs">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Logged: {disposition}</span>
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-zinc-500 italic">
+                    Select outcome below to log call &amp; update footprint
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-1 max-w-xl justify-end">
+                <div className="relative flex-1 max-w-sm">
+                  <select
+                    value={disposition || ''}
+                    onChange={(e) => {
+                      if (e.target.value) handleSelectDisposition(e.target.value);
+                    }}
+                    className="w-full bg-white border border-zinc-300 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 cursor-pointer shadow-2xs"
+                  >
+                    <option value="" disabled>-- Select Call Disposition Dropdown --</option>
+                    <option value="Meeting Booked">🟢 Meeting Booked (Qualified Demo)</option>
+                    <option value="Call Back Later">🟡 Call Back Later (Scheduled Redial)</option>
+                    <option value="Left Voicemail">🔵 Left Voicemail (Drop Cadence VM)</option>
+                    <option value="No Answer / Gatekeeper">🔴 No Answer / Gatekeeper</option>
+                    <option value="Not Interested / Quarantine">⚪ Not Interested / Quarantine</option>
+                    <option value="Referral / Update Contact">🔄 Referral / Update Contact</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleProceedToNextLead}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0 ${
+                    disposition
+                      ? 'bg-zinc-950 hover:bg-zinc-800 text-white'
+                      : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-700'
+                  }`}
+                  title="Advance to next queued prospect"
+                >
+                  <span>Next Lead ({nextLeadCandidate.name.split(' ')[0]})</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
           </div>
 
           {/* ========================================================================= */}
@@ -1290,269 +1427,368 @@ export default function BorisCallingCockpit() {
 
             </div>
 
-            {/* RIGHT: AUTO-UPDATING CRM NOTES & QUICK OBJECTION SHIELDS (5 cols) */}
-            <div className="lg:col-span-5 space-y-4">
+            {/* RIGHT: TABBED INTELLIGENCE & FOOTPRINT (5 cols) */}
+            <div className="lg:col-span-5 space-y-3">
               
-              {/* 1. AUTO-UPDATING CRM CALL NOTES CARD */}
-              <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-base">📝</span>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 font-mono">
-                        CRM Call Notes
-                      </h3>
-                      <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold animate-pulse">
-                        Live Auto-Sync
+              {/* Tab Navigation Segmented Control */}
+              <div className="flex items-center p-1 bg-zinc-100 rounded-xl border border-zinc-200">
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab('notes')}
+                  className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeRightTab === 'notes'
+                      ? 'bg-white text-zinc-950 shadow-2xs'
+                      : 'text-zinc-600 hover:text-zinc-950'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Notes &amp; CRM</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab('footprint')}
+                  className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeRightTab === 'footprint'
+                      ? 'bg-white text-zinc-950 shadow-2xs'
+                      : 'text-zinc-600 hover:text-zinc-950'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Footprint</span>
+                  {activeContact?.footprint && activeContact.footprint.length > 0 && (
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-zinc-900 text-white">
+                      {activeContact.footprint.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab('objections')}
+                  className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeRightTab === 'objections'
+                      ? 'bg-white text-zinc-950 shadow-2xs'
+                      : 'text-zinc-600 hover:text-zinc-950'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Objection Shields</span>
+                </button>
+              </div>
+
+              {/* TAB 1: DIRECT LEAD NOTES & LIVE CRM NOTES */}
+              {activeRightTab === 'notes' && (
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  
+                  {/* DIRECT LEAD NOTES (FOR NON-CRM CUSTOMERS) */}
+                  <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">📌</span>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 font-mono">
+                          Direct Lead Notes
+                        </h3>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200 font-bold">
+                          Non-CRM Storage
+                        </span>
+                      </div>
+                      {leadNoteSavedToast && (
+                        <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 animate-in fade-in">
+                          <Check className="w-3 h-3" /> Saved on Lead!
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-zinc-500 leading-tight">
+                      For paying clients without CRM. Notes persist permanently on this lead and appear in the footprint audit &amp; CSV export.
+                    </p>
+
+                    <div className="space-y-2">
+                      <textarea
+                        rows={3}
+                        value={leadNoteInput}
+                        onChange={(e) => setLeadNoteInput(e.target.value)}
+                        placeholder="Write direct notes on this lead (e.g. decision maker role, budget timeline, pain points, next steps)..."
+                        className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 font-sans"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-zinc-400">
+                          Rep: <strong>{repName}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleSaveLeadNote}
+                          disabled={!leadNoteInput.trim()}
+                          className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <span>Save Note to Lead</span>
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Display existing notes on file */}
+                    {activeContact?.leadNotes && (
+                      <div className="mt-2 pt-2 border-t border-zinc-100">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                          Existing Notes on File:
+                        </span>
+                        <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100 text-xs text-zinc-800 leading-relaxed font-sans whitespace-pre-wrap max-h-36 overflow-y-auto">
+                          {activeContact.leadNotes}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AUTO-UPDATING CRM CALL NOTES CARD */}
+                  <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm">📝</span>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 font-mono">
+                            Live CRM Call Notes
+                          </h3>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold animate-pulse">
+                            Live Auto-Sync
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">
+                          Auto-synthesizes in real time as you click qualification checkboxes.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleResetTelemetry}
+                        className="text-[10px] text-zinc-400 hover:text-zinc-700 flex items-center gap-1 cursor-pointer"
+                        title="Reset qualification boxes for new call"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => copyText(notesDraft, 'notes_copy')}
+                      className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+                        copiedKey === 'notes_copy'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-zinc-950 hover:bg-zinc-800 text-white'
+                      }`}
+                    >
+                      {copiedKey === 'notes_copy' ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedKey === 'notes_copy' ? '✓ Copied to Clipboard!' : '📋 Copy CRM Notes'}</span>
+                    </button>
+
+                    <textarea
+                      rows={6}
+                      value={notesDraft}
+                      onChange={(e) => setNotesDraft(e.target.value)}
+                      className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-[11px] leading-relaxed text-zinc-900 font-mono focus:outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 select-text"
+                      placeholder="CRM call notes will auto-populate here as you click qualification checkpoints..."
+                    />
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 2: HISTORICAL COMMUNICATION FOOTPRINT */}
+              {activeRightTab === 'footprint' && (
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-xs space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-zinc-900" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 font-mono">
+                          Communication Footprint
+                        </h3>
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-zinc-100 text-zinc-800 font-bold border border-zinc-200">
+                          {activeContact?.footprint?.length || 0} Touches
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                        Chronological history of emails sent, calls made, and rep notes for {customerName}.
+                      </p>
+                    </div>
+
+                    <Link
+                      href="/contacts"
+                      className="text-[10px] font-semibold text-blue-600 hover:underline flex items-center gap-0.5"
+                      title="Open full Global Contacts directory"
+                    >
+                      <span>Contacts View</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </Link>
+                  </div>
+
+                  {/* Footprint Timeline */}
+                  <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
+                    {activeContact?.footprint && activeContact.footprint.length > 0 ? (
+                      activeContact.footprint.map((fp: LeadFootprintItem, idx: number) => {
+                        let badgeColor = 'bg-zinc-100 text-zinc-700 border-zinc-200';
+                        let icon = <Clock className="w-3.5 h-3.5 text-zinc-500" />;
+
+                        if (fp.type === 'email') {
+                          badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                          icon = <Mail className="w-3.5 h-3.5 text-blue-600" />;
+                        } else if (fp.type === 'call') {
+                          if (fp.disposition === 'Meeting Booked') {
+                            badgeColor = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                          } else if (fp.disposition === 'Call Back Later') {
+                            badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+                          } else {
+                            badgeColor = 'bg-rose-50 text-rose-800 border-rose-200';
+                          }
+                          icon = <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />;
+                        } else if (fp.type === 'note') {
+                          badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
+                          icon = <FileText className="w-3.5 h-3.5 text-purple-600" />;
+                        } else if (fp.type === 'linkedin') {
+                          badgeColor = 'bg-sky-50 text-sky-700 border-sky-200';
+                          icon = <LinkedinIcon className="w-3.5 h-3.5 text-sky-600" />;
+                        }
+
+                        return (
+                          <div 
+                            key={fp.id || idx} 
+                            className="p-3 rounded-xl border border-zinc-200 bg-zinc-50/70 hover:bg-zinc-50 transition-colors space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5">
+                                {icon}
+                                <span className="text-xs font-bold text-zinc-900">
+                                  {fp.title}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono text-zinc-500">
+                                {fp.timestamp}
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-zinc-700 leading-relaxed font-sans whitespace-pre-wrap">
+                              {fp.summary}
+                            </p>
+
+                            <div className="flex items-center justify-between pt-1 text-[10px] text-zinc-400 font-mono">
+                              <span>Rep: <strong className="text-zinc-700">{fp.repName}</strong></span>
+                              {fp.disposition && (
+                                <span className={`px-1.5 py-0.2 rounded font-bold border ${badgeColor}`}>
+                                  {fp.disposition}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="py-8 text-center text-zinc-400 space-y-1">
+                        <Clock className="w-6 h-6 mx-auto opacity-40" />
+                        <p className="text-xs font-medium">No prior communication footprint recorded yet.</p>
+                        <p className="text-[10px] text-zinc-400">First touch in progress. Log call or add note above.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: 1-CLICK OBJECTION SHIELDS (ARM) */}
+              {activeRightTab === 'objections' && (
+                <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-xs space-y-3 animate-in fade-in duration-150">
+                  <div className="pb-2 border-b border-zinc-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 font-mono flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>1-Click Objection Shields (ARM)</span>
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 text-zinc-600">
+                        Acknowledge • Respond • Move
                       </span>
                     </div>
                     <p className="text-[11px] text-zinc-500 mt-0.5">
-                      Auto-synthesizes in real time as you click qualification boxes.
+                      Prospect gave pushback? Click to see the exact battle-tested response:
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleResetTelemetry}
-                    className="text-[11px] text-zinc-400 hover:text-zinc-700 flex items-center gap-1 cursor-pointer"
-                    title="Reset qualification boxes for new call"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>Reset</span>
-                  </button>
-                </div>
-
-                {/* Primary 1-Click Action: Copy CRM Notes */}
-                <button
-                  type="button"
-                  onClick={() => copyText(notesDraft, 'notes_copy')}
-                  className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-                    copiedKey === 'notes_copy'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-zinc-950 hover:bg-zinc-800 text-white'
-                  }`}
-                >
-                  {copiedKey === 'notes_copy' ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedKey === 'notes_copy' ? '✓ Copied to Clipboard!' : '📋 Copy CRM Notes'}</span>
-                </button>
-
-                {/* The Live Auto-Synthesized Notes Textarea */}
-                <textarea
-                  rows={8}
-                  value={notesDraft}
-                  onChange={(e) => setNotesDraft(e.target.value)}
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-[11px] leading-relaxed text-zinc-900 font-mono focus:outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 select-text"
-                  placeholder="CRM call notes will auto-populate here as you click qualification checkpoints..."
-                />
-              </div>
-
-              {/* 2. QUICK 1-CLICK OBJECTION SHIELDS (ARM) */}
-              <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-3">
-                
-                <div className="pb-2 border-b border-zinc-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 font-mono flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      <span>1-CLICK OBJECTION SHIELDS (ARM)</span>
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 text-zinc-600">
-                      Acknowledge • Respond • Move
-                    </span>
+                  {/* Clickable Objection Chips */}
+                  <div className="flex flex-col gap-1.5">
+                    {PRESET_REBUTTALS.map((reb) => {
+                      const isSelected = selectedRebuttalId === reb.id;
+                      return (
+                        <button
+                          key={reb.id}
+                          type="button"
+                          onClick={() => setSelectedRebuttalId(reb.id)}
+                          className={`text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-between border ${
+                            isSelected
+                              ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
+                              : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-800 border-zinc-200'
+                          }`}
+                        >
+                          <span className="truncate">🛡️ "{reb.trigger}"</span>
+                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded shrink-0 ml-2 ${
+                            isSelected ? 'bg-zinc-800 text-zinc-300' : 'bg-white text-zinc-500 border border-zinc-200'
+                          }`}>
+                            {reb.category}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
-                    Prospect gave pushback? Click to see the exact battle-tested response:
-                  </p>
-                </div>
 
-              {/* Clickable Objection Chips */}
-              <div className="flex flex-col gap-1.5">
-                {PRESET_REBUTTALS.map((reb) => {
-                  const isSelected = selectedRebuttalId === reb.id;
-                  return (
-                    <button
-                      key={reb.id}
-                      type="button"
-                      onClick={() => setSelectedRebuttalId(reb.id)}
-                      className={`text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-between border ${
-                        isSelected
-                          ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
-                          : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-800 border-zinc-200'
-                      }`}
-                    >
-                      <span className="truncate">🛡️ "{reb.trigger}"</span>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded shrink-0 ml-2 ${
-                        isSelected ? 'bg-zinc-800 text-zinc-300' : 'bg-white text-zinc-500 border border-zinc-200'
-                      }`}>
-                        {reb.category}
+                  {/* Active Objection Rebuttal Card */}
+                  <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-zinc-900 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-900 font-mono truncate max-w-[240px]">
+                        ARM: "{activeRebuttal.trigger}"
                       </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      <button
+                        type="button"
+                        onClick={() => copyText(interpolate(activeRebuttal.fullSpoken), 'reb_copy')}
+                        className="px-2 py-1 rounded bg-white border border-amber-300 text-[11px] font-semibold text-zinc-800 hover:bg-amber-100 flex items-center gap-1 cursor-pointer shrink-0"
+                      >
+                        {copiedKey === 'reb_copy' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        <span>Copy</span>
+                      </button>
+                    </div>
 
-              {/* Active Objection Rebuttal Card */}
-              <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 text-zinc-900 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900 font-mono">
-                    ARM Response for: "{activeRebuttal.trigger}"
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => copyText(interpolate(activeRebuttal.fullSpoken), 'reb_copy')}
-                    className="px-2 py-1 rounded bg-white border border-amber-300 text-[11px] font-semibold text-zinc-800 hover:bg-amber-100 flex items-center gap-1 cursor-pointer"
-                  >
-                    {copiedKey === 'reb_copy' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                    <span>Copy</span>
-                  </button>
-                </div>
+                    <div className="space-y-2 text-xs leading-relaxed">
+                      <div>
+                        <span className="font-bold text-amber-950 uppercase text-[10px] font-mono block">
+                          1. Acknowledge (Validate, Don't Argue):
+                        </span>
+                        <p className="text-zinc-800 mt-0.5">
+                          {interpolate(activeRebuttal.acknowledge)}
+                        </p>
+                      </div>
 
-                <div className="space-y-2 text-xs leading-relaxed">
-                  <div>
-                    <span className="font-bold text-amber-950 uppercase text-[10px] font-mono block">
-                      1. Acknowledge (Validate, Don't Argue):
-                    </span>
-                    <p className="text-zinc-800 mt-0.5">
-                      {interpolate(activeRebuttal.acknowledge)}
-                    </p>
+                      <div>
+                        <span className="font-bold text-amber-950 uppercase text-[10px] font-mono block">
+                          2. Respond (Re-frame the Friction):
+                        </span>
+                        <p className="text-zinc-800 mt-0.5">
+                          {interpolate(activeRebuttal.respond)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="font-bold text-amber-950 uppercase text-[10px] font-mono block">
+                          3. Move (Low-Friction Closing Question):
+                        </span>
+                        <p className="text-zinc-900 font-bold mt-0.5">
+                          {interpolate(activeRebuttal.move)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <span className="font-bold text-amber-950 uppercase text-[10px] font-mono block">
-                      2. Respond (Re-frame the Friction):
-                    </span>
-                    <p className="text-zinc-800 mt-0.5">
-                      {interpolate(activeRebuttal.respond)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span className="font-bold text-amber-950 uppercase text-[10px] font-mono block">
-                      3. Move (Low-Friction Closing Question):
-                    </span>
-                    <p className="text-zinc-900 font-bold mt-0.5">
-                      {interpolate(activeRebuttal.move)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-
-          </div>
-
-          {/* ========================================================================= */}
-          {/* SECTION 3: CALL OUTCOME & DISPOSITION BAR (OBVIOUS & UNMISSABLE)          */}
-          {/* ========================================================================= */}
-          <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-700 block">
-                  WHAT WAS THE OUTCOME OF THIS CALL?
-                </span>
-                <p className="text-xs text-zinc-500">
-                  Click an outcome button to log the call and advance cleanly to the next prospect.
-                </p>
-              </div>
-
-              {disposition && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    Logged: {disposition}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleProceedToNextLead}
-                    className="px-4 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-                  >
-                    <span>Proceed to Next Lead ({nextLeadCandidate.name})</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               )}
-            </div>
-
-            {/* The 5 Obvious Outcome Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-              
-              {/* 1. Meeting Booked */}
-              <button
-                type="button"
-                onClick={() => handleSelectDisposition('Meeting Booked')}
-                className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                  disposition === 'Meeting Booked'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-bold'
-                    : 'bg-emerald-50/60 hover:bg-emerald-100/70 border-emerald-200 text-emerald-950 font-semibold'
-                }`}
-              >
-                <span className="text-lg">🟢</span>
-                <span className="text-xs font-bold">Meeting Booked</span>
-                <span className="text-[10px] opacity-80">Send calendar invite</span>
-              </button>
-
-              {/* 2. Call Back Later */}
-              <button
-                type="button"
-                onClick={() => handleSelectDisposition('Call Back Later')}
-                className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                  disposition === 'Call Back Later'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-sm font-bold'
-                    : 'bg-amber-50/60 hover:bg-amber-100/70 border-amber-200 text-amber-950 font-semibold'
-                }`}
-              >
-                <span className="text-lg">🟡</span>
-                <span className="text-xs font-bold">Call Back Later</span>
-                <span className="text-[10px] opacity-80">Scheduled for redial</span>
-              </button>
-
-              {/* 3. Left Voicemail */}
-              <button
-                type="button"
-                onClick={() => handleSelectDisposition('Left Voicemail')}
-                className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                  disposition === 'Left Voicemail'
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold'
-                    : 'bg-blue-50/60 hover:bg-blue-100/70 border-blue-200 text-blue-950 font-semibold'
-                }`}
-              >
-                <span className="text-lg">🔵</span>
-                <span className="text-xs font-bold">Left Voicemail</span>
-                <span className="text-[10px] opacity-80">Cadence VM recorded</span>
-              </button>
-
-              {/* 4. No Answer / Gatekeeper */}
-              <button
-                type="button"
-                onClick={() => handleSelectDisposition('No Answer / Gatekeeper')}
-                className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                  disposition === 'No Answer / Gatekeeper'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-bold'
-                    : 'bg-rose-50/60 hover:bg-rose-100/70 border-rose-200 text-rose-950 font-semibold'
-                }`}
-              >
-                <span className="text-lg">🔴</span>
-                <span className="text-xs font-bold">No Answer</span>
-                <span className="text-[10px] opacity-80">Gatekeeper / Missed</span>
-              </button>
-
-              {/* 5. Not Interested / DNC */}
-              <button
-                type="button"
-                onClick={() => handleSelectDisposition('Not Interested / DNC')}
-                className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                  disposition === 'Not Interested / DNC'
-                    ? 'bg-zinc-800 text-white border-zinc-800 shadow-sm font-bold'
-                    : 'bg-zinc-100 hover:bg-zinc-200 border-zinc-300 text-zinc-800 font-semibold'
-                }`}
-              >
-                <span className="text-lg">⚪</span>
-                <span className="text-xs font-bold">Not Interested</span>
-                <span className="text-[10px] opacity-80">Quarantine lead</span>
-              </button>
 
             </div>
+
           </div>
 
         </main>

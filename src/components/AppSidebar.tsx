@@ -18,7 +18,8 @@ import {
   Building2,
   Lock,
   Mail,
-  Inbox
+  Inbox,
+  Users
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
@@ -46,6 +47,7 @@ export default function AppSidebar() {
   // Nav Groups
   const frontlineItems = [
     { label: 'Calling Floor', href: '/cockpit', icon: Swords },
+    { label: 'Global Contacts', href: '/contacts', icon: Users },
     { label: 'Sparring Arena', href: '/sparring', icon: Headphones },
     { label: 'LinkedIn Studio', href: '/linkedin', icon: LinkedinIcon },
     { label: 'Cold Email Studio', href: '/email', icon: Mail },
