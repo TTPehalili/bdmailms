@@ -272,8 +272,16 @@ export default function GlobalTopHeader() {
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="flex items-center gap-2 pl-1.5 pr-2 py-1 rounded-lg hover:bg-zinc-100 transition-colors"
             >
-              <div className="h-6 w-6 rounded-md bg-zinc-900 text-white flex items-center justify-center font-bold text-[10px]">
-                {repName.charAt(0)}
+              <div className="h-6 w-6 rounded-md bg-zinc-900 text-white flex items-center justify-center font-bold text-[10px] overflow-hidden">
+                {repName.toLowerCase().includes('emil') ? (
+                  <img
+                    src="/images/emil-halili.gif"
+                    alt={repName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  repName.charAt(0)
+                )}
               </div>
               <div className="text-left hidden sm:block">
                 <div className="text-xs font-semibold text-zinc-900 leading-tight truncate max-w-[100px]">
@@ -288,12 +296,21 @@ export default function GlobalTopHeader() {
 
             {userMenuOpen && (
               <div className="absolute right-0 mt-1 w-60 bg-white border border-zinc-200 rounded-xl shadow-xl p-2 z-50">
-                <div className="px-2 py-1.5 border-b border-zinc-100 mb-1.5">
-                  <div className="text-xs font-semibold text-zinc-900">{repName}</div>
-                  <div className="text-[11px] text-zinc-500 truncate">{email}</div>
-                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-zinc-100 text-zinc-700 font-medium">
-                    Role: {role}
-                  </span>
+                <div className="px-2 py-1.5 border-b border-zinc-100 mb-1.5 flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-full overflow-hidden border border-zinc-200 bg-zinc-100 shrink-0">
+                    <img
+                      src="/images/emil-halili.gif"
+                      alt={repName}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-zinc-900 truncate">{repName}</div>
+                    <div className="text-[11px] text-zinc-500 truncate">{email}</div>
+                    <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-zinc-100 text-zinc-700 font-medium">
+                      Role: {role}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">

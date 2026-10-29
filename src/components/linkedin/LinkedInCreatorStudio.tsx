@@ -448,10 +448,12 @@ export default function LinkedInCreatorStudio() {
                 </span>
               </div>
               <div className="px-4 pb-4 relative pt-0">
-                <div className="h-14 w-14 rounded-full border-2 border-white bg-zinc-900 text-white -mt-7 flex items-center justify-center font-bold text-sm shadow-xs overflow-hidden">
-                  <span className="bg-gradient-to-br from-[#0a66c2] to-zinc-950 w-full h-full flex items-center justify-center text-white font-bold">
-                    EH
-                  </span>
+                <div className="h-14 w-14 rounded-full border-2 border-white bg-zinc-900 text-white -mt-7 shadow-xs overflow-hidden relative">
+                  <img
+                    src="/images/emil-halili.gif"
+                    alt="Emil Halili"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="mt-2">
                   <h3 className="text-sm font-bold text-[#191919] flex items-center gap-1">
@@ -675,8 +677,12 @@ export default function LinkedInCreatorStudio() {
               {/* Post Header: Profile & Timestamp */}
               <div className="p-4 pb-2 flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#0a66c2] to-zinc-900 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
-                    EV
+                  <div className="h-12 w-12 rounded-full overflow-hidden border border-zinc-200/80 shadow-xs shrink-0 bg-zinc-100">
+                    <img
+                      src="/images/emil-halili.gif"
+                      alt="Emil Halili"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
                     <div className="flex items-center gap-1 leading-tight">
@@ -891,8 +897,12 @@ export default function LinkedInCreatorStudio() {
                   <div className="space-y-2.5 pt-1">
                     {activePost.injectedComments.map((comment, cIdx) => (
                       <div key={cIdx} className="flex items-start gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-[#0a66c2] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                          EH
+                        <div className="h-8 w-8 rounded-full overflow-hidden border border-zinc-200/80 shadow-2xs shrink-0 mt-0.5 bg-zinc-100">
+                          <img
+                            src="/images/emil-halili.gif"
+                            alt="Emil Halili"
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div className="flex-1 bg-[#f2f2f2] hover:bg-[#e8e8e8]/70 transition-colors p-3 rounded-2xl rounded-tl-xs space-y-1">
                           <div className="flex items-center justify-between">
