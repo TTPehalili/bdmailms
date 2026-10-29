@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formatEmailToParagraphs } from '@/lib/coldEmailStudio';
+import { getResendApiKey, getResendInboundEmail, getResendFromEmail } from '@/lib/resendConfig';
 
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
     const { 
       to, 
-      from = process.env.RESEND_FROM_EMAIL || 'Emil Halili <emil@appointmentlyy.com>', 
+      from = getResendFromEmail(), 
       subject, 
       body, 
       leadName = 'Prospect', 
@@ -56,10 +57,10 @@ export async function POST(req: NextRequest) {
       replyTo = rawEmail;
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendApiKey = getResendApiKey();
     if (!resendApiKey) {
       return NextResponse.json(
-        { error: 'RESEND_API_KEY is not configured or could not be loaded from .env.local. Live dispatch cannot proceed.' },
+        { error: 'RESEND_API_KEY is not configured or could not be loaded. Live dispatch cannot proceed.' },
         { status: 500 }
       );
     }
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
         html: formattedHtml
       };
 
-      const inboundAddress = process.env.RESEND_INBOUND_EMAIL || 'reply@estuegai.resend.app';
+      const inboundAddress = getResendInboundEmail();
       resendPayload.reply_to = replyTo 
         ? [inboundAddress, replyTo]
         : [inboundAddress, 'emil@appointmentlyy.com'];

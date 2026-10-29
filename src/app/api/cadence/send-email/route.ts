@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getResendApiKey } from '@/lib/resendConfig';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendApiKey = getResendApiKey();
     let externalDispatchResult = null;
 
     if (resendApiKey) {

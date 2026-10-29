@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getResendApiKey } from '@/lib/resendConfig';
 
 const INBOUND_STORE_FILE = path.join(process.cwd(), '.inbound_emails.json');
 
@@ -30,7 +31,7 @@ function writeStoredInboundEmails(emails: any[]): void {
  * Sync inbound emails from Resend Inbound Receiving API
  */
 async function syncFromResendReceiving(): Promise<any[]> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = getResendApiKey();
   if (!apiKey) return [];
 
   try {
