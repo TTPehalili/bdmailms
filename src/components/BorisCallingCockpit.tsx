@@ -27,7 +27,9 @@ import {
   Lock,
   Zap,
   Building2,
-  Briefcase
+  Briefcase,
+  RotateCcw,
+  FileText
 } from 'lucide-react';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
 import AppSidebar from '@/components/AppSidebar';
@@ -44,6 +46,11 @@ import UploadLeadsCsvModal from '@/components/cockpit/UploadLeadsCsvModal';
 import { logCadenceActivity, getDailyActivitySummary, subscribeToActivities } from '@/lib/activityStore';
 import { getStoredDispositions, subscribeToDispositions, CallDisposition } from '@/lib/dispositionStore';
 import { useSession } from '@/lib/session';
+import { 
+  CallTelemetryState, 
+  INITIAL_TELEMETRY_STATE, 
+  synthesizeCrmNotes 
+} from '@/lib/callTelemetry';
 
 interface ARMRebuttal {
   id: string;
@@ -162,6 +169,111 @@ export default function BorisCallingCockpit() {
   const [isSendingQuickEmail, setIsSendingQuickEmail] = useState<boolean>(false);
   const [quickEmailSuccess, setQuickEmailSuccess] = useState<string | null>(null);
 
+  // Tenant Custom Production Calendar Link
+  const [tenantCalendarLink, setTenantCalendarLink] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tenant_calendar_link');
+      if (saved && saved.trim()) return saved.trim();
+    }
+    return 'https://calendly.com/emil-appointmentlyy/30min';
+  });
+
+  // Telemetry & Customer Qualification State
+  const [telemetry, setTelemetry] = useState<CallTelemetryState>(INITIAL_TELEMETRY_STATE);
+  const [roleStatus, setRoleStatus] = useState<'confirmed' | 'promoted' | 'changed' | null>(null);
+  const [promotedTitleInput, setPromotedTitleInput] = useState<string>('');
+  const [referralContactInput, setReferralContactInput] = useState<string>('');
+  const [recognizedOA, setRecognizedOA] = useState<boolean | null>(null);
+  const [priceTrapStatus, setPriceTrapStatus] = useState<'confirmed' | 'denial' | null>(null);
+  const [bookingSlot, setBookingSlot] = useState<string | null>(null);
+  const [directMobileInput, setDirectMobileInput] = useState<string>('');
+  const [customRepNotes, setCustomRepNotes] = useState<string>('');
+
+  // Spoken Steps Definitions
+  const scriptSteps = [
+    {
+      step: 1,
+      name: '1. The Opener',
+      goal: 'Get permission & reference yesterday\'s email to immediately eliminate cold call resistance.',
+      spokenText: `"Hi {{first_name}}, this is {{rep_name}} with Appointmentlyy. I know I'm catching you unannounced—do you have 30 seconds? I sent you a quick email yesterday titled 'quick question on {{company}} ramp time' about new reps burning paid client leads. Did that cross your screen, or do your reps somehow hit production on Day 3 without burning leads?"`,
+      deliveryTip: 'Calm, confident, unhurried peer-to-peer tone. Do not apologize for calling.'
+    },
+    {
+      step: 2,
+      name: '2. The Shared Lead Trap',
+      goal: 'Expose the commodity broker trap: 3-5 rival BPOs pitching the exact same lead list.',
+      spokenText: `"Most BPO operations leaders we speak with tell us their biggest leak is buying shared leads from Outsource Accelerator or brokers, only to find out 3 to 5 rival BPOs got the identical list 10 minutes earlier. Junior reps stumble in the first 20 seconds and get chopped down on price. Are your callers dealing with that same price pressure right now?"`,
+      deliveryTip: 'Stop talking immediately after the question. Let the prospect vent about their lead quality.'
+    },
+    {
+      step: 3,
+      name: '3. The 72-Hour Solution',
+      goal: 'Position private enriched lists + 150ms live objection sparring.',
+      spokenText: `"That's exactly why we built Appointmentlyy. Instead of letting reps practice on live, expensive client leads, we feed real-time consultative rebuttals in 150 milliseconds live on the dial, and spar them against hostile AI buyer personas before Day 1. It cuts ramp time from 4 weeks down to 72 hours."`,
+      deliveryTip: 'Keep it focused on floor economics and rep confidence—not technical jargon.'
+    },
+    {
+      step: 4,
+      name: '4. The 20-Min Close',
+      goal: 'Lock a 15-20 min executive screen share with Founder Emil.',
+      spokenText: `"{{first_name}}, I want to show you how our BPO client acquisition engine works in a 15-minute screen share with Emil, our founder. No generic pitch deck, just live numbers on your floor scale and how BPOs are eliminating the rookie lead tax. How does Thursday at 2:00 PM look, or does Friday morning work better?"`,
+      deliveryTip: 'Offer a binary time choice (Thursday 2pm vs Friday morning) to make scheduling effortless.'
+    }
+  ];
+
+  const activeStepData = scriptSteps[currentStep - 1] || scriptSteps[0];
+
+  // Helper to construct synthesized CRM notes
+  const buildNotes = (params?: {
+    tel?: CallTelemetryState;
+    disp?: string | null;
+    cTitle?: string;
+    customNotes?: string;
+    cName?: string;
+    pName?: string;
+    cPhone?: string;
+  }): string => {
+    const activeTel = params?.tel || telemetry;
+    const activeDisp = params?.disp !== undefined ? params.disp : disposition;
+    return synthesizeCrmNotes({
+      contactName: params?.cName || customerName,
+      companyName: params?.pName || partnerName,
+      title: params?.cTitle || title,
+      department: 'Operations & BDM',
+      headcount: headcount || '100+ seats',
+      phone: params?.cPhone || phone,
+      cadenceDay: 2,
+      stepName: scriptSteps[currentStep - 1]?.name || 'Day 2 Phone Outreach',
+      telemetry: activeTel,
+      disposition: activeDisp,
+      customRepNotes: params?.customNotes !== undefined ? params.customNotes : customRepNotes
+    });
+  };
+
+  const [notesDraft, setNotesDraft] = useState<string>(() => synthesizeCrmNotes({
+    contactName: 'Julian Vance',
+    companyName: 'Apex Global BPO',
+    title: 'Director of Outbound Operations',
+    department: 'Operations & BDM',
+    headcount: '250 Seats',
+    phone: '+63 917 555 0192',
+    cadenceDay: 2,
+    stepName: '1. The Opener',
+    telemetry: INITIAL_TELEMETRY_STATE,
+    disposition: null,
+    customRepNotes: ''
+  }));
+
+  // Sync tenant calendar link from storage
+  useEffect(() => {
+    try {
+      const savedLink = localStorage.getItem('tenant_calendar_link');
+      if (savedLink && savedLink.trim()) {
+        setTenantCalendarLink(savedLink.trim());
+      }
+    } catch {}
+  }, []);
+
   // 1. Load Stored Leads on Mount
   useEffect(() => {
     try {
@@ -179,6 +291,19 @@ export default function BorisCallingCockpit() {
           setHeadcount(first.headcount);
           setLeadWebsite(first.website || '');
           setLeadLinkedinUrl(first.linkedinUrl || '');
+          setNotesDraft(synthesizeCrmNotes({
+            contactName: first.name,
+            companyName: first.company,
+            title: first.title,
+            department: 'Operations & BDM',
+            headcount: first.headcount,
+            phone: first.phone,
+            cadenceDay: 2,
+            stepName: '1. The Opener',
+            telemetry: INITIAL_TELEMETRY_STATE,
+            disposition: null,
+            customRepNotes: ''
+          }));
         }
       } else {
         const savedEmail = localStorage.getItem('sdr_target_recipient_email');
@@ -234,14 +359,169 @@ export default function BorisCallingCockpit() {
     setCurrentStep(1);
     setIsCallingActive(false);
 
+    // Reset Telemetry for New Lead
+    setTelemetry(INITIAL_TELEMETRY_STATE);
+    setRoleStatus(null);
+    setRecognizedOA(null);
+    setPriceTrapStatus(null);
+    setBookingSlot(null);
+    setDirectMobileInput('');
+    setCustomRepNotes('');
+    setNotesDraft(synthesizeCrmNotes({
+      contactName: lead.name,
+      companyName: lead.company,
+      title: lead.title,
+      department: 'Operations & BDM',
+      headcount: lead.headcount,
+      phone: lead.phone,
+      cadenceDay: lead.cadenceDay || 2,
+      stepName: '1. The Opener',
+      telemetry: INITIAL_TELEMETRY_STATE,
+      disposition: null,
+      customRepNotes: ''
+    }));
+
     // Sync active email globally
     if (lead.email && typeof window !== 'undefined') {
       localStorage.setItem('sdr_target_recipient_email', lead.email);
     }
   };
 
+  // Qualification Checkpoint Handlers
+  const handleSetRole = (status: 'confirmed' | 'promoted' | 'changed') => {
+    setRoleStatus(status);
+    let nextTel: CallTelemetryState;
+    if (status === 'confirmed') {
+      nextTel = {
+        ...telemetry,
+        roleVerified: true,
+        roleTitleStatus: `Verified active in role (${title})`
+      };
+      setTelemetry(nextTel);
+      setNotesDraft(buildNotes({ tel: nextTel }));
+    } else if (status === 'promoted') {
+      nextTel = {
+        ...telemetry,
+        roleVerified: true,
+        roleTitleStatus: `Promoted to ${promotedTitleInput || 'New Leadership Title'}`
+      };
+      setTelemetry(nextTel);
+      setNotesDraft(buildNotes({ tel: nextTel }));
+    } else {
+      nextTel = {
+        ...telemetry,
+        roleVerified: false,
+        roleTitleStatus: `Left role / Referral noted (${referralContactInput || 'New DM pending'})`
+      };
+      setTelemetry(nextTel);
+      setDisposition('Referral / Update Contact');
+      setNotesDraft(buildNotes({ tel: nextTel, disp: 'Referral / Update Contact' }));
+    }
+  };
+
+  const handleSetOA = (val: boolean) => {
+    setRecognizedOA(val);
+    const nextTel = {
+      ...telemetry,
+      directoryDiscussed: true,
+      sharedLeadComment: val 
+        ? 'Confirmed Outsource Accelerator awareness' 
+        : 'Unfamiliar with broker directories'
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  const handleSetPriceTrap = (status: 'confirmed' | 'denial') => {
+    setPriceTrapStatus(status);
+    const nextTel = {
+      ...telemetry,
+      directoryDiscussed: true,
+      sharedLeadConfirmed: status === 'confirmed',
+      sharedLeadComment: status === 'confirmed'
+        ? 'Confirmed: Competing against 3-5 BPOs on identical Outsource Accelerator lists ($8/hr price war)'
+        : 'Claims lists are exclusive / defended margins'
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  const handleToggleProblemFix = () => {
+    const nextVal = !telemetry.problemFixDiscussed;
+    const nextTel = {
+      ...telemetry,
+      problemFixDiscussed: nextVal
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  const handleSetService = (serv: string) => {
+    const nextTel = {
+      ...telemetry,
+      primaryService: serv
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  const handleSelectSlot = (slot: string) => {
+    setBookingSlot(slot);
+    setDisposition('Meeting Booked');
+    const nextTel = {
+      ...telemetry,
+      screenSharePitched: true,
+      screenShareSlot: slot
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel, disp: 'Meeting Booked' }));
+  };
+
+  const handleToggleAttendance = () => {
+    const nextVal = !telemetry.attendanceVerified;
+    const nextTel = {
+      ...telemetry,
+      attendanceVerified: nextVal,
+      zeroPrepConfirmed: nextVal
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  const handleUpdateDirectMobile = (mob: string) => {
+    setDirectMobileInput(mob);
+    const nextTel = {
+      ...telemetry,
+      directMobileCaptured: mob
+    };
+    setTelemetry(nextTel);
+    setNotesDraft(buildNotes({ tel: nextTel }));
+  };
+
+  const handleResetTelemetry = () => {
+    setTelemetry(INITIAL_TELEMETRY_STATE);
+    setRoleStatus(null);
+    setRecognizedOA(null);
+    setPriceTrapStatus(null);
+    setBookingSlot(null);
+    setDirectMobileInput('');
+    setCustomRepNotes('');
+    setNotesDraft(synthesizeCrmNotes({
+      contactName: customerName,
+      companyName: partnerName,
+      title,
+      department: 'Operations & BDM',
+      headcount,
+      phone,
+      cadenceDay: 2,
+      stepName: scriptSteps[currentStep - 1]?.name || '1. The Opener',
+      telemetry: INITIAL_TELEMETRY_STATE,
+      disposition: null,
+      customRepNotes: ''
+    }));
+  };
+
   // GLOBAL EMAIL CONFIRMATION SYNC
-  // When rep updates email address on the phone, update state and persist globally
   const handleConfirmedEmailChange = (newEmail: string) => {
     setDirectEmail(newEmail);
     setEmailSavedToast(true);
@@ -251,7 +531,6 @@ export default function BorisCallingCockpit() {
       localStorage.setItem('sdr_target_recipient_email', newEmail);
     }
 
-    // Persist to lead in leadsQueue
     if (leadsQueue.length > 0 && currentLeadIndex >= 0 && currentLeadIndex < leadsQueue.length) {
       const updatedQueue = [...leadsQueue];
       updatedQueue[currentLeadIndex] = {
@@ -292,7 +571,10 @@ export default function BorisCallingCockpit() {
     setDisposition(dispName);
     setIsCallingActive(false);
 
-    // Log Cadence Activity
+    const updatedNotes = buildNotes({ disp: dispName });
+    setNotesDraft(updatedNotes);
+
+    // Log Cadence Activity with full synthesized CRM call notes
     try {
       logCadenceActivity({
         repName,
@@ -303,13 +585,13 @@ export default function BorisCallingCockpit() {
         touchNumber: activeLead.touchNumber || 3,
         stepName: `Phone Call • ${dispName}`,
         disposition: dispName,
-        notesSnippet: `Call outcome logged: ${dispName}. Lead: ${customerName} (${partnerName}). Phone: ${phone}. Email: ${directEmail}.`,
+        notesSnippet: updatedNotes,
         signalsContext: activeLead.buyingSignals || [],
         website: leadWebsite,
         linkedinUrl: leadLinkedinUrl
       });
       setCompletedActivityCount(prev => prev + 1);
-      setActivityToast(`✓ Call logged: ${dispName}`);
+      setActivityToast(`✓ Call logged: ${dispName} • CRM Notes Synced`);
       setTimeout(() => setActivityToast(null), 3500);
     } catch (err) {
       console.warn('Activity logging notice:', err);
@@ -334,7 +616,7 @@ export default function BorisCallingCockpit() {
     const firstName = customerName.split(' ')[0] || 'there';
     setQuickEmailSubject(`quick follow up from our call / ${partnerName}`);
     setQuickEmailBody(
-      `Hi ${firstName},\n\nGreat speaking with you just now. As discussed, here is the executive overview on cutting rep ramp time to 72 hours with <150ms live call assistance.\n\nHere is Emil's calendar if Thursday at 2:00 PM still works best for the quick 15-minute screen share: https://calendly.com/emil-callview/15min\n\nBest,\n${repName}`
+      `Hi ${firstName},\n\nGreat speaking with you just now. As discussed, here is the executive overview on cutting rep ramp time to 72 hours with <150ms live call assistance.\n\nHere is the link to lock in the 15-minute screen share: ${tenantCalendarLink}\n\nBest,\n${repName}`
     );
     setQuickEmailSuccess(null);
     setIsQuickEmailOpen(true);
@@ -378,39 +660,7 @@ export default function BorisCallingCockpit() {
     }
   };
 
-  // Spoken Steps Definitions
-  const scriptSteps = [
-    {
-      step: 1,
-      name: '1. The Opener',
-      goal: 'Get permission & reference yesterday\'s email to immediately eliminate cold call resistance.',
-      spokenText: `"Hi {{first_name}}, this is {{rep_name}} with Appointmentlyy. I know I'm catching you unannounced—do you have 30 seconds? I sent you a quick email yesterday titled 'quick question on {{company}} ramp time' about new reps burning paid client leads. Did that cross your screen, or do your reps somehow hit production on Day 3 without burning leads?"`,
-      deliveryTip: 'Calm, confident, unhurried peer-to-peer tone. Do not apologize for calling.'
-    },
-    {
-      step: 2,
-      name: '2. The Shared Lead Trap',
-      goal: 'Expose the commodity broker trap: 3-5 rival BPOs pitching the exact same lead list.',
-      spokenText: `"Most BPO operations leaders we speak with tell us their biggest leak is buying shared leads from Outsource Accelerator or brokers, only to find out 3 to 5 rival BPOs got the identical list 10 minutes earlier. Junior reps stumble in the first 20 seconds and get chopped down on price. Are your callers dealing with that same price pressure right now?"`,
-      deliveryTip: 'Stop talking immediately after the question. Let the prospect vent about their lead quality.'
-    },
-    {
-      step: 3,
-      name: '3. The 72-Hour Solution',
-      goal: 'Position private enriched lists + 150ms live objection sparring.',
-      spokenText: `"That's exactly why we built Appointmentlyy. Instead of letting reps practice on live, expensive client leads, we feed real-time consultative rebuttals in 150 milliseconds live on the dial, and spar them against hostile AI buyer personas before Day 1. It cuts ramp time from 4 weeks down to 72 hours."`,
-      deliveryTip: 'Keep it focused on floor economics and rep confidence—not technical jargon.'
-    },
-    {
-      step: 4,
-      name: '4. The 20-Min Close',
-      goal: 'Lock a 15-20 min executive screen share with Founder Emil.',
-      spokenText: `"{{first_name}}, I want to show you how our BPO client acquisition engine works in a 15-minute screen share with Emil, our founder. No generic pitch deck, just live numbers on your floor scale and how BPOs are eliminating the rookie lead tax. How does Thursday at 2:00 PM look, or does Friday morning work better?"`,
-      deliveryTip: 'Offer a binary time choice (Thursday 2pm vs Friday morning) to make scheduling effortless.'
-    }
-  ];
 
-  const activeStepData = scriptSteps[currentStep - 1] || scriptSteps[0];
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-zinc-50 font-sans antialiased text-zinc-900">
@@ -749,6 +999,263 @@ export default function BorisCallingCockpit() {
                   </div>
                 </div>
 
+                {/* STEP 1 QUALIFICATION CHECKPOINTS */}
+                {currentStep === 1 && (
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Step 1 Qualification: Role &amp; Contact Gate</span>
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        Auto-updates CRM notes
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSetRole('confirmed')}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                          roleStatus === 'confirmed'
+                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                            : 'bg-white border-zinc-200 text-zinc-800 hover:border-emerald-600'
+                        }`}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Still in Role</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSetRole('promoted')}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                          roleStatus === 'promoted'
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                            : 'bg-white border-zinc-200 text-zinc-800 hover:border-blue-600'
+                        }`}
+                      >
+                        <span>Promoted / New Title</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSetRole('changed')}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                          roleStatus === 'changed'
+                            ? 'bg-zinc-800 border-zinc-800 text-white shadow-xs'
+                            : 'bg-white border-zinc-200 text-zinc-800 hover:border-zinc-800'
+                        }`}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        <span>Left Role / Referral</span>
+                      </button>
+                    </div>
+
+                    {roleStatus === 'promoted' && (
+                      <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={promotedTitleInput}
+                          onChange={(e) => setPromotedTitleInput(e.target.value)}
+                          placeholder="Enter new promoted title (e.g. VP Global Operations)"
+                          className="flex-1 bg-white border border-blue-300 rounded px-2.5 py-1 text-xs text-zinc-900"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (promotedTitleInput.trim()) {
+                              setTitle(promotedTitleInput.trim());
+                              const nextTel = { ...telemetry, roleVerified: true, roleTitleStatus: `Promoted to ${promotedTitleInput.trim()}` };
+                              setTelemetry(nextTel);
+                              setNotesDraft(buildNotes({ cTitle: promotedTitleInput.trim(), tel: nextTel }));
+                            }
+                          }}
+                          className="px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold cursor-pointer"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    )}
+
+                    {roleStatus === 'changed' && (
+                      <div className="p-2.5 bg-zinc-100 border border-zinc-300 rounded-lg flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={referralContactInput}
+                          onChange={(e) => setReferralContactInput(e.target.value)}
+                          placeholder="Referral contact name & email/phone"
+                          className="flex-1 bg-white border border-zinc-300 rounded px-2.5 py-1 text-xs text-zinc-900"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextTel = { ...telemetry, roleVerified: false, roleTitleStatus: `Left role / Referral: ${referralContactInput}` };
+                            setTelemetry(nextTel);
+                            setNotesDraft(buildNotes({ tel: nextTel, disp: 'Referral / Update Contact' }));
+                          }}
+                          className="px-3 py-1 rounded bg-zinc-800 text-white text-xs font-bold cursor-pointer"
+                        >
+                          Log Referral
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* STEP 2 QUALIFICATION CHECKPOINTS */}
+                {currentStep === 2 && (
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                        <span>Step 2 Qualification: Lead Sourcing &amp; Broker Audit</span>
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        Auto-updates Section 2 of CRM notes
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSetOA(!recognizedOA)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-between cursor-pointer ${
+                          recognizedOA
+                            ? 'bg-purple-600 border-purple-600 text-white shadow-xs'
+                            : 'bg-white border-zinc-200 text-zinc-800 hover:border-purple-600'
+                        }`}
+                      >
+                        <span>📦 Outsource Accelerator Aware</span>
+                        {recognizedOA ? <Check className="h-3.5 w-3.5" /> : null}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSetPriceTrap(priceTrapStatus === 'confirmed' ? 'denial' : 'confirmed')}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-between cursor-pointer ${
+                          priceTrapStatus === 'confirmed'
+                            ? 'bg-red-600 border-red-600 text-white shadow-xs'
+                            : 'bg-white border-zinc-200 text-zinc-800 hover:border-red-600'
+                        }`}
+                      >
+                        <span>🔥 Competing on Shared Lists ($8/hr Trap)</span>
+                        {priceTrapStatus === 'confirmed' ? <Check className="h-3.5 w-3.5" /> : null}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3 QUALIFICATION CHECKPOINTS */}
+                {currentStep === 3 && (
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Step 3 Qualification: Revenue Drivers &amp; Solution Fit</span>
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        Auto-updates Section 3 of CRM notes
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block mb-1">
+                        PRIMARY REVENUE DRIVER (CORE SERVICE):
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {['Customer Support', 'Outbound Sales', 'Tech Support', 'Back-Office'].map((serv) => (
+                          <button
+                            key={serv}
+                            type="button"
+                            onClick={() => handleSetService(serv)}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                              telemetry.primaryService === serv
+                                ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs'
+                                : 'bg-white border-zinc-200 text-zinc-700 hover:border-zinc-400'
+                            }`}
+                          >
+                            {serv}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleToggleProblemFix}
+                      className={`w-full py-2 px-3 rounded-xl text-xs font-bold border flex items-center justify-between transition-colors cursor-pointer ${
+                        telemetry.problemFixDiscussed
+                          ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                          : 'bg-white border-zinc-200 text-zinc-800 hover:border-emerald-500'
+                      }`}
+                    >
+                      <span>🎯 Pitched 150ms Objection Cues &amp; Pre-Call Voice Sparring</span>
+                      {telemetry.problemFixDiscussed ? <Check className="h-4 w-4" /> : <span className="text-[10px] text-zinc-400">Click to log pitch</span>}
+                    </button>
+                  </div>
+                )}
+
+                {/* STEP 4 QUALIFICATION CHECKPOINTS */}
+                {currentStep === 4 && (
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Step 4 Qualification: Screen Share Slot &amp; Attendance</span>
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        Auto-updates Section 4 of CRM notes
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block mb-1">
+                        CONFIRMED 20-MIN SCREEN SHARE SLOT:
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                        {['Thursday 2:00 PM', 'Friday 10:30 AM', 'Tuesday 2:00 PM'].map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => handleSelectSlot(slot)}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                              bookingSlot === slot
+                                ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                                : 'bg-white border-zinc-200 text-zinc-800 hover:border-emerald-500'
+                            }`}
+                          >
+                            {slot} {bookingSlot === slot ? '✓' : ''}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleToggleAttendance}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border flex items-center justify-between transition-colors cursor-pointer ${
+                          telemetry.attendanceVerified
+                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                            : 'bg-white border-zinc-200 text-zinc-800 hover:border-emerald-500'
+                        }`}
+                      >
+                        <span>💻 Laptop Confirmed (Zero Prep)</span>
+                        {telemetry.attendanceVerified ? <Check className="h-3.5 w-3.5" /> : null}
+                      </button>
+
+                      <input
+                        type="tel"
+                        value={directMobileInput}
+                        onChange={(e) => handleUpdateDirectMobile(e.target.value)}
+                        placeholder="Direct Mobile for 10-min SMS"
+                        className="bg-white border border-zinc-300 rounded-xl px-2.5 py-1.5 text-xs text-zinc-900 font-mono focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Step Navigation Button */}
                 <div className="flex items-center justify-between pt-1">
                   <button
@@ -783,23 +1290,79 @@ export default function BorisCallingCockpit() {
 
             </div>
 
-            {/* RIGHT: QUICK 1-CLICK OBJECTION SHIELDS (5 cols) */}
-            <div className="lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-3">
+            {/* RIGHT: AUTO-UPDATING CRM NOTES & QUICK OBJECTION SHIELDS (5 cols) */}
+            <div className="lg:col-span-5 space-y-4">
               
-              <div className="pb-2 border-b border-zinc-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 font-mono flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>1-CLICK OBJECTION SHIELDS (ARM)</span>
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 text-zinc-600">
-                    Acknowledge • Respond • Move
-                  </span>
+              {/* 1. AUTO-UPDATING CRM CALL NOTES CARD */}
+              <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base">📝</span>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 font-mono">
+                        CRM Call Notes
+                      </h3>
+                      <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold animate-pulse">
+                        Live Auto-Sync
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">
+                      Auto-synthesizes in real time as you click qualification boxes.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleResetTelemetry}
+                    className="text-[11px] text-zinc-400 hover:text-zinc-700 flex items-center gap-1 cursor-pointer"
+                    title="Reset qualification boxes for new call"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Reset</span>
+                  </button>
                 </div>
-                <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Prospect gave pushback? Click to see the exact battle-tested response:
-                </p>
+
+                {/* Primary 1-Click Action: Copy CRM Notes */}
+                <button
+                  type="button"
+                  onClick={() => copyText(notesDraft, 'notes_copy')}
+                  className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+                    copiedKey === 'notes_copy'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-zinc-950 hover:bg-zinc-800 text-white'
+                  }`}
+                >
+                  {copiedKey === 'notes_copy' ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedKey === 'notes_copy' ? '✓ Copied to Clipboard!' : '📋 Copy CRM Notes'}</span>
+                </button>
+
+                {/* The Live Auto-Synthesized Notes Textarea */}
+                <textarea
+                  rows={8}
+                  value={notesDraft}
+                  onChange={(e) => setNotesDraft(e.target.value)}
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-[11px] leading-relaxed text-zinc-900 font-mono focus:outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 select-text"
+                  placeholder="CRM call notes will auto-populate here as you click qualification checkpoints..."
+                />
               </div>
+
+              {/* 2. QUICK 1-CLICK OBJECTION SHIELDS (ARM) */}
+              <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-3">
+                
+                <div className="pb-2 border-b border-zinc-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 font-mono flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>1-CLICK OBJECTION SHIELDS (ARM)</span>
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 text-zinc-600">
+                      Acknowledge • Respond • Move
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    Prospect gave pushback? Click to see the exact battle-tested response:
+                  </p>
+                </div>
 
               {/* Clickable Objection Chips */}
               <div className="flex flex-col gap-1.5">
@@ -874,6 +1437,8 @@ export default function BorisCallingCockpit() {
               </div>
 
             </div>
+
+          </div>
 
           </div>
 
@@ -1117,11 +1682,11 @@ export default function BorisCallingCockpit() {
             </div>
             <div className="flex-1 bg-white">
               <iframe
-                src={`https://calendly.com/emil-callview/15min?name=${encodeURIComponent(customerName)}&email=${encodeURIComponent(directEmail)}&a1=${encodeURIComponent(partnerName)}`}
+                src={`${tenantCalendarLink}?name=${encodeURIComponent(customerName)}&email=${encodeURIComponent(directEmail)}&a1=${encodeURIComponent(partnerName)}`}
                 width="100%"
                 height="100%"
                 frameBorder="0"
-                title="Calendly Booking"
+                title="Customer Booking Calendar"
               />
             </div>
           </div>

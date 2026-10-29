@@ -19,7 +19,8 @@ import {
   Layers,
   ArrowRight,
   Mail,
-  Globe
+  Globe,
+  Calendar
 } from 'lucide-react';
 
 interface TenantBYOKState {
@@ -29,6 +30,7 @@ interface TenantBYOKState {
   resendKey: string;
   resendDomain: string;
   resendFromEmail: string;
+  calendarBookingLink: string;
   openaiKey: string;
   claudeKey: string;
   geminiKey: string;
@@ -56,6 +58,7 @@ export default function ByokVaultManager() {
       resendKey: '',
       resendDomain: 'apexglobalbpo.ph',
       resendFromEmail: 'outbound@apexglobalbpo.ph',
+      calendarBookingLink: 'https://calendly.com/emil-appointmentlyy/30min',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -69,6 +72,7 @@ export default function ByokVaultManager() {
       resendKey: '',
       resendDomain: '',
       resendFromEmail: '',
+      calendarBookingLink: 'https://calendly.com/emil-appointmentlyy/30min',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -82,6 +86,7 @@ export default function ByokVaultManager() {
       resendKey: '',
       resendDomain: '',
       resendFromEmail: '',
+      calendarBookingLink: 'https://calendly.com/emil-appointmentlyy/30min',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -95,6 +100,7 @@ export default function ByokVaultManager() {
       resendKey: '',
       resendDomain: '',
       resendFromEmail: '',
+      calendarBookingLink: 'https://calendly.com/emil-appointmentlyy/30min',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -197,6 +203,11 @@ export default function ByokVaultManager() {
 
   const handleSaveVault = (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTenant.calendarBookingLink) {
+      try {
+        localStorage.setItem('tenant_calendar_link', activeTenant.calendarBookingLink.trim());
+      } catch {}
+    }
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
   };
@@ -420,7 +431,40 @@ export default function ByokVaultManager() {
                 </div>
               </div>
 
-              {/* 2. OpenAI Key */}
+              {/* 2. Customer Production Calendar Booking Link (Calendly / Cal.com / HubSpot) */}
+              <div className="p-4 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-blue-600" />
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <span className="font-bold text-xs text-[#222021]">Customer Production Calendar Booking Link</span>
+                    <span className="text-[10px] font-mono text-[#6b6968]">(Calendly / Cal.com / HubSpot)</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded">
+                    Active Booking Endpoint
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <input
+                    type="url"
+                    value={activeTenant.calendarBookingLink}
+                    onChange={(e) => handleUpdateKey('calendarBookingLink', e.target.value)}
+                    placeholder="https://calendly.com/your-team/30min"
+                    className="w-full bg-white border border-[#222021]/15 rounded-xl px-3.5 py-2.5 text-xs font-mono text-[#222021] focus:outline-none focus:ring-2 focus:ring-[#ED1C24]"
+                  />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-[#6b6968]">
+                    <span>
+                      Injected into Calling Floor teleprompter, quick follow-up email composer, and in-app booking modal.
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono shrink-0">
+                      Fallback: https://calendly.com/emil-appointmentlyy/30min
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. OpenAI Key */}
               <div className="p-4 rounded-xl bg-[#F2F0EF] border border-[#222021]/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
