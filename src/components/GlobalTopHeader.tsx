@@ -43,7 +43,7 @@ const COMMANDS: NavCommand[] = [
   { title: 'Mission & Targets Hub', category: 'Overview', href: '/', icon: Target },
   { title: 'Workflow Automation Studio', category: 'Automation', href: '/workflows', icon: Workflow },
   { title: 'Performance & Quotas', category: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { title: 'Support & Trouble Tickets', category: 'Support', href: '/tickets', icon: LifeBuoy },
+  { title: 'Support & Trouble Tickets', category: 'Management', href: '/tickets', icon: LifeBuoy },
   { title: 'User Guide & Playbooks', category: 'Enablement', href: '/guide', icon: BookOpen },
   { title: 'Admin Control Centre', category: 'Administration', href: '/admin', icon: Shield },
 ];

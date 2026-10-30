@@ -56,10 +56,10 @@ export default function AppSidebar() {
     { label: 'Unified Inbox', href: '/inbox', icon: Inbox },
     { label: 'Performance', href: '/analytics', icon: BarChart3 },
     { label: 'Playbooks & Guide', href: '/guide', icon: BookOpen },
-    { label: 'Support Tickets', href: '/tickets', icon: LifeBuoy },
   ];
 
   const managementItems = [
+    { label: 'Support Tickets', href: '/tickets', icon: LifeBuoy },
     { label: 'Upload Playbook', href: '/admin/frameworks', icon: UploadCloud },
     { label: 'Floor Monitor', href: '/monitoring', icon: Radio },
     { label: 'Workflow Studio', href: '/workflows', icon: Workflow },
