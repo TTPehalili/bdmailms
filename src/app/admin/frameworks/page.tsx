@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { 
-  UploadCloud, 
-  FileText, 
-  Sparkles, 
-  CheckCircle2, 
-  Layers, 
-  ShieldCheck, 
+import {
+  UploadCloud,
+  FileText,
+  Sparkles,
+  CheckCircle2,
+  Layers,
+  ShieldCheck,
   Database,
   RefreshCw,
   Plus,
@@ -124,11 +124,10 @@ export default function AdminFrameworksPage() {
             <button
               type="button"
               onClick={() => setActiveView('frameworks')}
-              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeView === 'frameworks'
+              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${activeView === 'frameworks'
                   ? 'bg-white text-zinc-950 font-bold shadow-xs'
                   : 'text-zinc-600 hover:text-zinc-950'
-              }`}
+                }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Outbound Guru Frameworks Studio</span>
@@ -137,11 +136,10 @@ export default function AdminFrameworksPage() {
             <button
               type="button"
               onClick={() => setActiveView('uploader')}
-              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeView === 'uploader'
+              className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${activeView === 'uploader'
                   ? 'bg-white text-zinc-950 font-bold shadow-xs'
                   : 'text-zinc-600 hover:text-zinc-950'
-              }`}
+                }`}
             >
               <UploadCloud className="w-3.5 h-3.5" />
               <span>Playbook Document Ingestion</span>
@@ -264,8 +262,8 @@ export default function AdminFrameworksPage() {
                     <span>Synthesized Playbook Assets</span>
                   </h3>
                   <p className="text-xs text-zinc-500 mt-0.5">
-                    {uploadResult 
-                      ? `${uploadResult.fileName} • ${uploadResult.synthesized?.companyName || 'Custom Tenant'}` 
+                    {uploadResult
+                      ? `${uploadResult.fileName} • ${uploadResult.synthesized?.companyName || 'Custom Tenant'}`
                       : 'Ready for document ingestion'}
                   </p>
                 </div>
@@ -286,27 +284,24 @@ export default function AdminFrameworksPage() {
                   <button
                     type="button"
                     onClick={() => setResultsSubTab('arm')}
-                    className={`flex-1 py-1 px-2.5 rounded text-center transition-all ${
-                      resultsSubTab === 'arm' ? 'bg-white text-zinc-900 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
+                    className={`flex-1 py-1 px-2.5 rounded text-center transition-all ${resultsSubTab === 'arm' ? 'bg-white text-zinc-900 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
                   >
                     Objections & Rebuttals ({uploadResult.entries.length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setResultsSubTab('scripts')}
-                    className={`flex-1 py-1 px-2.5 rounded text-center transition-all ${
-                      resultsSubTab === 'scripts' ? 'bg-white text-zinc-900 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
+                    className={`flex-1 py-1 px-2.5 rounded text-center transition-all ${resultsSubTab === 'scripts' ? 'bg-white text-zinc-900 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
                   >
                     Calling Teleprompter ({uploadResult.synthesized?.phoneScripts?.length || 4})
                   </button>
                   <button
                     type="button"
                     onClick={() => setResultsSubTab('cadence')}
-                    className={`flex-1 py-1 px-2.5 rounded text-center transition-all ${
-                      resultsSubTab === 'cadence' ? 'bg-white text-zinc-900 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
+                    className={`flex-1 py-1 px-2.5 rounded text-center transition-all ${resultsSubTab === 'cadence' ? 'bg-white text-zinc-900 font-bold shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
                   >
                     Email Cadence ({uploadResult.synthesized?.emailCadence?.length || 3})
                   </button>
@@ -315,7 +310,7 @@ export default function AdminFrameworksPage() {
 
               {uploadResult ? (
                 <div className="space-y-3 overflow-y-auto max-h-[580px] pr-1">
-                  
+
                   {/* TAB 1: ARM REBUTTALS */}
                   {resultsSubTab === 'arm' && (
                     <div className="space-y-3">

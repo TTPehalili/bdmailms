@@ -20,7 +20,8 @@ import {
   Mail,
   Inbox,
   Users,
-  UploadCloud
+  UploadCloud,
+  LifeBuoy
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import LinkedinIcon from '@/components/icons/LinkedinIcon';
@@ -55,6 +56,7 @@ export default function AppSidebar() {
     { label: 'Unified Inbox', href: '/inbox', icon: Inbox },
     { label: 'Performance', href: '/analytics', icon: BarChart3 },
     { label: 'Playbooks & Guide', href: '/guide', icon: BookOpen },
+    { label: 'Support Tickets', href: '/tickets', icon: LifeBuoy },
   ];
 
   const managementItems = [
