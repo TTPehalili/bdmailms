@@ -125,8 +125,8 @@ export default function AdminFrameworksPage() {
               type="button"
               onClick={() => setActiveView('frameworks')}
               className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${activeView === 'frameworks'
-                  ? 'bg-white text-zinc-950 font-bold shadow-xs'
-                  : 'text-zinc-600 hover:text-zinc-950'
+                ? 'bg-white text-zinc-950 font-bold shadow-xs'
+                : 'text-zinc-600 hover:text-zinc-950'
                 }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -137,8 +137,8 @@ export default function AdminFrameworksPage() {
               type="button"
               onClick={() => setActiveView('uploader')}
               className={`px-3.5 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${activeView === 'uploader'
-                  ? 'bg-white text-zinc-950 font-bold shadow-xs'
-                  : 'text-zinc-600 hover:text-zinc-950'
+                ? 'bg-white text-zinc-950 font-bold shadow-xs'
+                : 'text-zinc-600 hover:text-zinc-950'
                 }`}
             >
               <UploadCloud className="w-3.5 h-3.5" />

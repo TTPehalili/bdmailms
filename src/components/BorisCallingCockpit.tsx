@@ -200,13 +200,13 @@ export default function BorisCallingCockpit() {
   const [isSendingQuickEmail, setIsSendingQuickEmail] = useState<boolean>(false);
   const [quickEmailSuccess, setQuickEmailSuccess] = useState<string | null>(null);
 
-  // Tenant Custom Production Calendar Link
+  // Tenant Custom Production Calendar Link (Canonical: https://calendly.com/bpogtm/30min)
   const [tenantCalendarLink, setTenantCalendarLink] = useState<string>(() => {
-    const globalDefault = process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/bpogtm/30min';
+    const globalDefault = 'https://calendly.com/bpogtm/30min';
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('tenant_calendar_link');
       if (saved && saved.trim()) {
-        if (saved.includes('emil-appointmentlyy')) {
+        if (saved.includes('emil-appointmentlyy') || saved.includes('your-team')) {
           localStorage.setItem('tenant_calendar_link', globalDefault);
           return globalDefault;
         }
@@ -331,10 +331,10 @@ export default function BorisCallingCockpit() {
   // Sync tenant calendar link from storage
   useEffect(() => {
     try {
-      const globalDefault = process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/bpogtm/30min';
+      const globalDefault = 'https://calendly.com/bpogtm/30min';
       const savedLink = localStorage.getItem('tenant_calendar_link');
       if (savedLink && savedLink.trim()) {
-        if (savedLink.includes('emil-appointmentlyy')) {
+        if (savedLink.includes('emil-appointmentlyy') || savedLink.includes('your-team')) {
           localStorage.setItem('tenant_calendar_link', globalDefault);
           setTenantCalendarLink(globalDefault);
         } else {
@@ -1960,13 +1960,25 @@ export default function BorisCallingCockpit() {
                   Book Screen Share for {customerName} ({partnerName})
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowCalendlyModal(false)}
-                className="h-7 w-7 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center cursor-pointer"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`${tenantCalendarLink}?name=${encodeURIComponent(customerName)}&email=${encodeURIComponent(directEmail)}&a1=${encodeURIComponent(partnerName)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-mono flex items-center gap-1 transition-colors"
+                  title="Open Calendly in a new tab"
+                >
+                  <span>New Tab</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowCalendlyModal(false)}
+                  className="h-7 w-7 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 bg-white">
               <iframe
