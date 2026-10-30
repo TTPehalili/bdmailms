@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   KeyRound, 
   Lock, 
@@ -49,6 +49,15 @@ export default function ByokVaultManager() {
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [requestUpgradeModal, setRequestUpgradeModal] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedLink = localStorage.getItem('tenant_calendar_link');
+      if (savedLink && savedLink.includes('emil-appointmentlyy')) {
+        localStorage.setItem('tenant_calendar_link', 'https://calendly.com/bpogtm/30min');
+      }
+    } catch {}
+  }, []);
 
   const [tenantsBYOK, setTenantsBYOK] = useState<{ [id: string]: TenantBYOKState }>({
     'ten_1': {

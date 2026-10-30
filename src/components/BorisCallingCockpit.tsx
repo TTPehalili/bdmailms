@@ -202,11 +202,18 @@ export default function BorisCallingCockpit() {
 
   // Tenant Custom Production Calendar Link
   const [tenantCalendarLink, setTenantCalendarLink] = useState<string>(() => {
+    const globalDefault = process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/bpogtm/30min';
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('tenant_calendar_link');
-      if (saved && saved.trim()) return saved.trim();
+      if (saved && saved.trim()) {
+        if (saved.includes('emil-appointmentlyy')) {
+          localStorage.setItem('tenant_calendar_link', globalDefault);
+          return globalDefault;
+        }
+        return saved.trim();
+      }
     }
-    return 'https://calendly.com/bpogtm/30min';
+    return globalDefault;
   });
 
   // Telemetry & Customer Qualification State
@@ -324,9 +331,17 @@ export default function BorisCallingCockpit() {
   // Sync tenant calendar link from storage
   useEffect(() => {
     try {
+      const globalDefault = process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/bpogtm/30min';
       const savedLink = localStorage.getItem('tenant_calendar_link');
       if (savedLink && savedLink.trim()) {
-        setTenantCalendarLink(savedLink.trim());
+        if (savedLink.includes('emil-appointmentlyy')) {
+          localStorage.setItem('tenant_calendar_link', globalDefault);
+          setTenantCalendarLink(globalDefault);
+        } else {
+          setTenantCalendarLink(savedLink.trim());
+        }
+      } else {
+        setTenantCalendarLink(globalDefault);
       }
     } catch {}
   }, []);
