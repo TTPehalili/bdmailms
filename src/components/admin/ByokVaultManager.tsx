@@ -58,7 +58,7 @@ export default function ByokVaultManager() {
       resendKey: '',
       resendDomain: 'apexglobalbpo.ph',
       resendFromEmail: 'outbound@apexglobalbpo.ph',
-      calendarBookingLink: 'https://calendly.com/emil-appointmentlyy/30min',
+      calendarBookingLink: 'https://calendly.com/bpogtm/30min',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -72,7 +72,7 @@ export default function ByokVaultManager() {
       resendKey: '',
       resendDomain: '',
       resendFromEmail: '',
-      calendarBookingLink: 'https://calendly.com/emil-appointmentlyy/30min',
+      calendarBookingLink: 'https://calendly.com/bpogtm/30min',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -86,7 +86,7 @@ export default function ByokVaultManager() {
       resendKey: '',
       resendDomain: '',
       resendFromEmail: '',
-      calendarBookingLink: 'https://calendly.com/emil-appointmentlyy/30min',
+      calendarBookingLink: 'https://calendly.com/bpogtm/30min',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -95,12 +95,12 @@ export default function ByokVaultManager() {
     },
     'ten_4': {
       tenantId: 'ten_4',
-      tenantName: 'Metro Cloud BPO Manila',
+      tenantName: 'Metro Cloud BPO',
       isUnlocked: false,
       resendKey: '',
       resendDomain: '',
       resendFromEmail: '',
-      calendarBookingLink: 'https://calendly.com/emil-appointmentlyy/30min',
+      calendarBookingLink: 'https://calendly.com/bpogtm/30min',
       openaiKey: '',
       claudeKey: '',
       geminiKey: '',
@@ -458,7 +458,7 @@ export default function ByokVaultManager() {
                       Injected into Calling Floor teleprompter, quick follow-up email composer, and in-app booking modal.
                     </span>
                     <span className="text-[10px] text-zinc-500 font-mono shrink-0">
-                      Fallback: https://calendly.com/emil-appointmentlyy/30min
+                      Fallback: https://calendly.com/bpogtm/30min
                     </span>
                   </div>
                 </div>

@@ -206,7 +206,7 @@ export default function BorisCallingCockpit() {
       const saved = localStorage.getItem('tenant_calendar_link');
       if (saved && saved.trim()) return saved.trim();
     }
-    return 'https://calendly.com/emil-appointmentlyy/30min';
+    return 'https://calendly.com/bpogtm/30min';
   });
 
   // Telemetry & Customer Qualification State
